@@ -4,12 +4,12 @@ version = "0.1.0"
 description = "Finanzas e inversiones con marketplace de préstamos"
 requires-python = ">=3.12"
 dependencies = [
-    "Django>=5.0",
+    "Django>=5.2,<6",
     "djangorestframework>=3.14",
     "drf-spectacular>=0.30",
     "djangorestframework-simplejwt>=5.3",
     "pytest>=7.0",
-    "pytest-django>=5.0",
+    "pytest-django>=4.0",
     "factory-boy>=3.0",
     "ruff>=0.1.0",
     "import-linter>=2.0",
@@ -25,3 +25,33 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["django.db.models.Model.objects.create", "django.db.models.QuerySet.create"]
+
+[tool.ruff.lint]
+ignore = [
+    "E501",
+    "F403",
+    "F405",
+    "F401",
+    "B011",
+    "E402",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"config/urls.py" = ["F401"]
