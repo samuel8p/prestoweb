@@ -1,5 +1,5 @@
 [importlinter]
-root_package = apps.core
+root_package = apps
 
 [importlinter.contracts.core_isolation]
 type = independence
