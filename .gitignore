@@ -1,0 +1,26 @@
+# Databases
+*.sqlite3
+*.db
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pyvenv/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Static files (Django)
+staticfiles/
+static/
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
