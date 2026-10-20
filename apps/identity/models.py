@@ -2,7 +2,10 @@ import uuid
 
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 from django.db import models
+
+from apps.core.models import BaseModel
 
 
 class UserManager(BaseUserManager):
@@ -58,3 +61,20 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class Profile(BaseModel):
+    """Datos adicionales del usuario."""
+
+    country_validator = RegexValidator(
+        regex=r'^[A-Z]{2}$',
+        message='El país debe ser un código ISO 3166-1 alpha-2 (ej. AR, US).',
+    )
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    phone_number = models.CharField(max_length=32, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    country = models.CharField(max_length=2, blank=True, validators=[country_validator])
+
+    def __str__(self):
+        return f'Profile<{self.user_id}>'

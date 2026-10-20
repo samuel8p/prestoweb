@@ -68,3 +68,62 @@ def test_user_str_returns_email():
     user = UserFactory(email='str@example.com')
 
     assert str(user) == 'str@example.com'
+
+
+def test_profile_is_one_to_one_with_user():
+    """Un usuario tiene como máximo un perfil."""
+    from apps.identity.models import Profile
+
+    user = UserFactory()
+    Profile.objects.create(user=user)
+
+    with pytest.raises(IntegrityError):
+        Profile.objects.create(user=user)
+
+
+def test_profile_fields_are_optional():
+    """El perfil se puede crear sin datos cargados."""
+    from apps.identity.models import Profile
+
+    user = UserFactory()
+    profile = Profile.objects.create(user=user)
+
+    assert profile.phone_number == ''
+    assert profile.date_of_birth is None
+    assert profile.country == ''
+
+
+def test_profile_stores_contact_data():
+    """El perfil guarda teléfono, fecha de nacimiento y país."""
+    from datetime import date
+
+    from apps.identity.models import Profile
+
+    user = UserFactory()
+    profile = Profile.objects.create(
+        user=user,
+        phone_number='+5491133334444',
+        date_of_birth=date(1990, 5, 20),
+        country='AR',
+    )
+
+    assert profile.phone_number == '+5491133334444'
+    assert profile.date_of_birth == date(1990, 5, 20)
+    assert profile.country == 'AR'
+
+
+def test_profile_country_rejects_non_iso_code():
+    """El país se valida como código ISO 3166-1 alpha-2."""
+    from django.core.exceptions import ValidationError
+
+    from apps.identity.models import Profile
+
+    user = UserFactory()
+    profile = Profile.objects.create(user=user, country='AR')
+
+    profile.country = 'ar'
+
+    with pytest.raises(ValidationError) as excinfo:
+        profile.full_clean()
+
+    assert 'ISO 3166-1' in str(excinfo.value)
