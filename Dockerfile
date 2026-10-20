@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir \
     "djangorestframework-simplejwt>=5.3" \
     "pytest>=7.0" \
     "pytest-django>=4.0" \
+    "pytest-cov>=5.0" \
     "factory-boy>=3.0" \
     "ruff>=0.1.0" \
     "import-linter>=2.0" \
