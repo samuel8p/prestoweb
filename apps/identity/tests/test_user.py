@@ -10,14 +10,12 @@ def test_user_has_email_as_login():
     from apps.identity.models import User
 
     user = User.objects.create_user(
-        username="test@example.com",
-        email="test@example.com",
-        password="testpassword123"
+        username='test@example.com', email='test@example.com', password='testpassword123'
     )
 
-    assert user.email == "test@example.com"
-    assert user.username == "test@example.com"
-    assert user.check_password("testpassword123")
+    assert user.email == 'test@example.com'
+    assert user.username == 'test@example.com'
+    assert user.check_password('testpassword123')
 
 
 def test_user_email_unique():
@@ -25,19 +23,16 @@ def test_user_email_unique():
     from apps.identity.models import User
 
     User.objects.create_user(
-        username="unique@example.com",
-        email="unique@example.com",
-        password="testpassword123"
+        username='unique@example.com', email='unique@example.com', password='testpassword123'
     )
 
     from django.db import IntegrityError
+
     try:
         User.objects.create_user(
-            username="unique@example.com",
-            email="unique@example.com",
-            password="testpassword123"
+            username='unique@example.com', email='unique@example.com', password='testpassword123'
         )
-        assert False, "Expected IntegrityError"
+        assert False, 'Expected IntegrityError'
     except IntegrityError:
         pass
 
@@ -47,9 +42,7 @@ def test_user_str_method():
     from apps.identity.models import User
 
     user = User.objects.create_user(
-        username="str@example.com",
-        email="str@example.com",
-        password="testpassword123"
+        username='str@example.com', email='str@example.com', password='testpassword123'
     )
 
-    assert str(user) == "str@example.com"
+    assert str(user) == 'str@example.com'
