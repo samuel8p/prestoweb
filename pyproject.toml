@@ -29,7 +29,17 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = [
+    "E501",
+    "F403",
+    "F405",
+    "F401",
+    "B011",
+    "E402",
+]
 
 [tool.ruff.format]
 quote-style = "single"
@@ -42,16 +52,6 @@ known-first-party = ["apps", "config"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["django.db.models.Model.objects.create", "django.db.models.QuerySet.create"]
-
-[tool.ruff.lint]
-ignore = [
-    "E501",
-    "F403",
-    "F405",
-    "F401",
-    "B011",
-    "E402",
-]
 
 [tool.ruff.lint.per-file-ignores]
 "config/urls.py" = ["F401"]
