@@ -1,7 +1,9 @@
 [importlinter]
 root_package = apps
 
-[importlinter.contracts.core_isolation]
+[importlinter:core_isolation]
 type = independence
-source = apps.core
-target = apps.identity
+name = core_isolation
+modules =
+    apps.core
+    apps.identity
