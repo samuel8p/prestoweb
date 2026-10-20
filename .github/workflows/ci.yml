@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  POSTGRES_DB: presto
+  POSTGRES_USER: presto
+  POSTGRES_PASSWORD: presto
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+  DATABASE_URL: postgres://presto:presto@localhost:5432/presto
+  DJANGO_SECRET_KEY: django-insecure-ci-key-do-not-use-in-prod
+  DJANGO_DEBUG: "0"
+  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+  REDIS_URL: redis://localhost:6379/0
+  DJANGO_SETTINGS_MODULE: config.settings.test
+
+jobs:
+  quality:
+    name: Code Quality (ruff, import-linter)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "Django>=5.2,<6" \
+            "djangorestframework>=3.14" \
+            "drf-spectacular>=0.30" \
+            "djangorestframework-simplejwt>=5.3" \
+            "pytest>=7.0" \
+            "pytest-django>=4.0" \
+            "factory-boy>=3.0" \
+            "ruff>=0.1.0" \
+            "import-linter>=2.0" \
+            "psycopg2-binary>=2.9" \
+            "python-dotenv>=1.0" \
+            "argon2-cffi>=21.0.0" \
+            "gunicorn>=22.0.0" \
+            "celery>=5.3.0" \
+            "redis>=5.0.0" \
+            "dj-database-url>=2.2.0"
+
+      - name: Run ruff check
+        run: ruff check .
+
+      - name: Run ruff format check
+        run: ruff format --check .
+
+      - name: Run import-linter
+        run: import-linter
+
+  migrations:
+    name: Check Migrations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "Django>=5.2,<6" \
+            "djangorestframework>=3.14" \
+            "drf-spectacular>=0.30" \
+            "djangorestframework-simplejwt>=5.3" \
+            "pytest>=7.0" \
+            "pytest-django>=4.0" \
+            "factory-boy>=3.0" \
+            "ruff>=0.1.0" \
+            "import-linter>=2.0" \
+            "psycopg2-binary>=2.9" \
+            "python-dotenv>=1.0" \
+            "argon2-cffi>=21.0.0" \
+            "gunicorn>=22.0.0" \
+            "celery>=5.3.0" \
+            "redis>=5.0.0" \
+            "dj-database-url>=2.2.0"
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+  tests:
+    name: Tests (PostgreSQL 16)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "Django>=5.2,<6" \
+            "djangorestframework>=3.14" \
+            "drf-spectacular>=0.30" \
+            "djangorestframework-simplejwt>=5.3" \
+            "pytest>=7.0" \
+            "pytest-django>=4.0" \
+            "factory-boy>=3.0" \
+            "ruff>=0.1.0" \
+            "import-linter>=2.0" \
+            "psycopg2-binary>=2.9" \
+            "python-dotenv>=1.0" \
+            "argon2-cffi>=21.0.0" \
+            "gunicorn>=22.0.0" \
+            "celery>=5.3.0" \
+            "redis>=5.0.0" \
+            "dj-database-url>=2.2.0"
+
+      - name: Run migrations
+        run: python manage.py migrate
+
+      - name: Run tests
+        run: python -m pytest -v

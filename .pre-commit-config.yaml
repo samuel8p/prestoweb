@@ -1,0 +1,17 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/seddonym/import-linter
+    rev: 2.1.0
+    hooks:
+      - id: import-linter
+        args: [--config-file, .importlinter]
+
+ci:
+  autofix_commit_msg_style: "Conventional Commits"
+  autofix_prerequisites: ["ruff"]
