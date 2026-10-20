@@ -127,3 +127,65 @@ def test_profile_country_rejects_non_iso_code():
         profile.full_clean()
 
     assert 'ISO 3166-1' in str(excinfo.value)
+
+
+def test_kyc_verification_defaults_to_pending():
+    """Una verificación KYC nace en estado pending con fecha de solicitud."""
+    from apps.identity.models import KYCVerification
+
+    user = UserFactory()
+    verification = KYCVerification.objects.create(user=user)
+
+    assert verification.status == KYCVerification.Status.PENDING
+    assert verification.requested_at is not None
+    assert verification.resolved_at is None
+    assert verification.resolved_by_user_id is None
+
+
+def test_kyc_verification_documents_default_to_empty():
+    """El campo documents arranca vacío."""
+    from apps.identity.models import KYCVerification
+
+    user = UserFactory()
+    verification = KYCVerification.objects.create(user=user)
+
+    assert verification.documents == {}
+
+
+def test_kyc_verification_keeps_history_per_user():
+    """Un usuario puede tener varias verificaciones resueltas (historial)."""
+    from apps.identity.models import KYCVerification
+
+    user = UserFactory()
+    KYCVerification.objects.create(user=user, status=KYCVerification.Status.APPROVED)
+    KYCVerification.objects.create(user=user, status=KYCVerification.Status.REJECTED)
+
+    assert KYCVerification.objects.filter(user=user).count() == 2
+
+
+def test_kyc_verification_allows_only_one_pending_per_user():
+    """Un usuario no puede tener dos verificaciones pending a la vez."""
+    from apps.identity.models import KYCVerification
+
+    user = UserFactory()
+    KYCVerification.objects.create(user=user)
+
+    with pytest.raises(IntegrityError):
+        KYCVerification.objects.create(user=user)
+
+
+def test_kyc_verification_resolved_fields_are_optional():
+    """Los campos de resolución se completan al resolver la verificación."""
+    import uuid
+
+    from apps.identity.models import KYCVerification
+
+    user = UserFactory()
+    resolver_id = uuid.uuid4()
+    verification = KYCVerification.objects.create(
+        user=user,
+        status=KYCVerification.Status.APPROVED,
+        resolved_by_user_id=resolver_id,
+    )
+
+    assert verification.resolved_by_user_id == resolver_id

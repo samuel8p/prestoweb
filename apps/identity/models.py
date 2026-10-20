@@ -4,6 +4,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import BaseModel
 
@@ -78,3 +79,32 @@ class Profile(BaseModel):
 
     def __str__(self):
         return f'Profile<{self.user_id}>'
+
+
+class KYCVerification(BaseModel):
+    """Solicitud de verificación KYC de un usuario. Se conserva el historial."""
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pendiente'
+        APPROVED = 'approved', 'Aprobada'
+        REJECTED = 'rejected', 'Rechazada'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kyc_verifications')
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    requested_at = models.DateTimeField(default=timezone.now)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by_user_id = models.UUIDField(null=True, blank=True)
+    documents = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=models.Q(status='pending'),
+                name='identity_kycverification_one_pending_per_user',
+            ),
+        ]
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f'KYCVerification<{self.user_id}:{self.status}>'
