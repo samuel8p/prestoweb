@@ -53,6 +53,30 @@ def test_create_superuser_sets_staff_and_superuser():
     assert admin.is_superuser is True
 
 
+def test_create_superuser_rejects_non_staff():
+    """El manager de superusuarios rechaza is_staff=False."""
+    from apps.identity.models import User
+
+    with pytest.raises(ValueError):
+        User.objects.create_superuser(
+            email='noadmin@example.com',
+            password='TestPass123!',
+            is_staff=False,
+        )
+
+
+def test_create_superuser_rejects_non_superuser():
+    """El manager de superusuarios rechaza is_superuser=False."""
+    from apps.identity.models import User
+
+    with pytest.raises(ValueError):
+        User.objects.create_superuser(
+            email='noadmin@example.com',
+            password='TestPass123!',
+            is_superuser=False,
+        )
+
+
 def test_user_email_is_unique():
     """No se pueden crear dos usuarios con el mismo email."""
     from apps.identity.models import User
@@ -127,6 +151,27 @@ def test_profile_country_rejects_non_iso_code():
         profile.full_clean()
 
     assert 'ISO 3166-1' in str(excinfo.value)
+
+
+def test_profile_str_represents_user():
+    """El __str__ del perfil identifica al usuario."""
+    from apps.identity.models import Profile
+
+    user = UserFactory()
+    profile = Profile.objects.create(user=user)
+
+    assert str(user.id) in str(profile)
+
+
+def test_kyc_verification_str_represents_user_and_status():
+    """El __str__ de la verificación identifica al usuario y el estado."""
+    from apps.identity.models import KYCVerification
+
+    user = UserFactory()
+    verification = KYCVerification.objects.create(user=user)
+
+    assert str(user.id) in str(verification)
+    assert 'pending' in str(verification)
 
 
 def test_kyc_verification_defaults_to_pending():

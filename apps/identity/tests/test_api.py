@@ -340,3 +340,30 @@ def test_kyc_post_does_not_create_verification_for_other_user(client):
 
     assert KYCVerification.objects.filter(user=user).count() == 1
     assert KYCVerification.objects.filter(user=other).count() == 0
+
+
+def test_openapi_schema_is_served(client):
+    """El esquema OpenAPI se publica en /api/schema/."""
+    response = client.get('/api/schema/')
+
+    assert response.status_code == 200
+    assert response['Content-Type'].startswith('application/vnd.oai.openapi')
+
+
+def test_openapi_schema_documents_identity_endpoints(client):
+    """El esquema documenta los endpoints de identity."""
+    response = client.get('/api/schema/')
+    schema = response.data
+
+    assert '/api/v1/auth/register/' in schema['paths']
+    assert '/api/v1/auth/login/' in schema['paths']
+    assert '/api/v1/auth/token/refresh/' in schema['paths']
+    assert '/api/v1/auth/me/' in schema['paths']
+    assert '/api/v1/kyc/' in schema['paths']
+
+
+def test_swagger_docs_are_served(client):
+    """La documentación Swagger se publica en /api/docs/."""
+    response = client.get('/api/docs/')
+
+    assert response.status_code == 200
