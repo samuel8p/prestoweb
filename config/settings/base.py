@@ -19,9 +19,8 @@ ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if os.getenv("D
 DATABASES = {}
 db_url = os.getenv("DATABASE_URL")
 if db_url:
-    # dj_database_url parsing
     import dj_database_url
-    DATABASES["default"] = dj_database_url.db_url(db_url)
+    DATABASES["default"] = dj_database_url.parse(db_url)
 else:
     # Fallback to PostgreSQL using environment variables
     DATABASES["default"] = {
@@ -52,11 +51,31 @@ INSTALLED_APPS = [
     "drf_spectacular",
 ]
 
-MIDDLEWARE = []
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
 
-ROOT_URLCONF = "config.urls"
-
-TEMPLATES = []
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
 
 WSGI_APPLICATION = "config.wsgi.application"
 
@@ -64,6 +83,14 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # Password validators
 AUTH_PASSWORD_VALIDATORS = []
+
+# Password hashers: Argon2 first, then Django built-in hashers
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.SHA1PasswordHasher",
+]
 
 # Internationalization
 LANGUAGE_CODE = "en-us"

@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: presto
+      POSTGRES_USER: presto
+      POSTGRES_PASSWORD: presto
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: >
+      bash -c "export PYTHONPATH=/app && \
+               python manage.py makemigrations identity && \
+               python manage.py migrate --no-input && \
+               python -m pytest apps/core/tests/test_simple.py -v"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgres://presto:presto@db:5432/presto
+      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SECRET_KEY=django-insecure-dev-key-do-not-use-in-prod
+      - DJANGO_DEBUG=False
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "8000:8000"
+
+volumes:
+  pg_data:
