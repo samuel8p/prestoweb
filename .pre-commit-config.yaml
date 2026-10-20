@@ -7,10 +7,10 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/seddonym/import-linter
-    rev: v2.15.0
+    rev: v2.15
     hooks:
       - id: import-linter
-        args: [--config-file, .importlinter]
+        args: [--config, .importlinter]
 
 ci:
   autofix_commit_msg_style: "Conventional Commits"
