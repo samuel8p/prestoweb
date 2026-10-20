@@ -132,7 +132,7 @@ apps/<nombre>/
 
 ### 5.2 Límites entre apps
 
-1. Una app **solo puede usar a otra mediante su `services.py` y `selectors.py`**. Nunca importar modelos de otra app para consultarlos o modificarlos directamente.
+1. Una app **solo puede usar a otra mediante su `services.py` y `selectors.py`**. Nunca importar modelos de otra app para consultarlos o modificarlos directamente. **Excepción documentada:** `signals.py` puede importar modelos de otra app para implementar la comunicación por señales (§5.3); los receptores resuelven la lógica de negocio llamando a `services.py` de la app dueña.
 2. **Prohibidas las `ForeignKey` entre apps de dominios distintos.** Referenciar con un campo `UUIDField` (ej. `user_id`) y resolver mediante el selector de la app dueña. Excepción única: `ledger` puede apuntar a `settings.AUTH_USER_MODEL`.
 3. `core` no puede importar de ninguna otra app. Las demás apps pueden importar de `core`.
 4. Estos límites se verifican con `import-linter` en CI. **Si el chequeo falla, el cambio no se acepta.**
@@ -164,7 +164,7 @@ apps/<nombre>/
 4. **Depósito con confirmación del proveedor:** un depósito se acredita solo con confirmación del proveedor (webhook firmado, idempotente). Nunca por confirmación del cliente.
 5. **Retiros:** verificación, límites y registro de auditoría completo.
 6. **Snapshot de oferta al aceptar:** al aceptar una oferta se guarda un snapshot inmutable de sus términos (tasa, plazo, reglas), con fecha y usuario. El cronograma de cuotas se calcula una sola vez, en core/money.py con Decimal, y se persiste. Editar una oferta nunca modifica préstamos ya creados.
-7. **Estados de préstamo como máquina de estados:** estados de préstamo como máquina de estados con transiciones válidas (activo, en mora, pagado, cancelado).
+7. **Estados de préstamo como máquina de estados:** transiciones válidas entre estados, en inglés: `active` | `pending` | `paid` | `defaulted`.
 8. **Todo movimiento por ledger:** todo movimiento de dinero, incluidos investments, pasa por ledger.
 
 ---
@@ -185,13 +185,13 @@ class BaseModel(models.Model):
 
 ### `identity`
 
-- **User:** `AbstractUser` con email como login. **No usar el User por defecto de Django.**
-- **Profile:** datos adicionales del usuario.
-- **KYCVerification:** `user_id`, `estado` (`pending` | `approved` | `rejected`), `fecha_solicitud`, `fecha_resolucion`, `documentos`.
+- **User:** `AbstractUser` con email como login y **sin `username`** (migración que lo elimina). `UserManager` propio: `create_user(email, password)`. Clave primaria `UUID`.
+- **Profile:** `user` (1:1 con User), `phone_number`, `date_of_birth`, `country` (ISO 3166-1 alpha-2).
+- **KYCVerification:** `user` (FK, historial de solicitudes), `status` (`pending` | `approved` | `rejected`), `requested_at`, `resolved_at` (nullable), `resolved_by_user_id` (`UUIDField` nullable), `documents` (JSON, **solo metadata**, sin datos sensibles). **Una sola verificación `pending` por usuario** (`UniqueConstraint` condicional).
 
 ### `ledger`
 
-- **Account:** `user_id`, `currency` (`ARS` | `USD`), `kind` (`user_wallet` | `custody` | `system`). **Uno solo por user_id y currency.** Constraint: `amount >= 0`.
+- **Account:** `user_id`, `currency` (`ARS` | `USD`), `kind` (`user_wallet` | `custody` | `system`). **Uno solo por user_id y currency.** **Sin campo `amount`:** el saldo se deriva de los asientos (§6 regla 7).
 - **LedgerTransaction:** `type` (`deposit` | `withdrawal` | `transfer` | `interest` | `fee` | `reversal`), `idempotency_key` (único), `occurred_at`, `description`, `reverses` (FK a sí misma, opcional). **Regla DB:** por cada transacción, suma de débitos = suma de créditos.
 - **LedgerEntry:** `ledger_transaction`, `account`, `direction` (`debit` | `credit`), `amount` (`Decimal`, `> 0`), `currency`. **Por cada LedgerTransaction, sum(debits) = sum(credits).**
 
@@ -453,3 +453,5 @@ Todo cambio a este archivo debe ser aprobado por el desarrollador y anotarse aqu
 | 2026-10-20 | Actualización de contexto, apps, reglas de dinero, modelos, seguridad y plan de fases para Presto con marketplace de préstamos, custodia, KYC, y nuevas apps (payments, offers, matching, loans, investments). |
 | 2026-10-20 | Sección 11.b añadida: Metodología TDD y código limpio. Sección 16 actualizada: item "Ciclo Red-Green-Refactor evidenciado con la salida de pytest". |
 | 2026-10-20 | Sección 7 actualizada: modelos de identidad, ledger (custodia doble entrada), payments, offers, loans, investments, budgets, con constraints de dinero y referencias UUID entre apps. |
+| 2026-10-20 | **Fase 1A (identity) — decisiones registradas.** (a) `User` sin `username` con `UserManager` por email; (b) `Profile` 1:1 con `User` y campos `phone_number`, `date_of_birth`, `country`; (c) `KYCVerification` con FK a `User` e historial, `UniqueConstraint` condicional de una sola verificación `pending` por usuario, campos `status`/`requested_at`/`resolved_at`/`resolved_by_user_id`/`documents`; (d) la resolución de KYC la hace una acción del Django admin que invoca `services.resolve_kyc`; (e) throttling con scope: login `5/min`, register `5/hour`; (f) log de decisiones de KYC con `logging`, sin datos sensibles. Extras: `selectors.is_kyc_approved(user_id)`, refresh de JWT con rotación y blacklist, `EXCEPTION_HANDLER` con el formato de error de §8, `drf-spectacular` en todas las vistas. |
+| 2026-10-20 | **Correcciones de nomenclatura y constraints.** Estados de préstamo en inglés: `active` \| `pending` \| `paid` \| `defaulted` (§6 regla 7 y §7 `loans`). `Account` **sin** campo `amount` ni constraint `amount >= 0`: el saldo se deriva de los asientos (§6 regla 7). `KYCVerification` con campos en inglés (`status`, `requested_at`, `resolved_at`, `resolved_by_user_id`, `documents`) (§7 `identity`). `signals.py` como **excepción documentada** a la regla de imports entre apps (§5.2 regla 1), con la lógica de negocio delegada a `services.py` de la app dueña. |
