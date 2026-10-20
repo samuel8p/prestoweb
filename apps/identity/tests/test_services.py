@@ -1,6 +1,7 @@
 """Tests de los servicios de escritura de identity."""
 
 import uuid
+from datetime import date
 
 import pytest
 
@@ -138,3 +139,41 @@ def test_resolve_kyc_logs_decision_without_sensitive_data(caplog):
     assert str(user.id) in message
     assert str(resolver_id) in message
     assert 'documents' not in message
+
+
+def test_update_profile_creates_profile_when_missing():
+    """Actualizar el perfil lo crea si el usuario todavía no tiene uno."""
+    from apps.identity.services import update_profile
+
+    user = UserFactory()
+
+    profile = update_profile(user=user, changes={'country': 'AR'})
+
+    assert profile.user == user
+    assert profile.country == 'AR'
+
+
+def test_update_profile_updates_allowed_fields():
+    """Solo se actualizan los campos permitidos del perfil."""
+    from apps.identity.services import update_profile
+
+    user = UserFactory()
+
+    profile = update_profile(
+        user=user,
+        changes={'phone_number': '+5491100000000', 'date_of_birth': date(1991, 3, 4)},
+    )
+
+    assert profile.phone_number == '+5491100000000'
+    assert profile.date_of_birth == date(1991, 3, 4)
+
+
+def test_update_profile_rejects_unknown_field():
+    """No se pueden modificar campos fuera del perfil."""
+    from apps.identity.exceptions import InvalidProfileField
+    from apps.identity.services import update_profile
+
+    user = UserFactory()
+
+    with pytest.raises(InvalidProfileField):
+        update_profile(user=user, changes={'email': 'otro@example.com'})

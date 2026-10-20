@@ -11,6 +11,7 @@ from apps.identity.exceptions import (
     EmailAlreadyRegistered,
     InvalidDocuments,
     InvalidKYCResolution,
+    InvalidProfileField,
     KYCAlreadyResolved,
     PendingKYCExists,
 )
@@ -19,6 +20,7 @@ from apps.identity.models import KYCVerification, Profile, User
 logger = logging.getLogger(__name__)
 
 RESOLVABLE_STATUSES = (KYCVerification.Status.APPROVED, KYCVerification.Status.REJECTED)
+PROFILE_FIELDS = ('phone_number', 'date_of_birth', 'country')
 
 
 def register_user(email: str, password: str) -> User:
@@ -109,3 +111,27 @@ def resolve_kyc(
         resolved_by_user_id,
     )
     return verification
+
+
+def update_profile(user: User, changes: dict[str, Any]) -> Profile:
+    """Actualiza los campos del perfil de un usuario, creándolo si no existe.
+
+    Args:
+        user: usuario dueño del perfil.
+        changes: campos a actualizar (phone_number, date_of_birth, country).
+
+    Returns:
+        El perfil actualizado.
+
+    Raises:
+        InvalidProfileField: si se intenta modificar un campo ajeno al perfil.
+    """
+    unknown_fields = set(changes) - set(PROFILE_FIELDS)
+    if unknown_fields:
+        raise InvalidProfileField('Ese campo no pertenece al perfil del usuario.')
+    profile, _ = Profile.objects.get_or_create(user=user)
+    for field, value in changes.items():
+        setattr(profile, field, value)
+    profile.full_clean()
+    profile.save()
+    return profile

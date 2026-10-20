@@ -100,3 +100,27 @@ def test_is_kyc_approved_follows_latest_verification():
     KYCVerificationFactory(user=user, status='rejected')
 
     assert is_kyc_approved(user_id=user.id) is False
+
+
+def test_get_kyc_by_id_returns_own_verification():
+    """El selector de detalle devuelve la verificación del propio usuario."""
+    from apps.identity.selectors import get_kyc_by_id
+
+    user = UserFactory()
+    verification = KYCVerificationFactory(user=user)
+
+    found = get_kyc_by_id(verification_id=verification.id, user_id=user.id)
+
+    assert found is not None
+    assert found.id == verification.id
+
+
+def test_get_kyc_by_id_returns_none_for_other_user():
+    """El selector de detalle no expone verificaciones de otros usuarios."""
+    from apps.identity.selectors import get_kyc_by_id
+
+    other = UserFactory()
+    verification = KYCVerificationFactory(user=other)
+    user = UserFactory()
+
+    assert get_kyc_by_id(verification_id=verification.id, user_id=user.id) is None

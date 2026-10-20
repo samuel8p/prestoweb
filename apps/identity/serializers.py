@@ -1,0 +1,88 @@
+"""Serializers de la app identity: solo validan entrada y dan formato a la salida."""
+
+from rest_framework import serializers
+
+from apps.identity.models import KYCVerification, Profile, User
+
+
+class RegisterSerializer(serializers.Serializer):
+    """Datos necesarios para registrar un usuario."""
+
+    email = serializers.EmailField()
+    password = serializers.CharField(
+        write_only=True,
+        min_length=10,
+        style={'input_type': 'password'},
+    )
+
+
+class LoginSerializer(serializers.Serializer):
+    """Credenciales de acceso."""
+
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Datos públicos de un usuario."""
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name']
+        read_only_fields = ['id', 'email']
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """Datos del perfil de un usuario."""
+
+    class Meta:
+        model = Profile
+        fields = ['id', 'phone_number', 'date_of_birth', 'country']
+        read_only_fields = ['id']
+
+
+class MeUpdateSerializer(serializers.Serializer):
+    """Campos del perfil que el usuario puede actualizar sobre sí mismo."""
+
+    phone_number = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=32,
+    )
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    country = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2,
+        validators=[Profile.country_validator],
+    )
+
+
+class KYCRequestSerializer(serializers.Serializer):
+    """Metadata de documentos para solicitar la verificación KYC."""
+
+    documents = serializers.JSONField()
+
+
+class KYCVerificationSerializer(serializers.ModelSerializer):
+    """Estado de una verificación KYC."""
+
+    class Meta:
+        model = KYCVerification
+        fields = [
+            'id',
+            'status',
+            'requested_at',
+            'resolved_at',
+            'resolved_by_user_id',
+            'documents',
+        ]
+        read_only_fields = fields
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    """Respuesta del login con tokens y datos del usuario."""
+
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+    user = UserSerializer()

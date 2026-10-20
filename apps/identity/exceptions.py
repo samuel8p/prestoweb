@@ -25,3 +25,7 @@ class InvalidKYCResolution(IdentityError):
 
 class InvalidDocuments(IdentityError):
     """Los documentos enviados no son un objeto JSON de metadata."""
+
+
+class InvalidProfileField(IdentityError):
+    """Se intentó modificar un campo que no pertenece al perfil."""
