@@ -1,50 +1,31 @@
-"""Tests for core.models.BaseModel."""
+"""Tests for core.models.BaseModel - field definitions only (no DB needed)."""
+
+from apps.core.models import BaseModel
+from django.db import models
 
 
-def test_base_model_has_uuid():
-    """Test that BaseModel creates objects with UUID primary key."""
-    from apps.core.models import BaseModel
-    import uuid
-
-    class TestModel(BaseModel):
-        class Meta:
-            app_label = "core"
-
-    obj = TestModel()
-    assert obj.id is not None
-    assert isinstance(obj.id, uuid.UUID)
-    assert obj.created_at is not None
-    assert obj.updated_at is not None
+def test_base_model_has_uuid_field():
+    """Test that BaseModel defines UUID primary key field."""
+    id_field = BaseModel._meta.get_field("id")
+    assert isinstance(id_field, models.UUIDField)
+    assert id_field.primary_key is True
+    assert id_field.editable is False
 
 
-def test_base_model_timestamps():
-    """Test that BaseModel timestamps are set on creation."""
-    from apps.core.models import BaseModel
-    import uuid
-    from datetime import datetime, timezone
-
-    class TestModel(BaseModel):
-        class Meta:
-            app_label = "core"
-
-    obj = TestModel()
-    assert obj.created_at is not None
-    assert obj.updated_at is not None
-    # Check that created_at is roughly now
-    now = datetime.now(timezone.utc)
-    assert abs((obj.created_at - now).total_seconds()) < 5
+def test_base_model_has_created_at_field():
+    """Test that BaseModel defines created_at with auto_now_add."""
+    created_field = BaseModel._meta.get_field("created_at")
+    assert isinstance(created_field, models.DateTimeField)
+    assert created_field.auto_now_add is True
 
 
-def test_base_model_save_updates_timestamp():
-    """Test that saving updates updated_at."""
-    from apps.core.models import BaseModel
-    import uuid
+def test_base_model_has_updated_at_field():
+    """Test that BaseModel defines updated_at with auto_now."""
+    updated_field = BaseModel._meta.get_field("updated_at")
+    assert isinstance(updated_field, models.DateTimeField)
+    assert updated_field.auto_now is True
 
-    class TestModel(BaseModel):
-        class Meta:
-            app_label = "core"
 
-    obj = TestModel()
-    old_updated = obj.updated_at
-    obj.save()
-    assert obj.updated_at > old_updated
+def test_base_model_is_abstract():
+    """Test that BaseModel is abstract."""
+    assert BaseModel._meta.abstract is True
