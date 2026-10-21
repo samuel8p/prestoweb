@@ -1,0 +1,108 @@
+"""Servicios de escritura de la app budgets (interfaz pública)."""
+
+import uuid
+from decimal import Decimal
+
+from django.db import IntegrityError, transaction
+
+from apps.budgets.exceptions import (
+    CategoryNotFound,
+    DuplicateBudget,
+    DuplicateCategory,
+    InvalidBudget,
+    InvalidCategory,
+)
+from apps.budgets.models import CATEGORY_NAME_MAX_LENGTH, Budget, Category
+from apps.budgets.selectors import get_category_for_user
+
+
+def create_category(user_id: uuid.UUID, name: str) -> Category:
+    """Crea una categoría de gasto personal para el usuario.
+
+    Args:
+        user_id: identificador del usuario.
+        name: nombre de la categoría.
+
+    Returns:
+        La Category creada.
+
+    Raises:
+        InvalidCategory: si el nombre está vacío o es demasiado largo.
+        DuplicateCategory: si el usuario ya tiene una categoría con ese nombre.
+    """
+    clean_name = (name or '').strip()
+    if not clean_name:
+        raise InvalidCategory('El nombre de la categoría no puede estar vacío.')
+    if len(clean_name) > CATEGORY_NAME_MAX_LENGTH:
+        raise InvalidCategory(
+            f'El nombre de la categoría no puede superar {CATEGORY_NAME_MAX_LENGTH} caracteres.'
+        )
+    if Category.objects.filter(user_id=user_id, name=clean_name).exists():
+        raise DuplicateCategory('Ya tenés una categoría con ese nombre.')
+    try:
+        with transaction.atomic():
+            return Category.objects.create(user_id=user_id, name=clean_name)
+    except IntegrityError:
+        raise DuplicateCategory('Ya tenés una categoría con ese nombre.') from None
+
+
+def create_budget(
+    user_id: uuid.UUID,
+    category_id: uuid.UUID,
+    limit_amount: Decimal,
+    currency: str,
+    alert_threshold: int,
+    period: str = Budget.Period.MONTHLY,
+) -> Budget:
+    """Crea el presupuesto de una categoría, período y moneda.
+
+    Args:
+        user_id: identificador del usuario.
+        category_id: identificador de la categoría del presupuesto.
+        limit_amount: límite del presupuesto, mayor que cero.
+        currency: moneda del presupuesto (`ARS` o `USD`).
+        alert_threshold: porcentaje del límite a partir del cual se avisa.
+        period: período del presupuesto (`monthly`).
+
+    Returns:
+        El Budget creado.
+
+    Raises:
+        CategoryNotFound: si la categoría no existe o no es del usuario.
+        InvalidBudget: si el límite, la moneda, el período o el umbral no son válidos.
+        DuplicateBudget: si ya existe ese presupuesto.
+    """
+    category = get_category_for_user(category_id=category_id, user_id=user_id)
+    if category is None:
+        raise CategoryNotFound('La categoría no existe.')
+    if not isinstance(limit_amount, Decimal):
+        raise InvalidBudget('El límite del presupuesto debe ser un Decimal.')
+    if limit_amount <= 0:
+        raise InvalidBudget('El límite del presupuesto debe ser mayor que cero.')
+    if currency not in Budget.Currency.values:
+        raise InvalidBudget('La moneda del presupuesto no es válida.')
+    if period not in Budget.Period.values:
+        raise InvalidBudget('El período del presupuesto no es válido.')
+    if not isinstance(alert_threshold, int) or not 0 <= alert_threshold <= 100:
+        raise InvalidBudget('El umbral de alerta debe ser un porcentaje entre 0 y 100.')
+    if Budget.objects.filter(
+        user_id=user_id,
+        category=category,
+        period=period,
+        currency=currency,
+    ).exists():
+        raise DuplicateBudget('Ya tenés un presupuesto para esa categoría, período y moneda.')
+    try:
+        with transaction.atomic():
+            return Budget.objects.create(
+                user_id=user_id,
+                category=category,
+                period=period,
+                limit_amount=limit_amount,
+                currency=currency,
+                alert_threshold=alert_threshold,
+            )
+    except IntegrityError:
+        raise DuplicateBudget(
+            'Ya tenés un presupuesto para esa categoría, período y moneda.'
+        ) from None
