@@ -8,7 +8,11 @@ Este archivo solo toca `config.celery` y los settings: no importa apps de
 dominio, porque `core` no puede importarlas (contrato `core-isolation`).
 """
 
+from pathlib import Path
+
 from django.conf import settings
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def get_celery_app():
@@ -85,3 +89,21 @@ def test_test_settings_run_celery_eagerly():
     """En los tests las tareas corren en el proceso, sin depender de Redis."""
     assert settings.CELERY_TASK_ALWAYS_EAGER is True
     assert settings.CELERY_TASK_EAGER_PROPAGATES is True
+
+
+def test_docker_compose_runs_the_celery_worker_and_beat():
+    """`docker compose up` levanta el worker y el beat (AGENTS §14)."""
+    compose = (REPO_ROOT / 'docker-compose.yml').read_text(encoding='utf-8')
+
+    assert '  worker:' in compose
+    assert '  beat:' in compose
+    assert 'celery -A config worker' in compose
+    assert 'celery -A config beat' in compose
+
+
+def test_docker_compose_keeps_the_celery_scheduler_state_in_a_volume():
+    """El estado del scheduler de beat vive en un volumen, no en el repo."""
+    compose = (REPO_ROOT / 'docker-compose.yml').read_text(encoding='utf-8')
+
+    assert 'celerybeat:/var/celerybeat' in compose
+    assert '--schedule /var/celerybeat/celerybeat-schedule' in compose

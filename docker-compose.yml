@@ -36,5 +36,39 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
 
+  worker:
+    build: .
+    command: >
+      bash -c "export PYTHONPATH=/app && \
+               celery -A config worker -l info"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgres://presto:presto@db:5432/presto
+      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SECRET_KEY=django-insecure-dev-key-do-not-use-in-prod
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+
+  beat:
+    build: .
+    command: >
+      bash -c "export PYTHONPATH=/app && \
+               celery -A config beat -l info --schedule /var/celerybeat/celerybeat-schedule"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgres://presto:presto@db:5432/presto
+      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SECRET_KEY=django-insecure-dev-key-do-not-use-in-prod
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+      - celerybeat:/var/celerybeat
+
 volumes:
   pg_data:
+  celerybeat:

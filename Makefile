@@ -1,4 +1,4 @@
-.PHONY: up down test lint migrate shell makemigrations
+.PHONY: up down test lint migrate shell makemigrations worker beat celery-tasks
 
 up:
 	docker compose up --build -d
@@ -32,3 +32,12 @@ db-shell:
 
 redis-cli:
 	docker compose exec redis redis-cli
+
+worker:
+	docker compose run --rm web celery -A config worker -l info
+
+beat:
+	docker compose run --rm web celery -A config beat -l info --schedule /tmp/celerybeat-schedule
+
+celery-tasks:
+	docker compose run --rm web celery -A config list bindings
