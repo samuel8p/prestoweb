@@ -3,7 +3,7 @@
 import uuid
 from decimal import Decimal
 
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 
 from apps.ledger.models import Account, LedgerTransaction
 
@@ -125,3 +125,81 @@ def get_transaction(transaction_id: uuid.UUID, user_id: uuid.UUID) -> LedgerTran
         La LedgerTransaction o None.
     """
     return LedgerTransaction.objects.filter(id=transaction_id, created_by_user_id=user_id).first()
+
+
+def list_movement_details(transaction_ids: list[uuid.UUID]) -> dict[uuid.UUID, dict]:
+    """Devuelve el detalle de varios movimientos resolviéndolos en un solo lote.
+
+    El detalle de cada movimiento tiene esta forma::
+
+        {
+            'transaction_id': UUID,
+            'type': str,
+            'occurred_at': datetime,
+            'is_reversed': bool,
+            'legs': [
+                {
+                    'account_id': UUID,
+                    'account_kind': str,
+                    'account_user_id': UUID | None,
+                    'direction': str,
+                    'amount': Decimal,
+                    'currency': str,
+                },
+                ...
+            ],
+        }
+
+    Las patas son los asientos del movimiento: de ahí sale de qué cuenta sale el
+    dinero (débito) y a qué cuenta llega (crédito). `account_user_id` es `None`
+    en las cuentas de contrapartida (`custody` y `system`).
+
+    Args:
+        transaction_ids: identificadores de los movimientos a describir.
+
+    Returns:
+        Dict con el detalle de cada movimiento existente, indexado por su id.
+    """
+    if not transaction_ids:
+        return {}
+    movements = (
+        LedgerTransaction.objects.filter(id__in=transaction_ids)
+        .annotate(
+            is_reversed=Exists(
+                LedgerTransaction.objects.filter(reverses=OuterRef('pk')),
+            ),
+        )
+        .prefetch_related('entries__account')
+    )
+    details = {}
+    for movement in movements:
+        details[movement.id] = {
+            'transaction_id': movement.id,
+            'type': movement.type,
+            'occurred_at': movement.occurred_at,
+            'is_reversed': movement.is_reversed,
+            'legs': [
+                {
+                    'account_id': entry.account_id,
+                    'account_kind': entry.account.kind,
+                    'account_user_id': entry.account.user_id,
+                    'direction': entry.direction,
+                    'amount': entry.amount,
+                    'currency': entry.currency,
+                }
+                for entry in movement.entries.all()
+            ],
+        }
+    return details
+
+
+def get_movement_detail(transaction_id: uuid.UUID) -> dict | None:
+    """Devuelve el detalle de un movimiento, o None si no existe.
+
+    Args:
+        transaction_id: identificador del movimiento.
+
+    Returns:
+        El detalle del movimiento o None.
+    """
+    return list_movement_details(transaction_ids=[transaction_id]).get(transaction_id)
