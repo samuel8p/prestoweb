@@ -366,6 +366,30 @@ def get_investments_report(user_id: uuid.UUID, currency: str) -> dict:
     }
 
 
+def build_loan_summary_rows(report: dict) -> list[dict]:
+    """Filas del CSV del reporte de préstamos: una por rol.
+
+    Args:
+        report: reporte de préstamos.
+
+    Returns:
+        Lista de filas con el resumen de cada rol.
+    """
+    return [
+        {
+            'role': role,
+            'active_loans': summary['active_loans'],
+            'outstanding_amount': summary['outstanding_amount'],
+            'interest_amount': summary['interest_amount'],
+            'next_installments': len(summary['next_installments']),
+        }
+        for role, summary in (
+            ('as_borrower', report['as_borrower']),
+            ('as_lender', report['as_lender']),
+        )
+    ]
+
+
 def _parse_date(raw: str | None, name: str) -> date | None:
     """Convierte un parámetro de fecha ISO, o None si no viene.
 

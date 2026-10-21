@@ -9,3 +9,7 @@ class ReportsError(DomainError):
 
 class InvalidReportParameters(ReportsError):
     """Los parámetros del reporte no son válidos."""
+
+
+class ReportTooLarge(ReportsError):
+    """El reporte supera el tope de filas exportables."""
