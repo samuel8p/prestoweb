@@ -94,7 +94,10 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 │   │   ├── management/commands/  #   settle_investments
 │   │   ├── tasks.py              #   task Celery settle_investments
 │   │   └── tests/
-│   └── budgets/                  # Category, Budget, Expense (gastos categorizados)
+│   ├── budgets/                  # Category, Budget, Expense (gastos categorizados)
+│   │   └── tests/
+│   └── reports/                  # reportes de solo lectura (sin modelos)
+│       ├── export.py              #   exportación a CSV
 │       └── tests/
 ├── config/
 │   ├── settings/                 # base, local, test, production
@@ -104,11 +107,12 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 └── docs/
     └── adr/
         ├── 0001-celery-redis-cola-y-scheduler.md
-        └── 0002-budgets-derivacion-del-gasto.md
+        ├── 0002-budgets-derivacion-del-gasto.md
+        └── 0003-reports-reportes-de-solo-lectura.md
 ```
 
 Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
-`investments`, `budgets`. **No existen** (aún): `reports`, `notifications`,
+`investments`, `budgets`, `reports`. **No existen** (aún): `notifications`,
 `payments`. `docs/architecture.md` **tampoco existe**.
 
 ## 4. Entorno local e invariantes del dinero
@@ -188,6 +192,13 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 | Commit | Asunto |
 |---|---|---|
+| `9599982` | chore(reports): import-linter contracts, coverage gate and ADR |
+| `73b62f1` | feat(reports): csv export for the four reports |
+| `2a75626` | feat(reports): investments report |
+| `5fef54f` | feat(reports): loans report |
+| `593a34b` | feat(reports): spending report |
+| `b68975f` | feat(reports): movements report |
+| `4bb5fe7` | feat(reports): reports app and parameter validation |
 | `45eefa8` | chore(infra): add the production docker compose |
 | `89d6f49` | feat(core): add the health check endpoint |
 | `6efb50f` | feat(identity): require approved kyc on the views that move money |
@@ -287,7 +298,7 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Bloque 5 — investments (plazo fijo)** | ✅ completa | `InvestmentProduct` (solo staff) y `Position` de plazo fijo, apertura atómica contra la cuenta `system`, liquidación idempotente con interés simple y API de productos y posiciones. |
 | **Bloque 6a — infraestructura Celery** | ✅ completa | `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario, servicios `worker` y `beat` en el compose, tasks `mark_overdue_loans` (00:05 UTC) y `settle_investments` (00:15 UTC). ADR 0001. |
 | **Bloque 6b — `budgets`** | ✅ completa | `Category`, `Budget` y `Expense`; gastos categorizados sobre movimientos del ledger (el importe se deriva, no se guarda), presupuestos mensuales por categoría y moneda, API y contratos de import-linter. ADR 0002. |
-| **Bloque 6c — `reports`** | ❌ no empezada | Solo lectura; sin modelos ni endpoints especificados (ver §11.4). |
+| **Bloque 6c — `reports`** | ✅ completa | Cuatro reportes de solo lectura (gasto por categoría, préstamos, inversiones y movimientos) con una moneda por reporte, rango de hasta 12 meses y exportación CSV. ADR 0003. |
 | **Bloque 6d — `notifications`** | ❌ no empezada | Ya tiene la cola y el worker; falta el modelo, los disparadores, las tareas de email y la configuración de email. |
 | **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 
@@ -322,6 +333,12 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
   `Expense` (movimiento del ledger atribuido a una categoría). El **importe no se
   guarda**: se deriva del ledger al leer. API de categorías, presupuestos, estado
   y gastos.
+- **`reports`**: cuatro reportes de solo lectura, sin modelos ni migraciones:
+  `spending` (gasto por categoría), `loans` (resumen como prestatario y
+  prestamista), `investments` (posiciones, capital invertido e interés) y
+  `movements` (movimientos del ledger con `is_reversed`). Todos piden `currency`
+  (`ARS` o `USD`) y aceptan `from`/`to` (por defecto, el mes calendario actual
+  en UTC, máximo 12 meses). `?export=csv` devuelve el CSV.
 - **Celery**: app, worker, beat, dos tasks periódicas y su cobertura de tests.
 - **Chequeo de salud**: `GET /health/` (fuera de `/api/v1/`, sin autenticación y
   sin throttle) devuelve 200 con `{"status": "ok"}` si la base responde un
@@ -332,13 +349,13 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web pytest -q` | **504 passed** |
-| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,81%** (81 statements sin cubrir de 6814) |
+| Tests | `docker compose run --rm web pytest -q` | **556 passed** |
+| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,8%** (cobertura de `reports` al 99%) |
 | Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **100%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Cobertura por módulo | idem | `identity/*` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `ledger/selectors.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `loans/tasks.py` 100% · `investments/services.py` 99% · `investments/tasks.py` 100% · `matching/views.py` 97% |
 | Lint | `ruff check .` | All checks passed |
 | Formato | `ruff format --check .` | 151 files already formatted |
-| Límites entre apps | `lint-imports` | **16 kept, 0 broken** |
+| Límites entre apps | `lint-imports` | **22 kept, 0 broken** |
 | Migraciones | `makemigrations --check --dry-run` | No changes detected |
 | System checks | `manage.py check` | System check identified no issues |
 | OpenAPI | `spectacular --validate --fail-on-warn --file schema.yml` | **PASA: 0 errores, 0 warnings** (lo mismo que corre la CI) |
@@ -350,6 +367,7 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | Endpoints de budgets (runtime) | `curl` contra el `web` local | crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401 |
 | Compose de producción | `docker compose -f docker-compose.prod.yml config` | válido (5 servicios) |
 | Compose de producción (arranque real) | `docker compose -f docker-compose.prod.yml -p presto-prod up -d --build` | `db`, `redis` y `web` **healthy**, `worker` y `beat` Up, `/health/` → 200 `{"status": "ok"}` |
+| Endpoints de reports (runtime) | `curl` contra el `web` local | los 4 reportes 200, sin moneda 400, sin token 401, CSV con `text/csv` y `Content-Disposition` |
 | Estado del repo | `git status` | limpio; `main` al día con `origin/main` |
 
 **Logs de evidencia** (fuera del repo, en `A:\Samuel\`): `tdd_6.log` (ciclos
@@ -398,6 +416,11 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D31 | `/health/` es una vista de Django (no DRF) fuera de `/api/v1/` | Es un endpoint operativo: sin autenticación, sin throttle y fuera del esquema OpenAPI |
 | D32 | `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` en los settings de producción | El proxy inverso termina TLS delante: sin esto, `SECURE_SSL_REDIRECT` respondía 301 y el chequeo de salud fallaba |
 | D33 | `docker-compose.prod.yml` no monta el código fuente: la imagen lo lleva | En producción el código va en la imagen (el `Dockerfile` hace `COPY . .`); el montaje del compose de desarrollo es solo para recargar |
+| D34 | `reports` es una app **sin modelos** ni migraciones, como `matching` | Es de solo lectura: no hay nada que persistir y el ledger sigue siendo la única fuente de verdad |
+| D35 | Cada reporte es de **una sola moneda** y `currency` es obligatorio | AGENTS §6: no se mezclan ni se convierten importes |
+| D36 | El "saldo pendiente" de un préstamo es la suma de las **cuotas pendientes** (capital e interés) | Es lo que falta pagar y lo que el prestamista va a cobrar; el interés pagado va aparte |
+| D37 | El CSV exporta como máximo **10.000 filas** y neutraliza la inyección de fórmulas con un apóstrofo | Un reporte enorme no se descarga: responde 400. El `csv` de la stdlib alcanza, sin dependencias |
+| D38 | Se agregaron selectores de lectura en las apps dueñas (`ledger`, `loans`, `budgets`) | La app dueña es la que conoce sus datos: `reports` solo usa `services.py`/`selectors.py` (AGENTS §5.2) |
 
 ## 8. Problemas y resoluciones
 
@@ -421,6 +444,8 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | P16 | El hook de `import-linter` de `pre-commit` falla en el host con `Executable 'lint-imports' not found` | El hook usa `language: system` y en este host `lint-imports.exe` vive en `C:\Users\samue\AppData\Roaming\Python\Python315\Scripts`, que **no está en el PATH**. Antes de commitear: `export PATH="/c/Users/samue/AppData/Roaming/Python/Python315/Scripts:$PATH"`. No es un problema del repo |
 | P22 | Con `SECURE_SSL_REDIRECT=True` y `SECURE_PROXY_SSL_HEADER=None` (el valor real del proyecto), `/health/` respondía **301** y el healthcheck del contenedor expiraba | Se agregó `SECURE_PROXY_SSL_HEADER` a los settings de producción (el proxy termina TLS) y el healthcheck envía `X-Forwarded-Proto: https`. Verificado con el stack real: `web` queda **healthy** |
 | P23 | El `docker-compose.prod.yml` no parseaba: el valor del healthcheck tenía `:` sin comillas | Se entrecomilló el valor YAML del bloque `test` |
+| P24 | El `ruff` del hook de pre-commit (v0.6.0) marcó `UP038` en `apps/reports/export.py` (`isinstance` con tupla) y el del contenedor no | Se adoptó la forma `isinstance(value, datetime | date)` (Python 3.10+), que pasa en las dos versiones |
+| P25 | Los tests de `reports` para el reporte de préstamos necesitaban un `Offer` y no hay service para crearlos (los productos y las ofertas los da staff) | Se usan `offers.services.create_offer` (una **service**, la interfaz autorizada) desde los tests. El contrato de `import-linter` de `reports` no incluye `offers`: queda anotado en el ADR 0003 |
 | P18 | El test del filtro de período falló con `IntegrityError: ledger_ledgertransaction rows are immutable: UPDATE is not allowed` | El ledger es inmutable (trigger de PostgreSQL): **no se puede mover la fecha de un movimiento**. El test se reformuló para comparar el mismo movimiento en su mes y en otro período, sin tocar el ledger |
 | P19 | `pytest.raises(Exception)` en un test de budgets disparaba el linter `B017` | Se reemplazó por la excepción concreta (`NotAnExpense`) |
 | P20 | El primer test de `test_spending.py` usaba un usuario ficticio (UUID sin `User`) y fallaba con `KYCNotCompleted` | El ledger exige KYC para mover saldo: la app budgets tiene su propio `create_approved_user()` en `apps/budgets/tests/factories.py`, como las otras apps |
@@ -663,6 +688,20 @@ requieren autenticación JWT salvo `auth/register`, `auth/login` y
 | GET, POST | `/api/v1/investments/positions/` | Lista las posiciones propias / abre una inversión |
 | GET | `/api/v1/investments/positions/{position_id}/` | Detalle de una posición propia (404 si es de otro) |
 
+### `reports`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/v1/reports/spending/` | Gasto por categoría en el rango (parámetros: `currency`, `from`, `to`) |
+| GET | `/api/v1/reports/loans/` | Préstamos como prestatario y como prestamista (parámetro: `currency`) |
+| GET | `/api/v1/reports/investments/` | Posiciones, capital invertido e interés (parámetro: `currency`) |
+| GET | `/api/v1/reports/movements/` | Movimientos del ledger paginados, con `is_reversed` (parámetros: `currency`, `from`, `to`) |
+
+Los cuatro aceptan `?export=csv` para bajar el CSV (tope de 10.000 filas; las
+celdas que empiezan por `=`, `+`, `-` o `@` se neutralizan). `currency` es
+obligatorio (`ARS` o `USD`), `from`/`to` van en ISO y por defecto cubren el mes
+calendario actual en UTC, con un máximo de 12 meses de rango.
+
 ### Fuera de `/api/v1/`
 
 | Método | Ruta | Descripción |
@@ -677,11 +716,12 @@ requieren autenticación JWT salvo `auth/register`, `auth/login` y
 
 Orden real de lo que falta, de mayor a menor prioridad.
 
-1. **Bloque 6c — app `reports`** (solo lectura) y **6d — `notifications`** (emails
-   vía Celery). Es la tarea recomendada: el andamiaje (Celery, ledger, usuarios y
-   `budgets`) está listo. Para `reports` y `notifications` **faltan
-   especificaciones** (modelos, endpoints, disparadores): hay que cerrarlas con
-   el cliente antes de codear (§11.4).
+1. **Bloque 6d — app `notifications`** (emails vía Celery): es la tarea
+   recomendada. La cola, el worker y el beat ya están (Bloque 6a) y las
+   señales de las apps emisoras son el disparador natural. **Faltan
+   especificaciones** (modelo, eventos, preferencias del usuario, backend de
+   email, idempotencia): hay que cerrarlas con el cliente antes de codear
+   (§11.4).
 2. **`Goal`** (AGENTS §7): no se implementó porque no estaba en el alcance de
    `budgets`; queda pendiente de pedido explícito.
 3. **Bloque 7 — `payments` con proveedor real** (al final, a propósito). Hoy los
@@ -843,9 +883,8 @@ ese umbral a la CI.
 
 ### 11.4 Huecos de especificación de `reports` y `notifications` (cerrar antes de codear)
 
-- `reports`: sin modelos, sin endpoints, sin criterios de agregación, sin formato
-  de exportación, sin política de rango de fechas. AGENTS §4 solo dice "Resúmenes y
-  exportaciones" y §15 "reports (resúmenes y exportaciones)".
+- `reports`: **resuelto** (Bloque 6c): el cliente aprobó los cuatro reportes,
+  sus parámetros, el rango máximo, el formato CSV y el tope de filas (ADR 0003).
 - `notifications`: sin modelo (¿registro de avisos? ¿preferencias del usuario?),
   sin eventos disparadores (¿pago de cuota próximo a vencer? ¿vencimiento? ¿liquidez
   de inversión?), sin backend de email definido, sin idempotencia especificada.
@@ -934,6 +973,7 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). |
 | 2026-10-21 | **Infraestructura de Celery (primer cambio del Bloque 6)**: `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario con `mark_overdue_loans` (00:05) y `settle_investments` (00:15), servicios `worker` y `beat` en el compose con volumen persistente para el scheduler, tasks en `apps/loans/tasks.py` y `apps/investments/tasks.py` que delegan en los services existentes (los management commands no se modifican), y tests de tasks y de commands (407 tests). Decisiones y consecuencias en `docs/adr/0001-celery-redis-cola-y-scheduler.md`. `AGENTS.md` **no** se modificó (pendiente de aprobación del desarrollador). |
 | 2026-10-21 | **O4 resuelta por el cliente** (criterio completo en §11.2). La app `budgets` **no** se implementó: el trabajo se detuvo en el análisis del código. Se deja el análisis verificado y las decisiones de implementación pendientes en §11.3 para retomar. |
+| 2026-10-21 | **Bloque 6c implementado: app `reports`** en 7 commits: `4bb5fe7` app y validación de parámetros, `b68975f` reporte de movimientos (+ selector de rango en `ledger`), `593a34b` reporte de spending (+ selector de gastos en `budgets`), `5fef54f` reporte de préstamos (+ selector de cuotas en `loans`), `2a75626` reporte de inversiones, `73b62f1` exportación CSV con neutralización de fórmulas y tope de 10.000 filas, `9599982` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0003. **556 tests pasan**, 22 contratos de import-linter, cobertura de `reports` del 99%. Verificado en runtime real contra el `web` local: los cuatro reportes 200, sin moneda 400, sin token 401 y el CSV con `text/csv` y `Content-Disposition`. |
 | 2026-10-21 | **Tres mejoras chicas**: `6efb50f` aplica `IsKycApproved` a las vistas que mueven dinero (movimientos del ledger, publicar oferta, aceptar préstamo, pagar cuota, abrir posición) con un mixin que solo afecta los métodos que no son de lectura; `89d6f49` agrega `GET /health/` (200 `{"status": "ok"}` / 503 `{"status": "unavailable"}`, público y fuera del esquema OpenAPI); `45eefa8` crea `docker-compose.prod.yml` (db, redis, web con gunicorn, worker y beat; sin puertos de db/redis, secretos por entorno, `restart: unless-stopped`, healthchecks y volúmenes persistentes) y ajusta `SECURE_PROXY_SSL_HEADER` en producción para que el chequeo de salud no reciba un 301. **504 tests pasan**, cobertura 98,81%. El stack de producción se levantó de verdad: `db`, `redis` y `web` healthy, `worker` y `beat` Up y `/health/` respondiendo 200. |
 | 2026-10-21 | **Bloque 6b implementado: app `budgets`** en 7 commits: `29f9b96` selector de patas y reversión en el ledger, `82793c2` `ledger_transaction_id` en `Installment`/`Loan` + selector de desglose, `e18b0a7` app con `Category` y `Budget`, `91b3858` service de categorización, `9f1a546` cálculo del gasto acumulado por categoría y moneda, `9125429` API y OpenAPI sin warnings, `92f2e1a` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0002. **491 tests pasan**, cobertura total 98,85% y `budgets/services.py` al 100%. Migraciones: `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_installment_ledger_transaction_id_and_more`. Los endpoints quedaron verificados en runtime real contra el `web` local (crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401). |
 | 2026-10-21 | **Reescritura del documento** para traspaso a Claude: §2 con el stack real (Celery 5.6.3 en uso), §3 con el árbol real (celery.py, tasks.py, ADR 0001), §5 con las reglas de API/seguridad/testing, §6.3 con los módulos verificados, §6.4 con la tabla de verificaciones comprobadas hoy (407 tests, 99,07% de cobertura, 11 contratos, 5 servicios Up), §7 con D19-D24 (Celery), §8 con P15-P17, §9 corregido (una billetera por moneda; depósitos simulados apagados en local), §10 con los comandos reales (`docker compose ps` muestra 5 servicios), §11 con el bloque 6b como tarea recomendada y §11.3 con el contexto técnico de `budgets`, §11.4 con los huecos de especificación de `reports`/`notifications`, **§13 nueva con las reglas para Claude** y §14 el registro. Se eliminaron datos obsoletos (conteo de commits, "374 passed", "3 servicios Up", `docs/adr/` vacío) sin perder decisiones vigentes. |
