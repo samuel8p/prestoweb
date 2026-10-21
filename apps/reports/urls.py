@@ -11,6 +11,11 @@ urlpatterns = [
         name='report-spending',
     ),
     path(
+        'reports/investments/',
+        views.InvestmentsReportView.as_view(),
+        name='report-investments',
+    ),
+    path(
         'reports/loans/',
         views.LoansReportView.as_view(),
         name='report-loans',

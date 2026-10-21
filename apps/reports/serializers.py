@@ -58,3 +58,25 @@ class LoansReportSerializer(serializers.Serializer):
     currency = serializers.CharField()
     as_borrower = LoansRoleSummarySerializer()
     as_lender = LoansRoleSummarySerializer()
+
+
+class InvestmentPositionSerializer(serializers.Serializer):
+    """Una posición de inversión dentro del reporte."""
+
+    position_id = serializers.UUIDField()
+    product_id = serializers.UUIDField()
+    amount = serializers.DecimalField(max_digits=18, decimal_places=2)
+    interest_amount = serializers.DecimalField(max_digits=18, decimal_places=2)
+    status = serializers.CharField()
+    opened_at = serializers.DateTimeField()
+    maturity_date = serializers.DateField()
+
+
+class InvestmentsReportSerializer(serializers.Serializer):
+    """El reporte de inversiones."""
+
+    currency = serializers.CharField()
+    total_invested = serializers.DecimalField(max_digits=18, decimal_places=2)
+    interest_expected = serializers.DecimalField(max_digits=18, decimal_places=2)
+    interest_earned = serializers.DecimalField(max_digits=18, decimal_places=2)
+    positions = InvestmentPositionSerializer(many=True)

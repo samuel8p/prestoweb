@@ -18,6 +18,7 @@ from typing import TypedDict
 from django.db.models import QuerySet
 
 from apps.budgets import selectors as budgets_selectors
+from apps.investments import selectors as investments_selectors
 from apps.ledger import selectors as ledger_selectors
 from apps.loans import selectors as loans_selectors
 from apps.reports.exceptions import InvalidReportParameters
@@ -35,6 +36,9 @@ DEBIT = 'debit'
 # Estados de una cuota y de un préstamo (constantes de otra app: no se importan).
 PAID = 'paid'
 ACTIVE = 'active'
+
+# Estados de una posición de inversión (constantes de otra app).
+MATURED = 'matured'
 
 
 class MovementRow(TypedDict):
@@ -312,6 +316,53 @@ def _summarize_loans(loans: list, installments_by_loan: dict[uuid.UUID, list]) -
         'outstanding_amount': outstanding,
         'interest_amount': interest,
         'next_installments': sorted(next_installments, key=lambda row: row['due_date']),
+    }
+
+
+def get_investments_report(user_id: uuid.UUID, currency: str) -> dict:
+    """Posiciones de inversión del usuario, capital invertido e interés.
+
+    `total_invested` es el capital de las posiciones activas, `interest_expected`
+    el interés que van a ganar y `interest_earned` el que ya ganaron las
+    posiciones liquidadas.
+
+    Args:
+        user_id: identificador del usuario.
+        currency: moneda del reporte.
+
+    Returns:
+        Dict con el resumen y las posiciones.
+    """
+    positions = [
+        position
+        for position in investments_selectors.list_positions_for_user(user_id=user_id)
+        if position.product.currency == currency
+    ]
+    active = [position for position in positions if position.status == ACTIVE]
+    matured = [position for position in positions if position.status == MATURED]
+    return {
+        'currency': currency,
+        'total_invested': sum((position.amount for position in active), Decimal('0.00')),
+        'interest_expected': sum(
+            (position.interest_amount for position in active),
+            Decimal('0.00'),
+        ),
+        'interest_earned': sum(
+            (position.interest_amount for position in matured),
+            Decimal('0.00'),
+        ),
+        'positions': [
+            {
+                'position_id': position.id,
+                'product_id': position.product_id,
+                'amount': position.amount,
+                'interest_amount': position.interest_amount,
+                'status': position.status,
+                'opened_at': position.opened_at,
+                'maturity_date': position.maturity_date,
+            }
+            for position in positions
+        ],
     }
 
 

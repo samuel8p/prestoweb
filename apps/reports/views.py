@@ -14,6 +14,7 @@ from apps.core.pagination import StandardPagination
 from apps.reports.exceptions import InvalidReportParameters
 from apps.reports.selectors import (
     build_movement_rows,
+    get_investments_report,
     get_loans_report,
     get_spending_report,
     list_movements_for_report,
@@ -21,6 +22,7 @@ from apps.reports.selectors import (
     parse_period,
 )
 from apps.reports.serializers import (
+    InvestmentsReportSerializer,
     LoansReportSerializer,
     MovementReportRowSerializer,
     SpendingReportSerializer,
@@ -99,3 +101,23 @@ class LoansReportView(APIView):
             raise ValidationError({'detail': [str(exc)]}) from exc
         report = get_loans_report(user_id=request.user.id, currency=currency)
         return Response(LoansReportSerializer(report).data)
+
+
+class InvestmentsReportView(APIView):
+    """Posiciones de inversión del usuario."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: InvestmentsReportSerializer},
+        summary='Ver el resumen de inversiones',
+        operation_id='reports_investments',
+    )
+    def get(self, request):
+        """Devuelve el resumen de las posiciones de inversión del usuario."""
+        try:
+            currency = parse_currency(request.query_params)
+        except InvalidReportParameters as exc:
+            raise ValidationError({'detail': [str(exc)]}) from exc
+        report = get_investments_report(user_id=request.user.id, currency=currency)
+        return Response(InvestmentsReportSerializer(report).data)
