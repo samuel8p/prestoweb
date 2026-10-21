@@ -347,6 +347,172 @@ def transfer_between_users(
         )
 
 
+SYSTEM_COUNTERPART = Account.Kind.SYSTEM
+CUSTODY_COUNTERPART = Account.Kind.CUSTODY
+
+
+def transfer_to_counterpart(
+    user_id: uuid.UUID,
+    counterparty_kind: str,
+    currency: str,
+    amount: Decimal,
+    idempotency_key: str,
+    initiated_by_user_id: uuid.UUID,
+    description: str = '',
+    movement_type: str = LedgerTransaction.Type.TRANSFER,
+) -> LedgerTransaction:
+    """Mueve fondos de la billetera de un usuario a una cuenta de contrapartida.
+
+    Es un service **interno**: la cuenta de contrapartida (`custody` o
+    `system`) no tiene usuario, por eso no puede resolverse con
+    `transfer_between_users`. Las reglas de saldo no negativo, de bloqueo de
+    cuentas en orden por `id` y de idempotencia son las mismas.
+
+    Args:
+        user_id: usuario cuya billetera se debita.
+        counterparty_kind: `custody` o `system`.
+        currency: código ISO de la moneda.
+        amount: importe a mover, mayor que cero.
+        idempotency_key: clave de idempotencia de la operación.
+        initiated_by_user_id: usuario que origina la operación.
+        description: descripción del movimiento.
+        movement_type: tipo de la transacción (`transfer` por defecto).
+
+    Returns:
+        La LedgerTransaction creada, o la original si la clave ya se usó.
+
+    Raises:
+        InvalidAmount: si el importe no es un Decimal positivo.
+        InsufficientFunds: si la billetera quedaría en negativo.
+        IdempotencyConflict: si la clave ya existe con otro payload.
+    """
+    return _transfer_with_counterpart(
+        user_id=user_id,
+        counterparty_kind=counterparty_kind,
+        currency=currency,
+        amount=amount,
+        idempotency_key=idempotency_key,
+        initiated_by_user_id=initiated_by_user_id,
+        description=description,
+        movement_type=movement_type,
+        from_user=True,
+    )
+
+
+def transfer_from_counterpart(
+    user_id: uuid.UUID,
+    counterparty_kind: str,
+    currency: str,
+    amount: Decimal,
+    idempotency_key: str,
+    initiated_by_user_id: uuid.UUID,
+    description: str = '',
+    movement_type: str = LedgerTransaction.Type.TRANSFER,
+) -> LedgerTransaction:
+    """Mueve fondos de una cuenta de contrapartida a la billetera de un usuario.
+
+    Es un service **interno**, hermano de `transfer_to_counterpart`.
+
+    Args:
+        user_id: usuario cuya billetera se acredita.
+        counterparty_kind: `custody` o `system`.
+        currency: código ISO de la moneda.
+        amount: importe a mover, mayor que cero.
+        idempotency_key: clave de idempotencia de la operación.
+        initiated_by_user_id: usuario que origina la operación.
+        description: descripción del movimiento.
+        movement_type: tipo de la transacción (`transfer` por defecto).
+
+    Returns:
+        La LedgerTransaction creada, o la original si la clave ya se usó.
+
+    Raises:
+        InvalidAmount: si el importe no es un Decimal positivo.
+        IdempotencyConflict: si la clave ya existe con otro payload.
+    """
+    return _transfer_with_counterpart(
+        user_id=user_id,
+        counterparty_kind=counterparty_kind,
+        currency=currency,
+        amount=amount,
+        idempotency_key=idempotency_key,
+        initiated_by_user_id=initiated_by_user_id,
+        description=description,
+        movement_type=movement_type,
+        from_user=False,
+    )
+
+
+def _transfer_with_counterpart(
+    *,
+    user_id: uuid.UUID,
+    counterparty_kind: str,
+    currency: str,
+    amount: Decimal,
+    idempotency_key: str,
+    initiated_by_user_id: uuid.UUID,
+    description: str,
+    movement_type: str,
+    from_user: bool,
+) -> LedgerTransaction:
+    """Mueve saldo entre la billetera de un usuario y una cuenta de contrapartida."""
+    _assert_valid_amount(amount)
+    request_hash = build_request_hash(
+        {
+            'type': movement_type,
+            'user_id': str(user_id),
+            'counterparty_kind': counterparty_kind,
+            'currency': currency,
+            'amount': str(amount),
+            'description': description,
+            'direction': 'to_counterpart' if from_user else 'from_counterpart',
+        }
+    )
+    try:
+        with transaction.atomic():
+            existing = _resolve_idempotent(
+                initiated_by_user_id,
+                idempotency_key,
+                request_hash,
+            )
+            if existing is not None:
+                return existing
+            wallet = create_user_wallet(user_id=user_id, currency=currency)
+            counterparty, _ = Account.objects.get_or_create(
+                user_id=None,
+                kind=counterparty_kind,
+                currency=currency,
+                defaults={'balance': Decimal('0.00')},
+            )
+            locked = _lock_accounts([wallet.id, counterparty.id])
+            if from_user:
+                _assert_sufficient_funds(locked[wallet.id], -amount)
+                legs = [
+                    (locked[wallet.id], LedgerEntry.Direction.DEBIT, amount),
+                    (locked[counterparty.id], LedgerEntry.Direction.CREDIT, amount),
+                ]
+            else:
+                legs = [
+                    (locked[counterparty.id], LedgerEntry.Direction.DEBIT, amount),
+                    (locked[wallet.id], LedgerEntry.Direction.CREDIT, amount),
+                ]
+            return _post_transaction(
+                movement_type=movement_type,
+                user_id=initiated_by_user_id,
+                currency=currency,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                legs=legs,
+                description=description,
+            )
+    except IntegrityError:
+        return _recover_from_idempotency_race(
+            initiated_by_user_id,
+            idempotency_key,
+            request_hash,
+        )
+
+
 def reverse_transaction(
     transaction_id: uuid.UUID,
     staff_user_id: uuid.UUID,

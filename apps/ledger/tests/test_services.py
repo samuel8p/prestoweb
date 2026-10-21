@@ -658,3 +658,128 @@ def test_transfer_between_users_supports_interest_movements():
     )
 
     assert ledger_transaction.type == LedgerTransaction.Type.INTEREST
+
+
+def test_transfer_to_counterpart_moves_money_to_the_system_account():
+    """El service interno mueve saldo de la billetera a la cuenta de contrapartida."""
+    from apps.ledger.models import Account
+    from apps.ledger.services import deposit, transfer_to_counterpart
+
+    user = create_approved_user()
+    deposit(
+        user_id=user.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='cp-dep',
+    )
+
+    transfer_to_counterpart(
+        user_id=user.id,
+        counterparty_kind=Account.Kind.SYSTEM,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='cp-1',
+        initiated_by_user_id=user.id,
+        description='Apertura de inversión',
+    )
+
+    wallet = Account.objects.get(user_id=user.id, kind=Account.Kind.USER_WALLET)
+    system = Account.objects.get(kind=Account.Kind.SYSTEM, currency=Account.Currency.ARS)
+    assert wallet.balance == Decimal('40.00')
+    assert system.balance == Decimal('60.00')
+
+
+def test_transfer_from_counterpart_moves_money_to_the_wallet():
+    """El service interno mueve saldo de la contrapartida a la billetera."""
+    from apps.ledger.models import Account
+    from apps.ledger.services import deposit, transfer_from_counterpart, transfer_to_counterpart
+
+    user = create_approved_user()
+    deposit(
+        user_id=user.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='cp-dep-2',
+    )
+    transfer_to_counterpart(
+        user_id=user.id,
+        counterparty_kind=Account.Kind.SYSTEM,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='cp-2',
+        initiated_by_user_id=user.id,
+    )
+
+    transfer_from_counterpart(
+        user_id=user.id,
+        counterparty_kind=Account.Kind.SYSTEM,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='cp-3',
+        initiated_by_user_id=user.id,
+        description='Liquidación de inversión',
+    )
+
+    wallet = Account.objects.get(user_id=user.id, kind=Account.Kind.USER_WALLET)
+    system = Account.objects.get(kind=Account.Kind.SYSTEM, currency=Account.Currency.ARS)
+    assert wallet.balance == Decimal('100.00')
+    assert system.balance == Decimal('0.00')
+
+
+def test_transfer_to_counterpart_requires_balance():
+    """Sin saldo no se puede mover dinero a la contrapartida."""
+    from apps.core.exceptions import InsufficientFunds
+    from apps.ledger.models import Account
+    from apps.ledger.services import transfer_to_counterpart
+
+    user = create_approved_user()
+
+    with pytest.raises(InsufficientFunds):
+        transfer_to_counterpart(
+            user_id=user.id,
+            counterparty_kind=Account.Kind.SYSTEM,
+            currency=Account.Currency.ARS,
+            amount=Decimal('60.00'),
+            idempotency_key='cp-4',
+            initiated_by_user_id=user.id,
+        )
+
+
+def test_transfer_to_counterpart_is_idempotent():
+    """La misma clave devuelve el movimiento original."""
+    from apps.ledger.models import Account, LedgerTransaction
+    from apps.ledger.services import deposit, transfer_to_counterpart
+
+    user = create_approved_user()
+    deposit(
+        user_id=user.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='cp-dep-3',
+    )
+
+    first = transfer_to_counterpart(
+        user_id=user.id,
+        counterparty_kind=Account.Kind.SYSTEM,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='cp-5',
+        initiated_by_user_id=user.id,
+    )
+    second = transfer_to_counterpart(
+        user_id=user.id,
+        counterparty_kind=Account.Kind.SYSTEM,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='cp-5',
+        initiated_by_user_id=user.id,
+    )
+
+    assert first.id == second.id
+    assert (
+        LedgerTransaction.objects.filter(
+            created_by_user_id=user.id,
+            idempotency_key='cp-5',
+        ).count()
+        == 1
+    )
