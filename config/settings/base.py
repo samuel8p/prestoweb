@@ -151,6 +151,26 @@ USE_TZ = True
 # Environment marker used by the system checks (never rely on DEBUG)
 DJANGO_ENV = os.getenv('DJANGO_ENV', 'local')
 
+# Redis: broker de Celery (el servicio redis ya existe en docker-compose.yml)
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
+# Celery (AGENTS §3 y §4): tareas asíncronas y periódicas con Redis como broker.
+# No hay result backend persistente: las tareas del proyecto no devuelven
+# resultados, solo efectos sobre el ledger.
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', REDIS_URL)
+CELERY_RESULT_BACKEND = None
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 15 * 60
+CELERY_TASK_SOFT_TIME_LIMIT = 10 * 60
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+
 # Ledger: simulated deposits are only for local/test environments
 LEDGER_SIMULATED_DEPOSITS_ENABLED = (
     os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False') == 'True'
