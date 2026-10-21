@@ -179,6 +179,17 @@ apps/<nombre>/
 
 ---
 
+## Reglas adicionales de ofertas y matching
+
+1. **TNA anual en `%`:** `Offer.interest_rate` es la tasa nominal anual en porcentaje (ej. `24.00` = 24% TNA). La tasa mensual equivalente es `TNA / 100 / 12`.
+2. **Cuota mensual francesa:** el cronograma se calcula **una sola vez** en `core/money.py` con `Decimal` (`french_installment`), sin redondeos intermedios; el redondeo a 2 decimales se aplica una sola vez, con `round_two` (§6 regla 8).
+3. **Crear una oferta no reserva fondos:** publicar una oferta no mueve dinero ni bloquea saldo. La reserva ocurre recién al aceptar el préstamo (Fase 3, `loans`).
+4. **Prestamista con KYC aprobado:** solo un usuario con `identity.selectors.is_kyc_approved(user_id)` puede crear o actualizar una oferta.
+5. **`matching` es solo lectura:** `matching` no escribe estado; expone únicamente selectores construidos sobre `offers.selectors`. Nunca importa `offers.models` (ni sus vistas ni serializers).
+6. **`offers` no importa `matching`:** la búsqueda y la comparación viven en `matching`; `offers` no depende de `matching` en ningún sentido.
+
+---
+
 ## 7. Modelos base (punto de partida)
 
 Todos los modelos heredan de `core.models.BaseModel`:
@@ -211,7 +222,7 @@ class BaseModel(models.Model):
 
 ### `offers`
 
-- **Offer:** `lender_user_id`, `amount` (`Decimal`, `> 0`), `currency`, `interest_rate` (`Decimal`), `term_months`, `requirements` (texto), `status` (`active` | `expired` | `accepted`).
+- **Offer:** `lender_user_id` (`UUIDField`, sin `ForeignKey`), `amount` (`Decimal`, `> 0`), `currency` (`ARS` | `USD`), `interest_rate` (`Decimal`, TNA anual en `%`, `> 0`), `term_months` (`Integer`, `> 0`), `requirements` (texto), `status` (`active` | `expired` | `accepted`). Crear una oferta **no reserva fondos** (§Reglas de ofertas 3).
 
 ### `loans`
 
@@ -396,14 +407,14 @@ Estructura del repo, Docker Compose, settings por entorno, `pre-commit`, CI, `im
 **Fase 1: identity y ledger**
 `identity` (registro, login JWT, perfil) y `ledger` (cuentas, categorías, transacciones, reversos, transferencias, idempotencia) con depósitos simulados. Tests completos de dinero y permisos.
 
-**Fase 2: payments**
-`payments` (proveedor real, sandbox primero; depósitos y retiros vía webhooks, conciliación).
+**Fase 2: offers y matching**
+`offers` (ofertas de préstamo del prestamista) y `matching` (búsqueda, comparación y recomendación vía selectors, solo lectura).
 
-**Fase 3: offers y matching**
-`offers` (ofertas de préstamo) y `matching` (búsqueda, comparación y recomendación vía selectors).
-
-**Fase 4: loans y cuotas**
+**Fase 3: loans y cuotas**
 `loans` (préstamos tomados, cuotas, estados). Máquina de estados con transiciones válidas.
+
+**Fase 4: payments**
+`payments` (proveedor real, sandbox primero; depósitos y retiros vía webhooks, conciliación).
 
 **Fase 5: investments**
 `investments` (plazo fijo primero; bonos y fondos después, requieren precios externos).
@@ -467,3 +478,4 @@ Todo cambio a este archivo debe ser aprobado por el desarrollador y anotarse aqu
 | 2026-10-20 | **Correcciones de nomenclatura y constraints.** Estados de préstamo en inglés: `active` \| `pending` \| `paid` \| `defaulted` (§6 regla 7 y §7 `loans`). `Account` **sin** campo `amount` ni constraint `amount >= 0`: el saldo se deriva de los asientos (§6 regla 7). `KYCVerification` con campos en inglés (`status`, `requested_at`, `resolved_at`, `resolved_by_user_id`, `documents`) (§7 `identity`). `signals.py` como **excepción documentada** a la regla de imports entre apps (§5.2 regla 1), con la lógica de negocio delegada a `services.py` de la app dueña. |
 | 2026-10-20 | **Fase 1B (ledger) — decisiones registradas en §6, §7 y acá.** `Account.balance` denormalizado con `CheckConstraint(balance >= 0)` **solo para `user_wallet`**; el saldo solo se modifica en `services.py` bajo `select_for_update()` bloqueando cuentas **en orden ascendente por `id`**; test de invariante `balance == creditos - debitos`. Doble entrada garantizada en DB con **constraint trigger diferido** de PostgreSQL (`sum(debits) = sum(credits)` por transacción) y **triggers que bloquean `UPDATE`/`DELETE`** en `LedgerTransaction` y `LedgerEntry`. `idempotency_key` única por `(created_by_user_id, idempotency_key)` con `request_hash`: mismo hash devuelve la original, hash distinto devuelve `409`, `IntegrityError` concurrente devuelve la original. **Sin `Hold` en 1B** (diferido a Fase 2). System check que **falla** si `LEDGER_SIMULATED_DEPOSITS_ENABLED=True` en `production.py` (no se usa `DEBUG`). Transferencias con `destination_account_id` (misma moneda, no a sí mismo, destino `user_wallet`). Reversos **solo staff**, **sin endpoint** (se disparan desde el admin), fallan con `insufficient_funds` si dejarían un `user_wallet` negativo. Depósito: acredita `user_wallet`, debita `custody`; retiro al revés. |
 | 2026-10-20 | **Conflictos de AGENTS.md resueltos y registrados (Fase 1B).** (1) El saldo no negativo aplica **solo a `user_wallet`**: las cuentas de contrapartida (`custody`, `system`) reflejan el mundo exterior y pueden quedar negativas (§6 regla 3 y §Reglas del ledger 3). (2) `Account` y `LedgerTransaction` referencian al usuario con **`UUIDField` sin `ForeignKey`**, de modo que se cumplen tanto la prohibición general de §7 como la excepción de §5.2 (§Reglas del ledger 7). (3) La unicidad de `Account` se define por `(user_id, currency)` para `user_wallet` y por `(kind, currency)` para `custody`/`system` (§7 `ledger`). (4) `ledger` solo importa de `identity` sus `services.py` y `selectors.py`, nunca `models`, `views` ni `serializers`; se verifica con `import-linter` (§5.2 regla 1 y §Reglas del ledger 7). |
+| 2026-10-20 | **Bloque 3 (offers + matching) — nuevo orden y decisiones registradas.** **Nuevo orden de fases:** `offers` + `matching` → `loans` → `payments` (§15). Decisiones: (a) `Offer.interest_rate` es la **TNA anual en `%`**; la tasa mensual equivalente es `TNA / 100 / 12`; (b) la **cuota mensual francesa** se calcula **una sola vez** en `core/money.py` con `Decimal` (`french_installment`), redondeando una única vez con `round_two`; (c) **crear una oferta no reserva fondos**: la reserva ocurre al aceptar el préstamo; (d) el **prestamista necesita KYC aprobado** para crear o actualizar una oferta; (e) `matching` es **solo lectura** y se apoya únicamente en `offers.selectors` (nunca `offers.models`); (f) `offers` **no importa** `matching`. Nueva sección §Reglas adicionales de ofertas y matching. |
