@@ -32,3 +32,6 @@ static/
 # IDE
 .vscode/
 .idea/
+# Generated OpenAPI schema
+schema.yml
+schema.json
