@@ -14,6 +14,19 @@ ERROR_CODES = {
     status.HTTP_429_TOO_MANY_REQUESTS: 'throttled',
 }
 
+# Para estos status se conserva el código genérico del status HTTP.
+# En los demás (por ejemplo 409) manda el código propio de la excepción.
+GENERIC_CODE_STATUSES = frozenset(
+    {
+        status.HTTP_400_BAD_REQUEST,
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+        status.HTTP_404_NOT_FOUND,
+        status.HTTP_405_METHOD_NOT_ALLOWED,
+        status.HTTP_429_TOO_MANY_REQUESTS,
+    }
+)
+
 DEFAULT_MESSAGES = {
     status.HTTP_400_BAD_REQUEST: 'Los datos enviados no son válidos.',
     status.HTTP_401_UNAUTHORIZED: 'Debés autenticarte para acceder a este recurso.',
@@ -45,8 +58,12 @@ def api_exception_handler(exc, context) -> Response | None:
     details = response.data
 
     if isinstance(details, dict) and 'detail' in details:
-        message = str(details['detail'])
+        detail = details['detail']
+        message = str(detail)
         details = {}
+        detail_code = getattr(detail, 'code', None)
+        if detail_code and response.status_code not in GENERIC_CODE_STATUSES:
+            code = detail_code
 
     response.data = {'error': {'code': code, 'message': message, 'details': details}}
     return response

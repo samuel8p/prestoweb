@@ -1,5 +1,8 @@
 """Excepciones de dominio de la app ledger."""
 
+from rest_framework import status
+from rest_framework.exceptions import APIException
+
 from apps.core.exceptions import DomainError
 
 
@@ -29,3 +32,11 @@ class IdempotencyConflict(LedgerError):
 
 class SimulatedDepositsDisabled(LedgerError):
     """Los depósitos simulados están deshabilitados."""
+
+
+class IdempotencyKeyConflict(APIException):
+    """HTTP 409: la clave de idempotencia ya existe con un payload distinto."""
+
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = 'Ya existe una operación con esa clave de idempotencia.'
+    default_code = 'idempotency_conflict'
