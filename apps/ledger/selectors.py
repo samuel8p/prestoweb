@@ -3,7 +3,7 @@
 import uuid
 from decimal import Decimal
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from apps.ledger.models import Account, LedgerTransaction
 
@@ -52,16 +52,22 @@ def get_balance(account_id: uuid.UUID, user_id: uuid.UUID) -> Decimal | None:
 
 
 def list_transactions_for_user(user_id: uuid.UUID) -> QuerySet[LedgerTransaction]:
-    """Lista las transacciones creadas por el usuario, de la más reciente a la más antigua.
+    """Lista los movimientos que tocan las cuentas del usuario.
+
+    Incluye los movimientos que el usuario creó **y** los que afectaron una
+    de sus cuentas (por ejemplo, una transferencia recibida).
 
     Args:
         user_id: identificador del usuario.
 
     Returns:
-        QuerySet con las transacciones del usuario.
+        QuerySet con los movimientos del usuario.
     """
     return (
-        LedgerTransaction.objects.filter(created_by_user_id=user_id)
+        LedgerTransaction.objects.filter(
+            Q(created_by_user_id=user_id) | Q(entries__account__user_id=user_id)
+        )
+        .distinct()
         .prefetch_related('entries__account')
         .order_by('-occurred_at', '-id')
     )

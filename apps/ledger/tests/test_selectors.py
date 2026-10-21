@@ -133,3 +133,51 @@ def test_get_transaction_returns_own_transaction():
     assert found is not None
     assert found.id == ledger_transaction.id
     assert found.id != uuid.uuid4()
+
+
+def test_list_transactions_includes_incoming_movements():
+    """El listado incluye los movimientos que tocan cuentas del usuario."""
+    from apps.ledger.models import Account
+    from apps.ledger.selectors import list_transactions_for_user
+    from apps.ledger.services import create_user_wallet, deposit, transfer
+
+    sender = create_approved_user()
+    receiver = create_approved_user(email='receptor@example.com')
+    deposit(
+        user_id=sender.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='lista-emisor',
+    )
+    source = Account.objects.get(user_id=sender.id, kind=Account.Kind.USER_WALLET)
+    destination = create_user_wallet(user_id=receiver.id, currency=Account.Currency.ARS)
+    transfer(
+        user_id=sender.id,
+        source_account_id=source.id,
+        destination_account_id=destination.id,
+        amount=Decimal('30.00'),
+        idempotency_key='lista-transferencia',
+    )
+
+    transactions = list_transactions_for_user(user_id=receiver.id)
+
+    assert len(transactions) == 1
+    assert transactions[0].destination_account_id == destination.id
+
+
+def test_list_transactions_excludes_movements_of_other_users():
+    """El listado no expone movimientos que no tocan cuentas del usuario."""
+    from apps.ledger.models import Account
+    from apps.ledger.selectors import list_transactions_for_user
+    from apps.ledger.services import deposit
+
+    user = create_approved_user()
+    other = create_approved_user(email='ajeno-lista@example.com')
+    deposit(
+        user_id=other.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('50.00'),
+        idempotency_key='lista-ajena',
+    )
+
+    assert list(list_transactions_for_user(user_id=user.id)) == []
