@@ -25,10 +25,11 @@ reversos y saldo nunca negativo en las billeteras de usuario.
 
 **Hoja de ruta:** Fase 0 (Cimientos) **completa**. Fase 1 **completa** (1A identity
 + 1B ledger). Bloques 3 (offers+matching), 4 (loans) y 5 (investments) **completos**.
-El **Bloque 6** (budgets/reports/notifications) está **en curso**: la
-infraestructura de Celery (worker, beat y tasks periódicas) y la app **`budgets`**
-(gastos categorizados y presupuestos mensuales) ya están; `reports` y
-`notifications` todavía no. Falta el **Bloque 7** (payments con proveedor real).
+El **Bloque 6** (budgets/reports/notifications) está **completo**: la
+infraestructura de Celery, la app **`budgets`** (gastos categorizados y
+presupuestos mensuales), la app **`reports`** (cuatro reportes de solo lectura) y
+la app **`notifications`** (avisos por email) ya están. Falta el **Bloque 7**
+(payments con proveedor real).
 
 **Decisiones de negocio ya confirmadas por el cliente:** la regla de "gastado" de
 los presupuestos (O4) está resuelta y esperando implementación (§11.2). Las
@@ -96,8 +97,13 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 │   │   └── tests/
 │   ├── budgets/                  # Category, Budget, Expense (gastos categorizados)
 │   │   └── tests/
-│   └── reports/                  # reportes de solo lectura (sin modelos)
-│       ├── export.py              #   exportación a CSV
+│   ├── reports/                  # reportes de solo lectura (sin modelos)
+│   │   ├── export.py              #   exportación a CSV
+│   │   └── tests/
+│   └── notifications/             # avisos por email (sin FK a otras apps)
+│       ├── emails.py              #   armado de los emails
+│       ├── receivers.py           #   receptores de las señales emisoras
+│       ├── tasks.py               #   tarea de envío
 │       └── tests/
 ├── config/
 │   ├── settings/                 # base, local, test, production
@@ -108,11 +114,12 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
     └── adr/
         ├── 0001-celery-redis-cola-y-scheduler.md
         ├── 0002-budgets-derivacion-del-gasto.md
-        └── 0003-reports-reportes-de-solo-lectura.md
+        ├── 0003-reports-reportes-de-solo-lectura.md
+        └── 0004-notifications-avisos-por-email.md
 ```
 
 Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
-`investments`, `budgets`, `reports`. **No existen** (aún): `notifications`,
+`investments`, `budgets`, `reports`, `notifications`. **No existe** (aún):
 `payments`. `docs/architecture.md` **tampoco existe**.
 
 ## 4. Entorno local e invariantes del dinero
@@ -192,6 +199,13 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 | Commit | Asunto |
 |---|---|---|
+| `a4e51d2` | chore(notifications): import-linter contracts, coverage gate and ADR |
+| `79d0a77` | feat(notifications): notifications api |
+| `0ae71d3` | feat(notifications): budget alert when the spending crosses the threshold |
+| `1ca99a3` | feat(notifications): alert when an investment is settled |
+| `454fa87` | feat(notifications): alerts for the installments due soon and overdue |
+| `a9bb4a9` | feat(notifications): celery task to send the notification emails |
+| `cc1d359` | feat(notifications): notifications app with models and services |
 | `9599982` | chore(reports): import-linter contracts, coverage gate and ADR |
 | `73b62f1` | feat(reports): csv export for the four reports |
 | `2a75626` | feat(reports): investments report |
@@ -299,7 +313,7 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Bloque 6a — infraestructura Celery** | ✅ completa | `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario, servicios `worker` y `beat` en el compose, tasks `mark_overdue_loans` (00:05 UTC) y `settle_investments` (00:15 UTC). ADR 0001. |
 | **Bloque 6b — `budgets`** | ✅ completa | `Category`, `Budget` y `Expense`; gastos categorizados sobre movimientos del ledger (el importe se deriva, no se guarda), presupuestos mensuales por categoría y moneda, API y contratos de import-linter. ADR 0002. |
 | **Bloque 6c — `reports`** | ✅ completa | Cuatro reportes de solo lectura (gasto por categoría, préstamos, inversiones y movimientos) con una moneda por reporte, rango de hasta 12 meses y exportación CSV. ADR 0003. |
-| **Bloque 6d — `notifications`** | ❌ no empezada | Ya tiene la cola y el worker; falta el modelo, los disparadores, las tareas de email y la configuración de email. |
+| **Bloque 6d — `notifications`** | ✅ completa | Avisos por email de cuatro eventos (cuota por vencer, cuota vencida, inversión liquidada, alerta de presupuesto) con idempotencia por evento, preferencias por usuario, API de lectura y señales definidas por las apps emisoras. ADR 0004. |
 | **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 
 ### 6.3 Funcionalidades implementadas (por app)
@@ -339,7 +353,13 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
   `movements` (movimientos del ledger con `is_reversed`). Todos piden `currency`
   (`ARS` o `USD`) y aceptan `from`/`to` (por defecto, el mes calendario actual
   en UTC, máximo 12 meses). `?export=csv` devuelve el CSV.
-- **Celery**: app, worker, beat, dos tasks periódicas y su cobertura de tests.
+- **`notifications`**: `Notification` (usuario, evento, referencia, estado
+  `pending|sent|failed`) y `NotificationPreference`. Cuatro eventos avisados por
+  email: cuota por vencer, cuota vencida, inversión liquidada y alerta de
+  presupuesto. Las apps emisoras (`loans`, `investments`, `budgets`) definen las
+  señales y `notifications` tiene los receptores, que crean el aviso y encolan
+  el envío con `transaction.on_commit`.
+- **Celery**: app, worker, beat, tasks periódicas y su cobertura de tests.
 - **Chequeo de salud**: `GET /health/` (fuera de `/api/v1/`, sin autenticación y
   sin throttle) devuelve 200 con `{"status": "ok"}` si la base responde un
   `SELECT 1` y 503 con `{"status": "unavailable"}` si no responde. No expone
@@ -349,13 +369,13 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web pytest -q` | **556 passed** |
-| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,8%** (cobertura de `reports` al 99%) |
+| Tests | `docker compose run --rm web pytest -q` | **608 passed** |
+| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,9%** (`reports` 99% y `notifications` 99%) |
 | Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **100%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Cobertura por módulo | idem | `identity/*` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `ledger/selectors.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `loans/tasks.py` 100% · `investments/services.py` 99% · `investments/tasks.py` 100% · `matching/views.py` 97% |
 | Lint | `ruff check .` | All checks passed |
 | Formato | `ruff format --check .` | 151 files already formatted |
-| Límites entre apps | `lint-imports` | **22 kept, 0 broken** |
+| Límites entre apps | `lint-imports` | **28 kept, 0 broken** |
 | Migraciones | `makemigrations --check --dry-run` | No changes detected |
 | System checks | `manage.py check` | System check identified no issues |
 | OpenAPI | `spectacular --validate --fail-on-warn --file schema.yml` | **PASA: 0 errores, 0 warnings** (lo mismo que corre la CI) |
@@ -368,6 +388,9 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | Compose de producción | `docker compose -f docker-compose.prod.yml config` | válido (5 servicios) |
 | Compose de producción (arranque real) | `docker compose -f docker-compose.prod.yml -p presto-prod up -d --build` | `db`, `redis` y `web` **healthy**, `worker` y `beat` Up, `/health/` → 200 `{"status": "ok"}` |
 | Endpoints de reports (runtime) | `curl` contra el `web` local | los 4 reportes 200, sin moneda 400, sin token 401, CSV con `text/csv` y `Content-Disposition` |
+| Endpoints de notifications (runtime) | `curl` contra el `web` local | listado 200, preferencias GET 200 y PUT 200, sin token 401 |
+| Tareas en el worker | `docker compose logs worker` | 5 tasks registradas: `mark_overdue_loans`, `settle_investments`, `notify_installments_due_soon`, `notify_overdue_installments`, `send_notification_email` |
+| Beat schedule | `celery -A config inspect conf` | 4 entradas: 00:05, 00:10, 00:15 y 00:20 UTC |
 | Estado del repo | `git status` | limpio; `main` al día con `origin/main` |
 
 **Logs de evidencia** (fuera del repo, en `A:\Samuel\`): `tdd_6.log` (ciclos
@@ -421,6 +444,11 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D36 | El "saldo pendiente" de un préstamo es la suma de las **cuotas pendientes** (capital e interés) | Es lo que falta pagar y lo que el prestamista va a cobrar; el interés pagado va aparte |
 | D37 | El CSV exporta como máximo **10.000 filas** y neutraliza la inyección de fórmulas con un apóstrofo | Un reporte enorme no se descarga: responde 400. El `csv` de la stdlib alcanza, sin dependencias |
 | D38 | Se agregaron selectores de lectura en las apps dueñas (`ledger`, `loans`, `budgets`) | La app dueña es la que conoce sus datos: `reports` solo usa `services.py`/`selectors.py` (AGENTS §5.2) |
+| D39 | Los avisos se idempotentan con la unicidad de `(usuario, evento, referencia)` | El mismo evento no genera dos avisos, aunque el receptor corra dos veces (AGENTS §5.3) |
+| D40 | Las señales las define la app emisora y los receptores viven en `notifications` | Es el patrón de AGENTS §5.3: la app emisora define la señal, la app interesada tiene el receptor |
+| D41 | El envío se encola con `transaction.on_commit` | El email nunca corre dentro de la transacción que originó el evento: un fallo de SMTP no rompe ni el ledger ni la app emisora |
+| D42 | La alerta de presupuesto deriva su identificador del presupuesto y del mes (`uuid5`) | El mismo presupuesto avisa **una sola vez por mes**, sin guardar nada extra |
+| D43 | El email del destinatario sale de `identity.selectors.get_user_email` | Ninguna app importa los modelos de otra (AGENTS §5.2): el selector es la única vía |
 
 ## 8. Problemas y resoluciones
 
@@ -446,6 +474,8 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | P23 | El `docker-compose.prod.yml` no parseaba: el valor del healthcheck tenía `:` sin comillas | Se entrecomilló el valor YAML del bloque `test` |
 | P24 | El `ruff` del hook de pre-commit (v0.6.0) marcó `UP038` en `apps/reports/export.py` (`isinstance` con tupla) y el del contenedor no | Se adoptó la forma `isinstance(value, datetime | date)` (Python 3.10+), que pasa en las dos versiones |
 | P25 | Los tests de `reports` para el reporte de préstamos necesitaban un `Offer` y no hay service para crearlos (los productos y las ofertas los da staff) | Se usan `offers.services.create_offer` (una **service**, la interfaz autorizada) desde los tests. El contrato de `import-linter` de `reports` no incluye `offers`: queda anotado en el ADR 0003 |
+| P26 | Los tests de `budgets` e `investments` importaban los modelos de `notifications` | El contrato nuevo de `import-linter` lo detectó: los tests end-to-end se movieron a la app de `notifications` (cada app prueba su propio código) |
+| P27 | La API de notificaciones respondía 500 en el entorno local: `relation "notifications_notificationpreference" does not exist` | Las migraciones nuevas no estaban aplicadas en la base de desarrollo (el `web` corre `migrate` al arrancar): se aplicaron y el servicio se reinició |
 | P18 | El test del filtro de período falló con `IntegrityError: ledger_ledgertransaction rows are immutable: UPDATE is not allowed` | El ledger es inmutable (trigger de PostgreSQL): **no se puede mover la fecha de un movimiento**. El test se reformuló para comparar el mismo movimiento en su mes y en otro período, sin tocar el ledger |
 | P19 | `pytest.raises(Exception)` en un test de budgets disparaba el linter `B017` | Se reemplazó por la excepción concreta (`NotAnExpense`) |
 | P20 | El primer test de `test_spending.py` usaba un usuario ficticio (UUID sin `User`) y fallaba con `KYCNotCompleted` | El ledger exige KYC para mover saldo: la app budgets tiene su propio `create_approved_user()` en `apps/budgets/tests/factories.py`, como las otras apps |
@@ -577,7 +607,12 @@ Tareas registradas y horario (beat, UTC):
 | Task | Cuándo | Qué hace |
 |---|---|---|
 | `apps.loans.tasks.mark_overdue_loans` | todos los días a las 00:05 | marca las cuotas vencidas (`overdue`) y los préstamos (`defaulted`) |
+| `apps.loans.tasks.notify_installments_due_soon` | todos los días a las 00:10 | avisa al prestatario de las cuotas que vencen en ≤3 días |
+| `apps.loans.tasks.notify_overdue_installments` | todos los días a las 00:20 | avisa al prestatario y al prestamista de las cuotas vencidas |
 | `apps.investments.tasks.settle_investments` | todos los días a las 00:15 | liquida las posiciones vencidas (capital + interés) |
+
+El aviso de la inversión liquidada sale de la liquidación y el de la alerta de
+presupuesto, de categorizar un movimiento: no son tareas del beat.
 
 En los tests las tasks corren en el proceso (`CELERY_TASK_ALWAYS_EAGER`), así que
 la suite no necesita Redis.
@@ -702,6 +737,14 @@ celdas que empiezan por `=`, `+`, `-` o `@` se neutralizan). `currency` es
 obligatorio (`ARS` o `USD`), `from`/`to` van en ISO y por defecto cubren el mes
 calendario actual en UTC, con un máximo de 12 meses de rango.
 
+### `notifications`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/v1/notifications/` | Lista los avisos del usuario (paginado) |
+| GET | `/api/v1/notifications/preferences/` | Preferencias de avisos (por defecto, todo habilitado) |
+| PUT | `/api/v1/notifications/preferences/` | Activa o desactiva un tipo de aviso |
+
 ### Fuera de `/api/v1/`
 
 | Método | Ruta | Descripción |
@@ -716,12 +759,10 @@ calendario actual en UTC, con un máximo de 12 meses de rango.
 
 Orden real de lo que falta, de mayor a menor prioridad.
 
-1. **Bloque 6d — app `notifications`** (emails vía Celery): es la tarea
-   recomendada. La cola, el worker y el beat ya están (Bloque 6a) y las
-   señales de las apps emisoras son el disparador natural. **Faltan
-   especificaciones** (modelo, eventos, preferencias del usuario, backend de
-   email, idempotencia): hay que cerrarlas con el cliente antes de codear
-   (§11.4).
+1. **Bloque 7 — `payments` con proveedor real**: es la tarea recomendada. Hoy
+   los depósitos y retiros son **simulados** y están apagados en producción por
+   el system check `ledger.E001`. Depende de la decisión O1 (qué proveedor),
+   que sigue abierta (§11.1).
 2. **`Goal`** (AGENTS §7): no se implementó porque no estaba en el alcance de
    `budgets`; queda pendiente de pedido explícito.
 3. **Bloque 7 — `payments` con proveedor real** (al final, a propósito). Hoy los
@@ -885,9 +926,10 @@ ese umbral a la CI.
 
 - `reports`: **resuelto** (Bloque 6c): el cliente aprobó los cuatro reportes,
   sus parámetros, el rango máximo, el formato CSV y el tope de filas (ADR 0003).
-- `notifications`: sin modelo (¿registro de avisos? ¿preferencias del usuario?),
-  sin eventos disparadores (¿pago de cuota próximo a vencer? ¿vencimiento? ¿liquidez
-  de inversión?), sin backend de email definido, sin idempotencia especificada.
+- `notifications`: **resuelto** (Bloque 6d): el cliente aprobó los cuatro
+  eventos, el canal (email), la idempotencia, las preferencias y la API (ADR
+  0004). Queda sin definir el reintento de los avisos fallidos y el resumen de
+  varios avisos en un mismo email.
 
 ---
 
@@ -973,6 +1015,7 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). |
 | 2026-10-21 | **Infraestructura de Celery (primer cambio del Bloque 6)**: `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario con `mark_overdue_loans` (00:05) y `settle_investments` (00:15), servicios `worker` y `beat` en el compose con volumen persistente para el scheduler, tasks en `apps/loans/tasks.py` y `apps/investments/tasks.py` que delegan en los services existentes (los management commands no se modifican), y tests de tasks y de commands (407 tests). Decisiones y consecuencias en `docs/adr/0001-celery-redis-cola-y-scheduler.md`. `AGENTS.md` **no** se modificó (pendiente de aprobación del desarrollador). |
 | 2026-10-21 | **O4 resuelta por el cliente** (criterio completo en §11.2). La app `budgets` **no** se implementó: el trabajo se detuvo en el análisis del código. Se deja el análisis verificado y las decisiones de implementación pendientes en §11.3 para retomar. |
+| 2026-10-21 | **Bloque 6d implementado: app `notifications`** en 7 commits: `cc1d359` app con los modelos `Notification` y `NotificationPreference` y los services idempotentes, `a9bb4a9` tarea de envío de email y configuración SMTP por entorno, `454fa87` señales y tareas diarias de cuota por vencer y vencida, `1ca99a3` aviso de la inversión liquidada, `0ae71d3` alerta de presupuesto con identificador derivado presupuesto+mes, `79d0a77` API de listado y preferencias, `a4e51d2` contratos de import-linter, gate de cobertura del 90% y ADR 0004. **608 tests pasan**, 28 contratos de import-linter y el 99% de cobertura de la app. Verificado en runtime real: los dos endpoints responden 200/401, el worker registra las 5 tasks y el beat tiene 4 entradas. El contrato nuevo detectó dos violaciones reales en tests de otras apps, corregidas. |
 | 2026-10-21 | **Bloque 6c implementado: app `reports`** en 7 commits: `4bb5fe7` app y validación de parámetros, `b68975f` reporte de movimientos (+ selector de rango en `ledger`), `593a34b` reporte de spending (+ selector de gastos en `budgets`), `5fef54f` reporte de préstamos (+ selector de cuotas en `loans`), `2a75626` reporte de inversiones, `73b62f1` exportación CSV con neutralización de fórmulas y tope de 10.000 filas, `9599982` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0003. **556 tests pasan**, 22 contratos de import-linter, cobertura de `reports` del 99%. Verificado en runtime real contra el `web` local: los cuatro reportes 200, sin moneda 400, sin token 401 y el CSV con `text/csv` y `Content-Disposition`. |
 | 2026-10-21 | **Tres mejoras chicas**: `6efb50f` aplica `IsKycApproved` a las vistas que mueven dinero (movimientos del ledger, publicar oferta, aceptar préstamo, pagar cuota, abrir posición) con un mixin que solo afecta los métodos que no son de lectura; `89d6f49` agrega `GET /health/` (200 `{"status": "ok"}` / 503 `{"status": "unavailable"}`, público y fuera del esquema OpenAPI); `45eefa8` crea `docker-compose.prod.yml` (db, redis, web con gunicorn, worker y beat; sin puertos de db/redis, secretos por entorno, `restart: unless-stopped`, healthchecks y volúmenes persistentes) y ajusta `SECURE_PROXY_SSL_HEADER` en producción para que el chequeo de salud no reciba un 301. **504 tests pasan**, cobertura 98,81%. El stack de producción se levantó de verdad: `db`, `redis` y `web` healthy, `worker` y `beat` Up y `/health/` respondiendo 200. |
 | 2026-10-21 | **Bloque 6b implementado: app `budgets`** en 7 commits: `29f9b96` selector de patas y reversión en el ledger, `82793c2` `ledger_transaction_id` en `Installment`/`Loan` + selector de desglose, `e18b0a7` app con `Category` y `Budget`, `91b3858` service de categorización, `9f1a546` cálculo del gasto acumulado por categoría y moneda, `9125429` API y OpenAPI sin warnings, `92f2e1a` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0002. **491 tests pasan**, cobertura total 98,85% y `budgets/services.py` al 100%. Migraciones: `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_installment_ledger_transaction_id_and_more`. Los endpoints quedaron verificados en runtime real contra el `web` local (crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401). |
