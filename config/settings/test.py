@@ -13,3 +13,6 @@ TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_BROKER_URL = 'memory://'
+
+# Email: backend en memoria, los tests no mandan nada real
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'

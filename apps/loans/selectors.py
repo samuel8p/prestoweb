@@ -40,6 +40,18 @@ def list_loans_for_user(user_id: uuid.UUID) -> QuerySet[Loan]:
     )
 
 
+def get_installment(installment_id: uuid.UUID) -> Installment | None:
+    """Devuelve una cuota con su préstamo, o None si no existe.
+
+    Args:
+        installment_id: identificador de la cuota.
+
+    Returns:
+        La Installment o None.
+    """
+    return Installment.objects.filter(id=installment_id).select_related('loan').first()
+
+
 def list_installments(loan_id: uuid.UUID) -> QuerySet[Installment]:
     """Lista las cuotas de un préstamo.
 

@@ -157,6 +157,19 @@ DJANGO_ENV = os.getenv('DJANGO_ENV', 'local')
 # Redis: broker de Celery (el servicio redis ya existe en docker-compose.yml)
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
+# Email: las notificaciones se envían por email. En desarrollo el backend es
+# de consola; en producción, SMTP configurado por variables de entorno.
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT') or 587)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@presto.local')
+
 # Celery (AGENTS §3 y §4): tareas asíncronas y periódicas con Redis como broker.
 # No hay result backend persistente: las tareas del proyecto no devuelven
 # resultados, solo efectos sobre el ledger.
