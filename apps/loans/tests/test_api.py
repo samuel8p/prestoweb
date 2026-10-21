@@ -315,3 +315,62 @@ def test_pay_unknown_installment_returns_404(client):
     response = client.post(f'/api/v1/loans/{loan.id}/installments/99/pay/')
 
     assert response.status_code == 404
+
+
+def test_accept_offer_without_lender_funds_returns_400(client):
+    """Si el prestamista no tiene saldo, el POST devuelve 400."""
+    lender = create_approved_user(email='sin-plata-prestamista@example.com')
+    borrower = create_approved_user(email='sin-plata-prestatario@example.com')
+    offer = make_offer(lender.id)
+    authenticate(client, borrower)
+
+    response = client.post(
+        '/api/v1/loans/',
+        {'offer_id': str(offer.id)},
+        format='json',
+        HTTP_IDEMPOTENCY_KEY='api-sin-plata',
+    )
+
+    assert response.status_code == 400
+
+
+def test_paying_the_same_installment_twice_returns_400(client):
+    """Pagar dos veces la misma cuota devuelve 400."""
+    from apps.loans.services import accept_offer
+
+    lender = create_approved_user(email='doble-prestamista@example.com')
+    borrower = create_approved_user(email='doble-prestatario@example.com')
+    offer = make_offer(lender.id)
+    fund_user(lender.id, key='fund-doble')
+    loan = accept_offer(
+        borrower_user_id=borrower.id,
+        offer_id=offer.id,
+        idempotency_key='doble-accept',
+    )
+    authenticate(client, borrower)
+
+    first = client.post(f'/api/v1/loans/{loan.id}/installments/1/pay/')
+    second = client.post(f'/api/v1/loans/{loan.id}/installments/1/pay/')
+
+    assert first.status_code == 200
+    assert second.status_code == 400
+
+
+def test_pay_installment_of_lender_returns_403(client):
+    """El prestamista no puede pagar las cuotas."""
+    from apps.loans.services import accept_offer
+
+    lender = create_approved_user(email='presta-prestamista@example.com')
+    borrower = create_approved_user(email='presta-prestatario@example.com')
+    offer = make_offer(lender.id)
+    fund_user(lender.id, key='fund-presta')
+    loan = accept_offer(
+        borrower_user_id=borrower.id,
+        offer_id=offer.id,
+        idempotency_key='presta-accept',
+    )
+    authenticate(client, lender)
+
+    response = client.post(f'/api/v1/loans/{loan.id}/installments/1/pay/')
+
+    assert response.status_code == 403

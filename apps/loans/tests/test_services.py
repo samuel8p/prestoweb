@@ -527,3 +527,93 @@ def test_valid_state_transition_is_applied():
     updated = change_loan_status(loan_id=loan.id, new_status=Loan.Status.DEFAULTED)
 
     assert updated.status == Loan.Status.DEFAULTED
+
+
+def test_accept_offer_recovers_from_idempotency_integrity_error():
+    """Ante un IntegrityError de concurrencia se devuelve el préstamo original."""
+    from unittest.mock import patch
+
+    from django.db import IntegrityError
+
+    from apps.ledger.services import build_request_hash
+    from apps.loans.models import Loan
+    from apps.loans.services import accept_offer
+
+    lender = create_approved_user(email='recovery-prestamista@example.com')
+    borrower = create_approved_user(email='recovery-prestatario@example.com')
+    offer = make_offer(lender.id)
+    fund_user(lender.id, key='fund-recovery')
+    original = Loan.objects.create(
+        borrower_user_id=borrower.id,
+        lender_user_id=lender.id,
+        offer_id=offer.id,
+        principal=Decimal('10000.00'),
+        currency='ARS',
+        interest_rate=Decimal('24.00'),
+        term_months=12,
+        status=Loan.Status.ACTIVE,
+        idempotency_key='recovery',
+        request_hash=build_request_hash({'offer_id': str(offer.id)}),
+    )
+    calls = []
+
+    def fake_resolve(user_id, idempotency_key, request_hash):
+        calls.append(1)
+        return None if len(calls) == 1 else original
+
+    with (
+        patch('apps.loans.services._resolve_idempotent', side_effect=fake_resolve),
+        patch('apps.loans.services.Loan.objects.create', side_effect=IntegrityError),
+    ):
+        result = accept_offer(
+            borrower_user_id=borrower.id,
+            offer_id=offer.id,
+            idempotency_key='recovery',
+        )
+
+    assert result.id == original.id
+
+
+def test_pay_installment_of_unknown_loan_raises():
+    """Pagar la cuota de un préstamo inexistente falla."""
+    from apps.loans.exceptions import LoanNotFound
+    from apps.loans.services import pay_installment
+
+    borrower = create_approved_user(email='inexistente-prestatario@example.com')
+
+    with pytest.raises(LoanNotFound):
+        pay_installment(
+            loan_id=uuid.uuid4(),
+            number=1,
+            borrower_user_id=borrower.id,
+        )
+
+
+def test_change_loan_status_of_unknown_loan_raises():
+    """Cambiar el estado de un préstamo inexistente falla."""
+    from apps.loans.exceptions import LoanNotFound
+    from apps.loans.services import change_loan_status
+
+    with pytest.raises(LoanNotFound):
+        change_loan_status(loan_id=uuid.uuid4(), new_status='defaulted')
+
+
+def test_list_installments_returns_ordered_installments():
+    """El selector devuelve las cuotas ordenadas por número."""
+    from apps.loans.selectors import list_installments
+    from apps.loans.services import accept_offer
+
+    lender = create_approved_user(email='orden-cuotas-prestamista@example.com')
+    borrower = create_approved_user(email='orden-cuotas-prestatario@example.com')
+    offer = make_offer(lender.id)
+    fund_user(lender.id, key='fund-orden-cuotas')
+
+    loan = accept_offer(
+        borrower_user_id=borrower.id,
+        offer_id=offer.id,
+        idempotency_key='accept-orden-cuotas',
+    )
+
+    numbers = [installment.number for installment in list_installments(loan_id=loan.id)]
+
+    assert numbers == list(range(1, 13))
