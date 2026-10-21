@@ -151,14 +151,14 @@ vienen de AGENTS.md §6 y están garantizadas en código y en la base de datos.
 
 ### 6.1 Commits (log real y completo, `git log --oneline`)
 
-Log tal como quedó al escribir este documento: 62 commits de código y documentación
-(listados abajo) **más** los 2 commits que agregan y ajustan este mismo
-`HANDOFF.md` (`docs: add handoff document with current repo state` y
-`docs: refine handoff sections per client review`), que no pueden listarse a sí
-mismos. Total del repo: **64 commits**.
+Log completo del repo. Los 2 commits de este mismo `HANDOFF.md` están
+listados; el commit final que agrega esta fila no puede listarse a sí mismo
+(tras el push, `git log --oneline | wc -l` da **65**).
 
 | Commit | Asunto |
 |---|---|
+| `57b1cf4` | docs: refine handoff sections per client review |
+| `cffd42e` | docs: add handoff document with current repo state |
 | `867d1fa` | chore: ignore generated openapi schema files |
 | `0cfb2ea` | test(investments): concurrency and ledger invariant coverage |
 | `39707da` | feat(investments): api endpoints, admin and import-linter contracts |
