@@ -203,6 +203,17 @@ apps/<nombre>/
 
 ---
 
+## Reglas adicionales de investments
+
+1. **Interés simple:** `core.money.simple_interest(amount, tna, days)` calcula el interés con `Decimal` y redondea **una sola vez**, al final.
+2. **Apertura:** `services.open_position` exige KYC aprobado, producto activo, monto `>= min_amount` y la misma moneda que el producto. Todo corre dentro de un `transaction.atomic()`: mueve el saldo del `user_wallet` a la cuenta `system` de inversiones (vía `ledger`) y crea la posición. Si el saldo no alcanza, **no** queda posición ni movimiento.
+3. **Liquidación:** `services.settle_matured_positions(today)` paga el capital y el interés desde la cuenta `system` al `user_wallet` (el interés con `type = interest` en el ledger), **una sola vez por posición** (idempotente) y la posición pasa a `matured`.
+4. **Sin cancelación anticipada:** no existe ningún camino para cancelar una posición antes de su vencimiento.
+5. **La cuenta `system` es la contraparte de las inversiones:** el invariante del ledger por moneda es `Σ(custody) + Σ(system) = -Σ(user_wallet)`, es decir la suma de todos los saldos es cero.
+6. **Solo staff crea productos:** los `InvestmentProduct` se dan de alta únicamente desde el admin de Django; la API solo los lista.
+
+---
+
 ## 7. Modelos base (punto de partida)
 
 Todos los modelos heredan de `core.models.BaseModel`:
@@ -245,8 +256,8 @@ class BaseModel(models.Model):
 
 ### `investments`
 
-- **InvestmentProduct:** `type` (`fixed_term` | `bond` | `fund`), `currency`, `conditions` (JSON con tasas, fechas, reglas), `status` (`active` | `matured` | `cancelled`).
-- **Position:** `user_id`, `product`, `amount` (`Decimal`, `> 0`), `status` (`active` | `matured` | `cancelled`), `opened_at`, `maturity_date`.
+- **InvestmentProduct:** `type` (`fixed_term`), `currency` (`ARS` | `USD`), `term_days` (`Integer`, `> 0`), `annual_rate_tna` (`Decimal`, TNA anual en `%`, `> 0`), `min_amount` (`Decimal`, `> 0`), `status` (`active` | `matured` | `cancelled`). **Se gestiona solo por staff desde el admin de Django.**
+- **Position:** `user_id` (`UUIDField`), `product` (FK a `InvestmentProduct`), `amount` (`Decimal`, `> 0`), `status` (`active` | `matured`), `opened_at`, `maturity_date`, `interest_amount` (`Decimal`, `>= 0`, calculado al abrir), `idempotency_key` **única por `(user_id, idempotency_key)`** con `request_hash`.
 
 ### `budgets`
 
@@ -426,14 +437,14 @@ Estructura del repo, Docker Compose, settings por entorno, `pre-commit`, CI, `im
 **Fase 3: loans y cuotas**
 `loans` (préstamos tomados, cuotas, estados). Máquina de estados con transiciones válidas.
 
-**Fase 4: payments**
-`payments` (proveedor real, sandbox primero; depósitos y retiros vía webhooks, conciliación).
-
-**Fase 5: investments**
+**Fase 4: investments**
 `investments` (plazo fijo primero; bonos y fondos después, requieren precios externos).
 
-**Fase 6: budgets, reports y notifications**
+**Fase 5: budgets, reports y notifications**
 budgets, reports (resúmenes y exportaciones) y notifications (emails).
+
+**Fase 6: payments**
+`payments` (proveedor real, sandbox primero; depósitos y retiros vía webhooks, conciliación). Va **al final**: requiere un proveedor real y los saldos ya están modelados.
 
 **Fase 7: producción**
 Hardening de seguridad, backups, monitoreo, documentación final y despliegue.
@@ -494,3 +505,4 @@ Todo cambio a este archivo debe ser aprobado por el desarrollador y anotarse aqu
 | 2026-10-20 | **Bloque 3 (offers + matching) — nuevo orden y decisiones registradas.** **Nuevo orden de fases:** `offers` + `matching` → `loans` → `payments` (§15). Decisiones: (a) `Offer.interest_rate` es la **TNA anual en `%`**; la tasa mensual equivalente es `TNA / 100 / 12`; (b) la **cuota mensual francesa** se calcula **una sola vez** en `core/money.py` con `Decimal` (`french_installment`), redondeando una única vez con `round_two`; (c) **crear una oferta no reserva fondos**: la reserva ocurre al aceptar el préstamo; (d) el **prestamista necesita KYC aprobado** para crear o actualizar una oferta; (e) `matching` es **solo lectura** y se apoya únicamente en `offers.selectors` (nunca `offers.models`); (f) `offers` **no importa** `matching`. Nueva sección §Reglas adicionales de ofertas y matching. |
 | 2026-10-20 | **Búsqueda por rango de montos:** como el préstamo toma el **monto completo** de la oferta, el filtro `amount` de la búsqueda se reemplaza por `amount_min` y `amount_max` (§Reglas de ofertas 7). Los selectores de `offers` y `matching` y los query params de `GET /api/v1/matching/offers/` quedan alineados con el nuevo contrato. |
 | 2026-10-20 | **Bloque 4 (loans) — decisiones registradas.** Nueva sección §Reglas adicionales de loans. Modelos: `Loan` con estados `active` \| `paid` \| `defaulted` (**el estado `pending` no se usa**, §6 regla 7 y §7 `loans`), `OfferTermsSnapshot` inmutable e `Installment`. `idempotency_key` **única por `(borrower_user_id, idempotency_key)`** con `request_hash`: misma clave y mismo payload devuelven el préstamo original. `services.accept_offer`: prestatario con **KYC aprobado**, que **no** puede aceptar su propia oferta; dentro de un único `transaction.atomic()` bloquea la oferta, la marca `accepted` vía `offers.services`, guarda el snapshot, calcula el cronograma francés con `core/money.py` (**la última cuota ajusta el capital** para que la suma iguale el principal) y desbrosa lender→borrower; si falta saldo, todo se revierte. El `ledger` suma un **service interno** que mueve dinero entre dos usuarios **iniciado por un tercero**, con `type = transfer`, descripción y `idempotency_key` derivada del `loan_id`, **sin cambiar** las reglas de saldo no negativo. `services.pay_installment`: solo el prestatario, **en orden**, por la **cuota completa**, borrower→lender; al pagar todas el préstamo pasa a `paid`. `services.mark_overdue(today)` + management command `mark_overdue_loans`: cuota vencida → `overdue` y préstamo → `defaulted`; al pagar las vencidas vuelve a `active`. Máquina de estados con transiciones válidas `active → paid`, `active → defaulted`, `defaulted → active`, `defaulted → paid`; las inválidas lanzan error de dominio. Endpoints `/api/v1/loans/`: `POST` (offer_id + header `Idempotency-Key`), `GET` lista propia (prestatario o prestamista), `GET /{id}/` con snapshot y cuotas, `POST /{id}/installments/{number}/pay/`; **solo las partes ven el préstamo, un tercero recibe `404`**; con `drf-spectacular`. Contratos `import-linter`: `loans` solo usa `services` y `selectors` de `ledger`, `offers` e `identity`; `ledger` y `offers` no importan `loans`. Nuevo orden de bloques: **Bloque 4 = loans**, Bloque 5 = payments. |
+| 2026-10-20 | **Bloque 5 (investments, plazo fijo) — decisiones registradas.** **Nuevo orden de fases:** `investments` → `budgets`/`reports`/`notifications` → `payments` **al final** (§15). Modelos: `InvestmentProduct` (`type = fixed_term`, `currency`, `term_days`, `annual_rate_tna`, `min_amount`, `status` `active`\|`matured`\|`cancelled`, **solo staff vía admin**) y `Position` (`user_id` `UUIDField`, `product`, `amount > 0`, `status` `active`\|`matured`, `opened_at`, `maturity_date`, `interest_amount` calculado al abrir, `idempotency_key` única por `(user_id, key)` con `request_hash`). `core.money.simple_interest(amount, tna, days)` con `Decimal` y **un solo redondeo**. `services.open_position`: KYC aprobado, producto activo, monto `>= min_amount` y misma moneda; en `transaction.atomic()` mueve `user_wallet` → cuenta `system` de inversiones por el `ledger` y crea la posición. `services.settle_matured_positions(today)` + management command pagan capital e interés desde la cuenta `system` al `user_wallet` (interés con `type = interest`), **una vez por posición** (idempotente) y la posición pasa a `matured`. **Sin cancelación anticipada**; cambios mínimos en `ledger`. Endpoints `/api/v1/investments/products/` (lista activos) y `/api/v1/investments/positions/` (`POST`, `GET` propias, `GET` detalle; terceros `404`) con `drf-spectacular`. Contratos `import-linter`: `investments` solo usa `services` y `selectors` de `ledger` e `identity`; `ledger` no importa `investments`. Nueva sección §Reglas adicionales de investments. |
