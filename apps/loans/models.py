@@ -36,6 +36,7 @@ class Loan(BaseModel):
     term_months = models.PositiveIntegerField()
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     accepted_at = models.DateTimeField(default=timezone.now)
+    ledger_transaction_id = models.UUIDField(null=True, blank=True)
     idempotency_key = models.CharField(max_length=100)
     request_hash = models.CharField(max_length=64)
 
@@ -89,6 +90,7 @@ class Installment(BaseModel):
     amount = models.DecimalField(max_digits=18, decimal_places=2)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     paid_at = models.DateTimeField(null=True, blank=True)
+    ledger_transaction_id = models.UUIDField(null=True, blank=True)
 
     class Meta:
         constraints = [

@@ -218,7 +218,7 @@ def pay_installment(
         previous = Installment.objects.filter(loan=loan, number=number - 1).first()
         if previous is not None and previous.status != Installment.Status.PAID:
             raise InstallmentOutOfOrder('Las cuotas se pagan en orden.')
-        ledger_services.transfer_between_users(
+        ledger_transaction = ledger_services.transfer_between_users(
             source_user_id=loan.borrower_user_id,
             destination_user_id=loan.lender_user_id,
             currency=loan.currency,
@@ -229,7 +229,8 @@ def pay_installment(
         )
         installment.status = Installment.Status.PAID
         installment.paid_at = timezone.now()
-        installment.save(update_fields=['status', 'paid_at', 'updated_at'])
+        installment.ledger_transaction_id = ledger_transaction.id
+        installment.save(update_fields=['status', 'paid_at', 'ledger_transaction_id', 'updated_at'])
         _refresh_loan_status(loan)
         logger.info(
             'Cuota pagada: loan_id=%s number=%s borrower_user_id=%s',
@@ -302,7 +303,7 @@ def _create_installments(loan: Loan) -> None:
 
 def _disburse(loan: Loan) -> None:
     """Desembolsa el capital del préstamo del prestamista al prestatario."""
-    ledger_services.transfer_between_users(
+    ledger_transaction = ledger_services.transfer_between_users(
         source_user_id=loan.lender_user_id,
         destination_user_id=loan.borrower_user_id,
         currency=loan.currency,
@@ -311,6 +312,8 @@ def _disburse(loan: Loan) -> None:
         initiated_by_user_id=loan.borrower_user_id,
         description=f'Desembolso del préstamo {loan.id}',
     )
+    loan.ledger_transaction_id = ledger_transaction.id
+    loan.save(update_fields=['ledger_transaction_id', 'updated_at'])
 
 
 def _refresh_loan_status(loan: Loan) -> None:
