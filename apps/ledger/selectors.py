@@ -84,22 +84,3 @@ def get_transaction(transaction_id: uuid.UUID, user_id: uuid.UUID) -> LedgerTran
         La LedgerTransaction o None.
     """
     return LedgerTransaction.objects.filter(id=transaction_id, created_by_user_id=user_id).first()
-
-
-def get_counterpart_account(kind: str, currency: str) -> Account:
-    """Devuelve la cuenta de contrapartida de un tipo y moneda, creándola si falta.
-
-    Args:
-        kind: `custody` o `system`.
-        currency: código ISO de la moneda.
-
-    Returns:
-        La Account de contrapartida.
-    """
-    account, _ = Account.objects.get_or_create(
-        user_id=None,
-        kind=kind,
-        currency=currency,
-        defaults={'balance': Decimal('0.00')},
-    )
-    return account

@@ -45,7 +45,11 @@ class TransactionCursorPagination(CursorPagination):
 
 
 def create_transaction(request, data, idempotency_key):
-    """Crea el movimiento pedido y traduce los errores de dominio a HTTP."""
+    """Crea el movimiento pedido y traduce los errores de dominio a HTTP.
+
+    El tipo de movimiento ya viene validado por el serializer: solo admite
+    `deposit`, `withdrawal` y `transfer`.
+    """
     try:
         if data['type'] == LedgerTransaction.Type.DEPOSIT:
             return deposit(
@@ -63,26 +67,25 @@ def create_transaction(request, data, idempotency_key):
                 idempotency_key=idempotency_key,
                 description=data.get('description', ''),
             )
-        if data['type'] == LedgerTransaction.Type.TRANSFER:
-            destination_account_id = data.get('destination_account_id')
-            if destination_account_id is None:
-                raise ValidationError(
-                    {'destination_account_id': ['Es obligatorio para transferencias.']}
-                )
-            source = list_accounts_for_user(user_id=request.user.id).filter(
-                currency=data['currency'],
-                kind=Account.Kind.USER_WALLET,
+        destination_account_id = data.get('destination_account_id')
+        if destination_account_id is None:
+            raise ValidationError(
+                {'destination_account_id': ['Es obligatorio para transferencias.']}
             )
-            if not source.exists():
-                raise AccountNotFound('No tenés una billetera en esa moneda.')
-            return transfer(
-                user_id=request.user.id,
-                source_account_id=source.first().id,
-                destination_account_id=destination_account_id,
-                amount=data['amount'],
-                idempotency_key=idempotency_key,
-                description=data.get('description', ''),
-            )
+        source = list_accounts_for_user(user_id=request.user.id).filter(
+            currency=data['currency'],
+            kind=Account.Kind.USER_WALLET,
+        )
+        if not source.exists():
+            raise AccountNotFound('No tenés una billetera en esa moneda.')
+        return transfer(
+            user_id=request.user.id,
+            source_account_id=source.first().id,
+            destination_account_id=destination_account_id,
+            amount=data['amount'],
+            idempotency_key=idempotency_key,
+            description=data.get('description', ''),
+        )
     except IdempotencyConflict as exc:
         raise IdempotencyKeyConflict() from exc
     except KYCNotCompleted as exc:
@@ -95,7 +98,6 @@ def create_transaction(request, data, idempotency_key):
         raise ValidationError({'type': [str(exc)]}) from exc
     except (AccountNotFound, AccountKindNotAllowed, CurrencyMismatch, SameAccountTransfer) as exc:
         raise ValidationError({'detail': [str(exc)]}) from exc
-    raise ValidationError({'type': ['Ese tipo de movimiento no se puede crear por API.']})
 
 
 class AccountListCreateView(APIView):
