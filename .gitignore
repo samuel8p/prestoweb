@@ -4,6 +4,9 @@
 
 # Environment
 .env
+.env.*
+!.env.example
+!.env.prod.example
 
 # Python
 __pycache__/

@@ -76,6 +76,7 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 ├── .pre-commit-config.yaml       # ruff, ruff-format, import-linter
 ├── .github/workflows/ci.yml      # ruff, import-linter, spectacular, makemigrations, pytest
 ├── .env.example                  # SOLO placeholders, nunca secretos reales
+├── .env.prod.example              # variables de producción (mismo criterio)
 ├── apps/
 │   ├── core/                     # transversales: BaseModel, money, exceptions,
 │   │   └── tests/                #   pagination, exception_handler, test_openapi, test_celery
@@ -111,6 +112,7 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 │   ├── urls.py                   # /api/v1/ + /api/schema/ + /api/docs/ + /admin/
 │   ├── wsgi.py, asgi.py
 └── docs/
+    ├── deploy-demo.md              # modo demo: email por consola (logs del worker)
     └── adr/
         ├── 0001-celery-redis-cola-y-scheduler.md
         ├── 0002-budgets-derivacion-del-gasto.md
@@ -508,7 +510,12 @@ cambio de rationale) ya están registradas allí y no se repiten.
   monto se deriva del ledger al leer (`budgets.selectors`).
 - **Presupuesto mensual**: límite de gasto de una categoría en una moneda. El
   mes es el calendario en UTC y nunca se suman ARS y USD.
-- **Sin implementar todavía**: `reports`, `notifications`, `payments`
+- **Modo demo**: sin `EMAIL_HOST` definido, el backend de email por defecto es
+  el de **consola**: los avisos de las notificaciones salen en los **logs del
+  worker**. Con `EMAIL_HOST` definido, el backend por defecto pasa a ser SMTP; un
+  `EMAIL_BACKEND` explícito manda siempre. Está documentado en
+  `docs/deploy-demo.md` y en `.env.prod.example`.
+- **Sin implementar todavía**: `payments`
   (proveedor real), `docker-compose.prod.yml` (exigido por AGENTS §4),
   `docs/architecture.md` y el envío del esquema OpenAPI al frontend.
 - **Sin verificar**: no se ejecutó nunca un despliegue real, ni
@@ -651,6 +658,15 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f web
   scheduler).
 - **`beat` corre una sola instancia**: el worker se puede escalar, el
   scheduler no.
+
+### Modo demo
+
+```sh
+docker compose logs -f worker      # los avisos de las notificaciones salen acá
+```
+
+Sin `EMAIL_HOST` el backend de email es el de consola; definiéndolo pasa a ser
+SMTP. El detalle está en `docs/deploy-demo.md`.
 
 ### Otros
 
@@ -1015,6 +1031,7 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). |
 | 2026-10-21 | **Infraestructura de Celery (primer cambio del Bloque 6)**: `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario con `mark_overdue_loans` (00:05) y `settle_investments` (00:15), servicios `worker` y `beat` en el compose con volumen persistente para el scheduler, tasks en `apps/loans/tasks.py` y `apps/investments/tasks.py` que delegan en los services existentes (los management commands no se modifican), y tests de tasks y de commands (407 tests). Decisiones y consecuencias en `docs/adr/0001-celery-redis-cola-y-scheduler.md`. `AGENTS.md` **no** se modificó (pendiente de aprobación del desarrollador). |
 | 2026-10-21 | **O4 resuelta por el cliente** (criterio completo en §11.2). La app `budgets` **no** se implementó: el trabajo se detuvo en el análisis del código. Se deja el análisis verificado y las decisiones de implementación pendientes en §11.3 para retomar. |
+| 2026-10-21 | **Modo demo de email**: sin `EMAIL_HOST` definido el backend por defecto es el de consola, así que los avisos de las notificaciones salen en los logs del worker; con `EMAIL_HOST` definido pasa a ser SMTP y un `EMAIL_BACKEND` explícito manda siempre. Cubierto por `apps/core/tests/test_email_backend.py` (3 tests) y documentado en `docs/deploy-demo.md` y `.env.prod.example`. Además, `.env.prod` quedó ignorado por `.gitignore`. |
 | 2026-10-21 | **Bloque 6d implementado: app `notifications`** en 7 commits: `cc1d359` app con los modelos `Notification` y `NotificationPreference` y los services idempotentes, `a9bb4a9` tarea de envío de email y configuración SMTP por entorno, `454fa87` señales y tareas diarias de cuota por vencer y vencida, `1ca99a3` aviso de la inversión liquidada, `0ae71d3` alerta de presupuesto con identificador derivado presupuesto+mes, `79d0a77` API de listado y preferencias, `a4e51d2` contratos de import-linter, gate de cobertura del 90% y ADR 0004. **608 tests pasan**, 28 contratos de import-linter y el 99% de cobertura de la app. Verificado en runtime real: los dos endpoints responden 200/401, el worker registra las 5 tasks y el beat tiene 4 entradas. El contrato nuevo detectó dos violaciones reales en tests de otras apps, corregidas. |
 | 2026-10-21 | **Bloque 6c implementado: app `reports`** en 7 commits: `4bb5fe7` app y validación de parámetros, `b68975f` reporte de movimientos (+ selector de rango en `ledger`), `593a34b` reporte de spending (+ selector de gastos en `budgets`), `5fef54f` reporte de préstamos (+ selector de cuotas en `loans`), `2a75626` reporte de inversiones, `73b62f1` exportación CSV con neutralización de fórmulas y tope de 10.000 filas, `9599982` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0003. **556 tests pasan**, 22 contratos de import-linter, cobertura de `reports` del 99%. Verificado en runtime real contra el `web` local: los cuatro reportes 200, sin moneda 400, sin token 401 y el CSV con `text/csv` y `Content-Disposition`. |
 | 2026-10-21 | **Tres mejoras chicas**: `6efb50f` aplica `IsKycApproved` a las vistas que mueven dinero (movimientos del ledger, publicar oferta, aceptar préstamo, pagar cuota, abrir posición) con un mixin que solo afecta los métodos que no son de lectura; `89d6f49` agrega `GET /health/` (200 `{"status": "ok"}` / 503 `{"status": "unavailable"}`, público y fuera del esquema OpenAPI); `45eefa8` crea `docker-compose.prod.yml` (db, redis, web con gunicorn, worker y beat; sin puertos de db/redis, secretos por entorno, `restart: unless-stopped`, healthchecks y volúmenes persistentes) y ajusta `SECURE_PROXY_SSL_HEADER` en producción para que el chequeo de salud no reciba un 301. **504 tests pasan**, cobertura 98,81%. El stack de producción se levantó de verdad: `db`, `redis` y `web` healthy, `worker` y `beat` Up y `/health/` respondiendo 200. |

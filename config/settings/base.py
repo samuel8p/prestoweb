@@ -159,11 +159,18 @@ REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
 # Email: las notificaciones se envían por email. En desarrollo el backend es
 # de consola; en producción, SMTP configurado por variables de entorno.
+# Email: en modo demo (sin EMAIL_HOST) los avisos de las notificaciones salen
+# por consola, o sea en los logs del worker. Si EMAIL_HOST está definido, el
+# backend por defecto pasa a ser SMTP. Un EMAIL_BACKEND explícito manda siempre.
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend',
+    (
+        'django.core.mail.backends.smtp.EmailBackend'
+        if EMAIL_HOST
+        else 'django.core.mail.backends.console.EmailBackend'
+    ),
 )
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT') or 587)
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
