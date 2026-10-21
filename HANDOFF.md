@@ -89,7 +89,7 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 `investments`. **No existen** (aún): `payments`, `budgets`, `reports`,
 `notifications`.
 
-## 4. Requisitos y entorno local
+## 4. Requisitos, entorno local e invariantes del dinero
 
 - Docker + Docker Compose (único requisito; todo corre en contenedores)
 - Puertos publicados **solo en localhost**: `127.0.0.1:5432` (Postgres),
@@ -101,6 +101,28 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 - `DJANGO_SETTINGS_MODULE` del servicio web: `config.settings.local`
   (`config.settings.test` solo para los tests, `config.settings.production` para
   producción; ninguna existe aún)
+
+### Invariantes del ledger (requisitos no negociables del dominio)
+
+Estas tres reglas son **requisitos de negocio**, no detalles de implementación:
+vienen de AGENTS.md §6 y están garantizadas en código y en la base de datos.
+
+1. **El saldo no negativo aplica solo a `user_wallet`.** Una billetera de usuario
+   nunca puede quedar negativa (`CheckConstraint(balance >= 0)` en la tabla
+   `Account`). Las cuentas de contrapartida (`custody`, `system`) representan el
+   mundo exterior —los fondos custodiados y la contraparte de las inversiones— y
+   **pueden** quedar negativas: eso es correcto, no un bug.
+2. **`idempotency_key` es única por `(usuario, clave)`, no global.** Dos usuarios
+   distintos pueden usar la misma clave sin colisionar. Se guarda además un
+   `request_hash` del payload: misma clave **y** mismo hash devuelven la
+   operación original; misma clave **y** hash distinto devuelven `409`. Ante un
+   `IntegrityError` por concurrencia, el service reintenta y devuelve la
+   operación original.
+3. **La suma de saldos por moneda es cero.** Con la convención
+   `balance = créditos - débitos`, la suma de **todos** los saldos de una moneda
+   da 0, es decir `Σ(custody) + Σ(system) = -Σ(user_wallet)`. No es un chequeo
+   decorativo: hay un test de invariante que lo verifica por moneda después de
+   depósitos, retiros, transferencias, préstamos e inversiones.
 
 ## 5. Convenciones y flujo de trabajo
 
@@ -130,9 +152,10 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 ### 6.1 Commits (log real y completo, `git log --oneline`)
 
 Log tal como quedó al escribir este documento: 62 commits de código y documentación
-(listados abajo) **más** el commit que agrega este mismo `HANDOFF.md`
-(`docs: add handoff document with current repo state`), que no puede listarse a
-sí mismo.
+(listados abajo) **más** los 2 commits que agregan y ajustan este mismo
+`HANDOFF.md` (`docs: add handoff document with current repo state` y
+`docs: refine handoff sections per client review`), que no pueden listarse a sí
+mismos. Total del repo: **64 commits**.
 
 | Commit | Asunto |
 |---|---|
@@ -201,19 +224,19 @@ sí mismo.
 
 ### 6.2 Estado por fase / bloque
 
-| Fase / Bloque | Estado | Commits | Archivos creados o modificados (resumen) |
+| Fase / Bloque | Estado | Commits | Resumen |
 |---|---|---|---|
-| **Fase 0 — Bloque A** Cimientos | ✅ completa | `8ec366e`, `31098f8`, `9aa1eab`, `3e701e5`, `f1f92ce`, `e27b2fc`, `b0dbd58`, `654cc03`, `886cf55`, `39198aa`, `9442e63`, `def5baf`, `7d571fc`, `3b3e401`, `7d5cf6c`, `ea1edb4`, `6826e28`, `67b0ef2`, `a66fd7b`, `127de6e`, `819cd15`, `5aa5004` | `Dockerfile`, `docker-compose.yml`, `pyproject.toml`, `pytest.ini`, `.gitignore`, `.gitattributes`, `.env.example`, `manage.py`, `config/settings/{base,local,test,production}.py`, `config/urls.py`, `config/config/*` (luego aplanado), `apps/core/{apps,exceptions,models,money,pagination}.py`, `apps/core/tests/*`, `apps/identity/{apps,models}.py`, `apps/identity/tests/*`, `Makefile`, `.importlinter`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `README.md`, `AGENTS.md` |
-| **Fase 0 — Bloque B** Docker/Postgres | ✅ completa | `3e701e5`, `f1f92ce`, `e27b2fc`, `654cc03` | `Dockerfile`, `docker-compose.yml`, `config/settings/base.py`, `pyproject.toml` |
-| **Fase 0 — Bloque C** TDD core+identity | ✅ completa | `b0dbd58`, `886cf55`, `9442e63`, `def5baf`, `7d571fc`, `3b3e401`, `7d5cf6c` | `apps/core/tests/{test_models,test_money}.py`, `apps/core/money.py`, `apps/identity/models.py`, `apps/identity/tests/{test_user,test_models}.py`, `config/settings/base.py`, `pytest.ini` |
-| **Fase 0 — Bloque D** ruff / import-linter / Makefile / CI | ✅ completa | `39198aa`, `9442e63`, `def5baf`, `819cd15`, `5aa5004`, `3de20bb`, `ea1edb4`, `6826e28`, `867d1fa` | `.importlinter`, `.pre-commit-config.yaml`, `Makefile`, `.github/workflows/ci.yml`, `pyproject.toml`, `pytest.ini`, `config/settings/test.py`, `config/{__init__,urls}.py`, `config/settings/__init__.py`, `config/{wsgi,asgi}.py`, `.gitignore` |
-| **Fase 1A — identity** | ✅ completa | `67b0ef2`, `7562c2a`, `d48490b`, `efafa8d`, `2351bd7`, `ad00056`, `6b61282`, `4eb59ef`, `d418176` | `apps/identity/models.py`, `apps/identity/exceptions.py`, `apps/identity/services.py`, `apps/identity/selectors.py`, `apps/identity/serializers.py`, `apps/identity/views.py`, `apps/identity/urls.py`, `apps/identity/permissions.py`, `apps/identity/admin.py`, `apps/identity/tests/*`, `apps/identity/migrations/000{2,3,4}*.py`, `apps/core/exception_handler.py`, `apps/core/tests/test_exception_handler.py`, `config/settings/base.py`, `config/urls.py` |
-| **Fase 1B — ledger** | ✅ completa | `d07a4f2`, `2bbacd9`, `a876038`, `1d7f387`, `3ec686b`, `f0a73c6`, `4bb1263`, `16f5029`, `b2d6dcb` | `apps/ledger/models.py`, `apps/ledger/exceptions.py`, `apps/ledger/services.py`, `apps/ledger/selectors.py`, `apps/ledger/serializers.py`, `apps/ledger/views.py`, `apps/ledger/urls.py`, `apps/ledger/admin.py`, `apps/ledger/checks.py`, `apps/ledger/tests/*`, `apps/ledger/migrations/000{1,2}*.py`, `apps/core/exception_handler.py`, `config/settings/{base,production,test}.py`, `config/urls.py`, `.importlinter` |
-| **Bloque 3 — offers + matching** | ✅ completa | `d48fe62`, `5bd3bea`, `abb5336`, `5c36dd8`, `40ca761`, `c5338dd` | `apps/core/money.py`, `apps/core/tests/test_money.py`, `apps/offers/{models,exceptions,services,selectors,serializers,views,urls,permissions}.py`, `apps/offers/tests/*`, `apps/offers/migrations/0001_initial.py`, `apps/matching/{exceptions,selectors,serializers,views,urls}.py`, `apps/matching/tests/*`, `config/settings/base.py`, `config/urls.py`, `.importlinter`, `AGENTS.md` |
-| **Bloque 4 — loans** | ✅ completa | `42569d3`, `a176f12`, `b9e0ded`, `7b9d0c5`, `b19b4be`, `675ad76` | `apps/loans/{models,exceptions,services,selectors,serializers,views,urls}.py`, `apps/loans/tests/*`, `apps/loans/migrations/0001_initial.py`, `apps/loans/management/commands/mark_overdue_loans.py`, `apps/ledger/{services,selectors}.py`, `apps/offers/{exceptions,selectors,services}.py`, `config/settings/base.py`, `config/urls.py`, `.importlinter`, `AGENTS.md` |
-| **Bloque 5 — investments (plazo fijo)** | ✅ completa | `098e745`, `f1d97fe`, `1ba05b9`, `7ebf030`, `1b2199d`, `39707da`, `0cfb2ea` | `apps/investments/{models,exceptions,services,selectors,serializers,views,urls,admin}.py`, `apps/investments/tests/*`, `apps/investments/migrations/0001_initial.py`, `apps/investments/management/commands/settle_investments.py`, `apps/ledger/{services,selectors}.py`, `apps/core/money.py`, `config/settings/base.py`, `config/urls.py`, `.importlinter`, `AGENTS.md` |
-| **Fase 2 — budgets / reports / notifications** | ❌ no empezada | — | — |
-| **Fase 3 — payments (proveedor real)** | ❌ no empezada | — | — |
+| **Fase 0 — Bloque A** Cimientos | ✅ completa | 22 | Estructura del repo, settings por entorno, `BaseModel` (UUID + timestamps), `core/money.py` con `Decimal` y `User` con login por email. |
+| **Fase 0 — Bloque B** Docker/Postgres | ✅ completa | 4 | `Dockerfile`, `docker-compose.yml` con PostgreSQL 16, Redis y web; puertos publicados solo en localhost; los tests corren contra Postgres real. |
+| **Fase 0 — Bloque C** TDD core+identity | ✅ completa | 7 | Primer ciclo rojo→verde: tests de `core.money`, `core.models` y del `User`; configuración de pytest para usar los settings de test. |
+| **Fase 0 — Bloque D** Calidad | ✅ completa | 9 | `ruff` + `ruff-format`, `.importlinter` con contratos entre apps, hooks de `pre-commit`, `Makefile` y CI con `makemigrations --check` y `--cov-fail-under=80`. |
+| **Fase 1A — identity** | ✅ completa | 9 | `User` sin `username`, `Profile`, `KYCVerification` con una sola pendiente por usuario, JWT con rotación y blacklist, throttles por scope, `exception_handler` con el formato de AGENTS §8 y resolución de KYC desde el admin. |
+| **Fase 1B — ledger** | ✅ completa | 9 | `Account` / `LedgerTransaction` / `LedgerEntry`, saldo desnormalizado, triggers de doble entrada e inmutabilidad, idempotencia por `(usuario, clave)`, depósitos simulados, reversos solo staff, API y acción de reverso en el admin. |
+| **Bloque 3 — offers + matching** | ✅ completa | 6 | `Offer` con TNA anual en `%`, amortización francesa en `core/money.py`, búsqueda por rango de montos, comparación de ofertas (cuota, interés, costo total) y API del marketplace. |
+| **Bloque 4 — loans** | ✅ completa | 6 | `Loan` / `OfferTermsSnapshot` / `Installment`, aceptación atómica con snapshot inmutable, pago de cuotas en orden, marcado de vencidos, máquina de estados y API con aislamiento por partes. |
+| **Bloque 5 — investments (plazo fijo)** | ✅ completa | 7 | `InvestmentProduct` (solo staff) y `Position` de plazo fijo, apertura atómica contra la cuenta `system`, liquidación idempotente con interés simple y API de productos y posiciones. |
+| **Fase 2 — budgets / reports / notifications** | ❌ no empezada | — | Modelos ya definidos en AGENTS §7; `reports` es solo lectura y `notifications` necesita Celery. |
+| **Fase 3 — payments (proveedor real)** | ❌ no empezada | — | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 
 ### 6.3 Estado verificado ahora (2026-10-21)
 
@@ -296,8 +319,11 @@ Solo las decisiones **nuevas** de los bloques 1A → 5. Las de AGENTS.md §17
   saldos de una moneda es **cero** y `Σ(custody) + Σ(system) = -Σ(user_wallet)`.
 - **`Idempotency-Key`**: header HTTP obligatorio en los POST que crean o
   mueven dinero (`/api/v1/loans/`, `/api/v1/investments/positions/`,
-  `/api/v1/ledger/transactions/`). Misma clave + mismo payload → devuelve la
-  operación original; misma clave + payload distinto → `409`.
+  `/api/v1/ledger/transactions/`). La unicidad es **por `(usuario, clave)`**, no
+  global. Misma clave + mismo payload → devuelve la operación original; misma
+  clave + payload distinto → `409`.
+- **Saldo no negativo**: solo aplica a `user_wallet`. Las cuentas `custody` y
+  `system` reflejan el mundo exterior y pueden quedar negativas (ver §4).
 - **`request_hash`**: SHA-256 canónico del payload, guardado junto a la clave.
 - **KYC**: `identity.selectors.is_kyc_approved(user_id)` es el único punto de
   entrada para exigir verificación. `apps/identity/permissions.py::IsKycApproved`
@@ -485,6 +511,27 @@ Orden real de lo que falta, de mayor a menor prioridad.
 8. **Cobertura de vistas por debajo de 100%**: `loans/views.py` 94%, `matching/views.py` 97%, `investments/views.py` 95%. No es un bloqueo (los umbrales de AGENTS §10 son 90% en `ledger`/`budgets` y 80% general), pero conviene cerrarlas.
 9. **Agregar `budgets` al umbral de cobertura del 90%** cuando exista la app.
 
+### 11.1 Decisiones abiertas con el cliente
+
+Estas decisiones **no son técnicas**: cambian el producto, el modelo de negocio o
+el marco legal. No hay una respuesta "correcta" en el código, así que **no se
+implementan hasta que el cliente defina el criterio**. Cada una bloquea una
+parte concreta del trabajo.
+
+| # | Decisión abierta | Qué hay que definir | Qué bloquea |
+|---|---|---|---|
+| O1 | **Proveedor de pagos** | Cuál es el proveedor (PSP, banco, pasarela), qué operaciones soporta (depósito, retiro, transferencia), si hay API de webhooks firmados, comisiones, tiempos de liquidación y si el saldo del ledger se replica contra la cuenta del proveedor | Toda la app `payments` (Fase 3) y el camino de depósitos/retiros, hoy simulados |
+| O2 | **Marco regulatorio de la custodia** | Si Presto es una **plataforma de inversión** o un **agente de custodia**; qué entidad regulada respalda los saldos; si los fondos van a una cuenta segregada en un banco o a una cuenta del proveedor; requisitos de capital mínimo, seguro de depósitos y reporte de saldos | El modelo de cuentas `custody` / `system` y si Presto puede llamar "custodia" a lo que hace hoy |
+| O3 | **Presto asume el rendimiento de los plazos fijos** | Si la tasa que se muestra está garantizada por Presto o si el rendimiento depende del instrumento que respalda la posición; qué pasa si el rendimiento real es menor que el prometido; si hay un fondo de garantía o un spread de riesgo; quién asume la diferencia | El modelo de `Position` e `InvestmentProduct` (hoy el interés es un `Decimal` fijo calculado al abrir) y el marketing del producto |
+| O4 | **Regla de "gastado" en presupuestos** | Si "gastado" se calcula contra los **movimientos del ledger** (todo lo que sale de la billetera, incluidos pagos de cuotas e inversiones) o solo contra **gastos categorizados**; cómo se categoriza un movimiento sin categoría; qué pasa con las transferencias entre cuentas propias | Toda la app `budgets` (Fase 2) y el significado de `Budget` y `Goal` |
+| O5 | **CFT / prevención de lavado** | Umbrales de Reporte de Operaciones Sospechosas (ROS), identificación del beneficiario final, screening contra listas de sanciones, reglas de monitoreo de patrones (velocidad, montos, estructuración), documentación de la operatoria, plazos de conservación y responsable asignado | El alcance de `identity` (más allá del KYC actual) y de `payments`; también define auditoría y retención de datos |
+
+**Cómo se cierran estas decisiones:** cada respuesta se registra en AGENTS.md §17
+y, si cambia la arquitectura, en un ADR de `docs/adr/`. Hasta entonces el código
+se mantiene en el supuesto más conservador: no se promete rendimiento, no se
+llama "custodia" a un saldo que no está en una cuenta segregada, y no se mueve
+dinero sin KYC aprobado.
+
 ---
 
 ## 12. Comandos de management y datos de prueba
@@ -518,3 +565,4 @@ Orden real de lo que falta, de mayor a menor prioridad.
 | Fecha | Cambio |
 |---|---|
 | 2026-10-21 | Documento creado: estado real del repo (63 commits), estado verificado de los checks, decisiones D1-D18, problemas P1-P14, endpoints reales extraídos del `URLConf`, comandos de ejecución validados y orden de los próximos pasos. **Nota**: `HANDOFF.md` **no existía** en el repo (ni en el árbol de trabajo, ni en el historial de git de ninguna rama, ni en el filesystem): se creó desde cero siguiendo la estructura de secciones indicada. |
+| 2026-10-21 | Ajustes pedidos por el cliente: §6.2 ahora es un resumen de 1-2 líneas por bloque (sin el detalle de archivos por commit); §4 pasó a "Requisitos, entorno local e invariantes del dinero" con los tres invariantes del ledger (saldo no negativo solo en `user_wallet`, `idempotency_key` única por `(usuario, clave)`, suma de saldos por moneda = 0) y §9 los referencia; §11.1 nueva con las decisiones abiertas con el cliente. |
