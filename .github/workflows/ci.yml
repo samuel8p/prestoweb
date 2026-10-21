@@ -167,3 +167,14 @@ jobs:
           --cov=apps.budgets.services
           --cov-report=term-missing
           --cov-fail-under=90
+
+      - name: Coverage gate for the reports app
+        run: >
+          python -m pytest apps/reports
+          --cov=apps.reports.selectors
+          --cov=apps.reports.views
+          --cov=apps.reports.export
+          --cov=apps.reports.serializers
+          --cov=apps.reports.exceptions
+          --cov-report=term-missing
+          --cov-fail-under=90

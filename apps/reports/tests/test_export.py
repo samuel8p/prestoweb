@@ -171,3 +171,17 @@ def test_export_parameter_with_an_unknown_value_returns_400(client):
     response = client.get('/api/v1/reports/movements/?currency=ARS&export=xlsx')
 
     assert response.status_code == 400
+
+
+def test_format_cell_renders_an_empty_value():
+    """Un valor vacío se exporta como celda vacía, no como None."""
+    from apps.reports.export import format_cell
+
+    assert format_cell(None) == ''
+
+
+def test_format_cell_renders_the_decimal_with_two_places():
+    """Los importes se exportan con dos decimales exactos."""
+    from apps.reports.export import format_cell
+
+    assert format_cell(Decimal('100.5')) == '100.50'
