@@ -7,6 +7,7 @@ from apps.core import views as core_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('health/', core_views.health_check, name='health'),
+    path('api/v1/meta/', core_views.MetaView.as_view(), name='meta'),
     path('api/v1/', include('apps.identity.urls')),
     path('api/v1/', include('apps.ledger.urls')),
     path('api/v1/', include('apps.offers.urls')),
