@@ -52,6 +52,24 @@ def list_installments(loan_id: uuid.UUID) -> QuerySet[Installment]:
     return Installment.objects.filter(loan_id=loan_id).order_by('number')
 
 
+def list_installments_for_loans(loan_ids: list[uuid.UUID]) -> QuerySet[Installment]:
+    """Lista las cuotas de varios préstamos en una sola consulta.
+
+    Args:
+        loan_ids: identificadores de los préstamos.
+
+    Returns:
+        QuerySet con las cuotas, ordenadas por préstamo y número.
+    """
+    if not loan_ids:
+        return Installment.objects.none()
+    return (
+        Installment.objects.filter(loan_id__in=loan_ids)
+        .select_related('loan')
+        .order_by('loan_id', 'number')
+    )
+
+
 def list_loan_movement_breakdowns(transaction_ids: list[uuid.UUID]) -> dict[uuid.UUID, dict]:
     """Devuelve el desglose de los movimientos que pertenecen a un préstamo.
 

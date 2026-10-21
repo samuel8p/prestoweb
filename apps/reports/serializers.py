@@ -32,3 +32,29 @@ class SpendingReportSerializer(serializers.Serializer):
     to_date = serializers.CharField()
     total = serializers.DecimalField(max_digits=18, decimal_places=2)
     categories = SpendingCategorySerializer(many=True)
+
+
+class NextInstallmentSerializer(serializers.Serializer):
+    """La próxima cuota a pagar de un préstamo."""
+
+    loan_id = serializers.UUIDField()
+    number = serializers.IntegerField()
+    due_date = serializers.DateField()
+    amount = serializers.DecimalField(max_digits=18, decimal_places=2)
+
+
+class LoansRoleSummarySerializer(serializers.Serializer):
+    """El resumen de los préstamos del usuario en un rol."""
+
+    active_loans = serializers.IntegerField()
+    outstanding_amount = serializers.DecimalField(max_digits=18, decimal_places=2)
+    interest_amount = serializers.DecimalField(max_digits=18, decimal_places=2)
+    next_installments = NextInstallmentSerializer(many=True)
+
+
+class LoansReportSerializer(serializers.Serializer):
+    """El reporte de préstamos."""
+
+    currency = serializers.CharField()
+    as_borrower = LoansRoleSummarySerializer()
+    as_lender = LoansRoleSummarySerializer()

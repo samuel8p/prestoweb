@@ -19,6 +19,7 @@ from django.db.models import QuerySet
 
 from apps.budgets import selectors as budgets_selectors
 from apps.ledger import selectors as ledger_selectors
+from apps.loans import selectors as loans_selectors
 from apps.reports.exceptions import InvalidReportParameters
 
 # Monedas del proyecto (AGENTS §6: un reporte es de una sola moneda, nunca se
@@ -30,6 +31,10 @@ MAX_RANGE_MONTHS = 12
 
 # Dirección de un débito en el ledger (constante de otra app: no se importa).
 DEBIT = 'debit'
+
+# Estados de una cuota y de un préstamo (constantes de otra app: no se importan).
+PAID = 'paid'
+ACTIVE = 'active'
 
 
 class MovementRow(TypedDict):
@@ -230,6 +235,83 @@ def get_spending_report(user_id: uuid.UUID, currency: str, period: ReportPeriod)
         'to_date': period.end_date.isoformat(),
         'total': sum((category['amount'] for category in categories), Decimal('0.00')),
         'categories': categories,
+    }
+
+
+def get_loans_report(user_id: uuid.UUID, currency: str) -> dict:
+    """Resumen de los préstamos del usuario como prestatario y como prestamista.
+
+    `outstanding_amount` es lo que falta pagar (la suma de las cuotas
+    pendientes, capital e interés) e `interest_amount` es el interés ya pagado
+    (cobrado, si el usuario es el prestamista).
+
+    Args:
+        user_id: identificador del usuario.
+        currency: moneda del reporte.
+
+    Returns:
+        Dict con el resumen como prestatario y como prestamista.
+    """
+    loans = [
+        loan
+        for loan in loans_selectors.list_loans_for_user(user_id=user_id)
+        if loan.currency == currency
+    ]
+    installments = loans_selectors.list_installments_for_loans([loan.id for loan in loans])
+    installments_by_loan: dict[uuid.UUID, list] = {}
+    for installment in installments:
+        installments_by_loan.setdefault(installment.loan_id, []).append(installment)
+    return {
+        'currency': currency,
+        'as_borrower': _summarize_loans(
+            [loan for loan in loans if loan.borrower_user_id == user_id],
+            installments_by_loan,
+        ),
+        'as_lender': _summarize_loans(
+            [loan for loan in loans if loan.lender_user_id == user_id],
+            installments_by_loan,
+        ),
+    }
+
+
+def _summarize_loans(loans: list, installments_by_loan: dict[uuid.UUID, list]) -> dict:
+    """Resume un conjunto de préstamos del usuario.
+
+    Args:
+        loans: préstamos del usuario en el rol indicado.
+        installments_by_loan: cuotas agrupadas por préstamo.
+
+    Returns:
+        Dict con los préstamos activos, el saldo pendiente, el interés y las
+        próximas cuotas.
+    """
+    active_loans = 0
+    outstanding = Decimal('0.00')
+    interest = Decimal('0.00')
+    next_installments = []
+    for loan in loans:
+        rows = installments_by_loan.get(loan.id, [])
+        pending = [row for row in rows if row.status != PAID]
+        paid = [row for row in rows if row.status == PAID]
+        if loan.status == ACTIVE:
+            active_loans += 1
+        outstanding += sum((row.amount for row in pending), Decimal('0.00'))
+        interest += sum((row.interest_amount for row in paid), Decimal('0.00'))
+        if pending:
+            next_installment = min(pending, key=lambda row: (row.due_date, row.number))
+            next_installments.append(
+                {
+                    'loan_id': loan.id,
+                    'number': next_installment.number,
+                    'due_date': next_installment.due_date,
+                    'amount': next_installment.amount,
+                }
+            )
+    return {
+        'active_loans': active_loans,
+        'outstanding_amount': outstanding,
+        'interest_amount': interest,
+        'next_installments': sorted(next_installments, key=lambda row: row['due_date']),
     }
 
 

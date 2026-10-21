@@ -14,12 +14,14 @@ from apps.core.pagination import StandardPagination
 from apps.reports.exceptions import InvalidReportParameters
 from apps.reports.selectors import (
     build_movement_rows,
+    get_loans_report,
     get_spending_report,
     list_movements_for_report,
     parse_currency,
     parse_period,
 )
 from apps.reports.serializers import (
+    LoansReportSerializer,
     MovementReportRowSerializer,
     SpendingReportSerializer,
 )
@@ -77,3 +79,23 @@ class SpendingReportView(APIView):
             period=period,
         )
         return Response(SpendingReportSerializer(report).data)
+
+
+class LoansReportView(APIView):
+    """Préstamos del usuario como prestatario y como prestamista."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: LoansReportSerializer},
+        summary='Ver el resumen de préstamos',
+        operation_id='reports_loans',
+    )
+    def get(self, request):
+        """Devuelve el resumen de los préstamos del usuario en la moneda pedida."""
+        try:
+            currency = parse_currency(request.query_params)
+        except InvalidReportParameters as exc:
+            raise ValidationError({'detail': [str(exc)]}) from exc
+        report = get_loans_report(user_id=request.user.id, currency=currency)
+        return Response(LoansReportSerializer(report).data)
