@@ -21,6 +21,14 @@ app.conf.beat_schedule = {
         'task': 'apps.loans.tasks.mark_overdue_loans',
         'schedule': crontab(hour=0, minute=5),
     },
+    'notify_installments_due_soon_diario': {
+        'task': 'apps.loans.tasks.notify_installments_due_soon',
+        'schedule': crontab(hour=0, minute=10),
+    },
+    'notify_overdue_installments_diario': {
+        'task': 'apps.loans.tasks.notify_overdue_installments',
+        'schedule': crontab(hour=0, minute=20),
+    },
     'settle_investments_diario': {
         'task': 'apps.investments.tasks.settle_investments',
         'schedule': crontab(hour=0, minute=15),

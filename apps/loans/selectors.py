@@ -1,6 +1,7 @@
 """Selectores de lectura de la app loans (interfaz pública)."""
 
 import uuid
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Q, QuerySet
@@ -79,6 +80,50 @@ def list_installments_for_loans(loan_ids: list[uuid.UUID]) -> QuerySet[Installme
         Installment.objects.filter(loan_id__in=loan_ids)
         .select_related('loan')
         .order_by('loan_id', 'number')
+    )
+
+
+def list_installments_due_soon(today: date, days: int = 3) -> QuerySet[Installment]:
+    """Lista las cuotas pendientes que vencen dentro de los próximos días.
+
+    Args:
+        today: fecha de referencia.
+        days: ventana de anticipación, en días.
+
+    Returns:
+        QuerySet con las cuotas, de la más próxima a la más lejana.
+    """
+    limit = today + timedelta(days=days)
+    return (
+        Installment.objects.filter(
+            status=Installment.Status.PENDING,
+            due_date__gte=today,
+            due_date__lte=limit,
+        )
+        .select_related('loan')
+        .order_by('due_date', 'number')
+    )
+
+
+def list_overdue_installments(today: date) -> QuerySet[Installment]:
+    """Lista las cuotas vencidas que todavía no se pagaron.
+
+    Incluye las que el proceso diario todavía no marcó como vencidas, para
+    que el aviso no dependa del orden de las tareas.
+
+    Args:
+        today: fecha de referencia.
+
+    Returns:
+        QuerySet con las cuotas vencidas, de la más antigua a la más reciente.
+    """
+    return (
+        Installment.objects.filter(
+            status__in=[Installment.Status.PENDING, Installment.Status.OVERDUE],
+            due_date__lt=today,
+        )
+        .select_related('loan')
+        .order_by('due_date', 'number')
     )
 
 
