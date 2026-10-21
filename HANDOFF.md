@@ -67,6 +67,7 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 ├── Makefile                      # up, down, test, lint, migrate, shell, makemigrations,
 │                                 #   worker, beat, celery-tasks
 ├── docker-compose.yml            # db, redis, web, worker, beat (localhost only)
+├── docker-compose.prod.yml        # producción: sin puertos de db/redis, secretos por env
 ├── Dockerfile                    # python:3.12-slim + deps de pyproject.toml
 ├── pytest.ini                    # DJANGO_SETTINGS_MODULE + --ds=config.settings.test
 ├── pyproject.toml                # deps + config de ruff
@@ -187,6 +188,9 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 | Commit | Asunto |
 |---|---|---|
+| `45eefa8` | chore(infra): add the production docker compose |
+| `89d6f49` | feat(core): add the health check endpoint |
+| `6efb50f` | feat(identity): require approved kyc on the views that move money |
 | `92f2e1a` | chore(budgets): import-linter contracts, coverage gate and ADR |
 | `9125429` | feat(budgets): budgets api |
 | `9f1a546` | feat(budgets): monthly spending per category and currency |
@@ -319,13 +323,17 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
   guarda**: se deriva del ledger al leer. API de categorías, presupuestos, estado
   y gastos.
 - **Celery**: app, worker, beat, dos tasks periódicas y su cobertura de tests.
+- **Chequeo de salud**: `GET /health/` (fuera de `/api/v1/`, sin autenticación y
+  sin throttle) devuelve 200 con `{"status": "ok"}` si la base responde un
+  `SELECT 1` y 503 con `{"status": "unavailable"}` si no responde. No expone
+  detalles internos ni secretos.
 
 ### 6.4 Estado verificado (2026-10-21, comandos del §10)
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web pytest -q` | **491 passed** |
-| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,85%** (77 statements sin cubrir de 6689) |
+| Tests | `docker compose run --rm web pytest -q` | **504 passed** |
+| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,81%** (81 statements sin cubrir de 6814) |
 | Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **100%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Cobertura por módulo | idem | `identity/*` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `ledger/selectors.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `loans/tasks.py` 100% · `investments/services.py` 99% · `investments/tasks.py` 100% · `matching/views.py` 97% |
 | Lint | `ruff check .` | All checks passed |
@@ -340,6 +348,8 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | End-to-end | `celery -A config call apps.loans.tasks.mark_overdue_loans` | task `received` y `succeeded` en el worker |
 | Migraciones de budgets | `manage.py migrate` | `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_...` aplicadas |
 | Endpoints de budgets (runtime) | `curl` contra el `web` local | crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401 |
+| Compose de producción | `docker compose -f docker-compose.prod.yml config` | válido (5 servicios) |
+| Compose de producción (arranque real) | `docker compose -f docker-compose.prod.yml -p presto-prod up -d --build` | `db`, `redis` y `web` **healthy**, `worker` y `beat` Up, `/health/` → 200 `{"status": "ok"}` |
 | Estado del repo | `git status` | limpio; `main` al día con `origin/main` |
 
 **Logs de evidencia** (fuera del repo, en `A:\Samuel\`): `tdd_6.log` (ciclos
@@ -384,6 +394,10 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D27 | `Installment.ledger_transaction_id` y `Loan.ledger_transaction_id` guardan el movimiento del pago y del desembolso, y `loans.selectors` expone el desglose en primitivos | Es la única forma limpia de aplicar el tratamiento interés/capital sin parsear claves de idempotencia ni compartir modelos entre apps |
 | D28 | Las reglas de gasto están en una **función pura** (`_classify_movement`) y se derivan en **lote** | Permite probar las reglas defensivas (transferencia entre cuentas propias) sin construir movimientos imposibles, y evita el N+1 al calcular un presupuesto |
 | D29 | Los conflictos (categoría o presupuesto duplicado, movimiento ya categorizado) usan `APIException` con `status_code = 409` | Sigue el patrón del ledger (`IdempotencyKeyConflict`) y el `exception_handler` devuelve el código propio en los status no genéricos |
+| D30 | `identity.permissions.KycApprovedForUnsafeMethods` agrega `IsKycApproved` solo a los métodos que no son de lectura | Da el `403` temprano y explícito de AGENTS §9.9 sin cambiar los `GET`. Los services siguen validando KYC (defense in depth) |
+| D31 | `/health/` es una vista de Django (no DRF) fuera de `/api/v1/` | Es un endpoint operativo: sin autenticación, sin throttle y fuera del esquema OpenAPI |
+| D32 | `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` en los settings de producción | El proxy inverso termina TLS delante: sin esto, `SECURE_SSL_REDIRECT` respondía 301 y el chequeo de salud fallaba |
+| D33 | `docker-compose.prod.yml` no monta el código fuente: la imagen lo lleva | En producción el código va en la imagen (el `Dockerfile` hace `COPY . .`); el montaje del compose de desarrollo es solo para recargar |
 
 ## 8. Problemas y resoluciones
 
@@ -405,6 +419,8 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | P14 | `pytest.raises(Exception)` disparaba el linter `B017` | Se reemplazó por la excepción concreta (`InsufficientFunds`) |
 | P15 | El test de equivalencia command↔task de `settle_investments` falló con `assert 0 == 1` | El command liquida **todas** las posiciones vencidas, no solo una: el test estaba mal, no el código. Se corrigió el test para aislar cada camino (crear el dato del command, correrlo, recién entonces crear el dato de la task) |
 | P16 | El hook de `import-linter` de `pre-commit` falla en el host con `Executable 'lint-imports' not found` | El hook usa `language: system` y en este host `lint-imports.exe` vive en `C:\Users\samue\AppData\Roaming\Python\Python315\Scripts`, que **no está en el PATH**. Antes de commitear: `export PATH="/c/Users/samue/AppData/Roaming/Python/Python315/Scripts:$PATH"`. No es un problema del repo |
+| P22 | Con `SECURE_SSL_REDIRECT=True` y `SECURE_PROXY_SSL_HEADER=None` (el valor real del proyecto), `/health/` respondía **301** y el healthcheck del contenedor expiraba | Se agregó `SECURE_PROXY_SSL_HEADER` a los settings de producción (el proxy termina TLS) y el healthcheck envía `X-Forwarded-Proto: https`. Verificado con el stack real: `web` queda **healthy** |
+| P23 | El `docker-compose.prod.yml` no parseaba: el valor del healthcheck tenía `:` sin comillas | Se entrecomilló el valor YAML del bloque `test` |
 | P18 | El test del filtro de período falló con `IntegrityError: ledger_ledgertransaction rows are immutable: UPDATE is not allowed` | El ledger es inmutable (trigger de PostgreSQL): **no se puede mover la fecha de un movimiento**. El test se reformuló para comparar el mismo movimiento en su mes y en otro período, sin tocar el ledger |
 | P19 | `pytest.raises(Exception)` en un test de budgets disparaba el linter `B017` | Se reemplazó por la excepción concreta (`NotAnExpense`) |
 | P20 | El primer test de `test_spending.py` usaba un usuario ficticio (UUID sin `User`) y fallaba con `KYCNotCompleted` | El ledger exige KYC para mover saldo: la app budgets tiene su propio `create_approved_user()` en `apps/budgets/tests/factories.py`, como las otras apps |
@@ -466,7 +482,7 @@ docker compose ps
 make test      # docker compose run --rm web python -m pytest -v
 ```
 
-Resultado esperado: **407 passed**. Con cobertura:
+Resultado esperado: **504 passed**. Con cobertura:
 
 ```sh
 docker compose run --rm web pytest -v --cov=apps --cov-report=term-missing
@@ -540,6 +556,41 @@ Tareas registradas y horario (beat, UTC):
 
 En los tests las tasks corren en el proceso (`CELERY_TASK_ALWAYS_EAGER`), así que
 la suite no necesita Redis.
+
+### Chequeo de salud
+
+```sh
+curl -s http://127.0.0.1:8000/health/
+# {"status": "ok"}         -> 200 si la base responde
+# {"status": "unavailable"} -> 503 si la base no responde
+```
+
+Es público (sin autenticación), sin throttle, y **no** está en el esquema
+OpenAPI: es un endpoint operativo, no de la API de negocio.
+
+### Producción (docker-compose.prod.yml)
+
+El archivo exige un `.env.prod` (o variables de entorno) con, al menos,
+`POSTGRES_PASSWORD`, `DJANGO_SECRET_KEY` y `DJANGO_ALLOWED_HOSTS`. No tiene
+ningún secreto escrito dentro.
+
+```sh
+docker compose -f docker-compose.prod.yml config                    # valida el archivo
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose -f docker-compose.prod.yml --env-file .env.prod ps
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f web
+```
+
+- Servicios: `db`, `redis`, `web` (gunicorn), `worker` y `beat`.
+- `db` y `redis` **no** publican puertos; `web` escucha en `127.0.0.1:8000`
+  para el proxy inverso (Nginx o Caddy) que termina TLS.
+- `restart: unless-stopped` en los cinco servicios.
+- Healthchecks: `pg_isready` en `db`, `redis-cli ping` en `redis` y `/health/`
+  en `web`.
+- Volúmenes persistentes: `pg_data` (base) y `celerybeat` (estado del
+  scheduler).
+- **`beat` corre una sola instancia**: el worker se puede escalar, el
+  scheduler no.
 
 ### Otros
 
@@ -637,20 +688,21 @@ Orden real de lo que falta, de mayor a menor prioridad.
    depósitos y retiros son **simulados** y están apagados en producción por el
    system check `ledger.E001`: `ledger.withdraw` es alcanzable por HTTP pero
    **siempre devuelve 400** en producción.
-4. **Crear `docker-compose.prod.yml`**: está en el árbol exigido por AGENTS §4 y no
-   existe. Ahí hay que garantizar **una sola instancia de `beat`**.
-5. **Producción**: hoy no hay nada desplegable. Falta el endpoint **`/health/`**
-   (chequeo de estado), **Sentry**, los **backups automáticos diarios** de
-   PostgreSQL con prueba periódica de restauración, **HTTPS** obligatorio
-   (`SECURE_SSL_REDIRECT`, cookies seguras, HSTS) y **CORS** explícito para el
-   front (`CORS_ALLOWED_ORIGINS`, sin `*`).
+4. ✅ **`docker-compose.prod.yml`**: creado y verificado (config válido y stack
+   levantado de verdad). Pendiente de producción: el proxy inverso con TLS, los
+   backups automáticos y el despliegue real en el VPS.
+5. **Producción**: el endpoint **`/health/`** y el `docker-compose.prod.yml` ya
+   están. Falta la integración con **Sentry**, los **backups automáticos
+   diarios** de PostgreSQL con prueba periódica de restauración, el **proxy
+   inverso con HTTPS** y el **CORS** explícito para el front
+   (`CORS_ALLOWED_ORIGINS`, sin `*`).
 6. **Documentación**: falta `docs/architecture.md`. Los ADRs de las decisiones
    grandes siguen sin escribirse (saldo desnormalizado, contrato diferido de doble
    entrada, orden `offers+matching → loans → investments → payments`).
-7. **Aplicar `IsKycApproved` en las vistas que mueven dinero.** La permission
-   existe y está testeada, pero **ninguna vista la usa**: el requisito de AGENTS
-   §9.9 ya lo garantizan los services (`identity.selectors.is_kyc_approved`), así
-   que lo que falta es el `403` temprano y explícito en la capa HTTP.
+7. ✅ **`IsKycApproved` en las vistas que mueven dinero**: aplicado a los
+   movimientos del ledger, la publicación de ofertas, la aceptación de préstamos,
+   el pago de cuotas y la apertura de posiciones de inversión. Los `GET` no cambian
+   y los services siguen validando KYC.
 8. **Cobertura de vistas por debajo de 100%**: `loans/views.py` 94%,
    `matching/views.py` 97%, `investments/views.py` 95%. No es un bloqueo (los
    umbrales de AGENTS §10 son 90% en `ledger`/`budgets` y 80% general).
@@ -882,5 +934,6 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). |
 | 2026-10-21 | **Infraestructura de Celery (primer cambio del Bloque 6)**: `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario con `mark_overdue_loans` (00:05) y `settle_investments` (00:15), servicios `worker` y `beat` en el compose con volumen persistente para el scheduler, tasks en `apps/loans/tasks.py` y `apps/investments/tasks.py` que delegan en los services existentes (los management commands no se modifican), y tests de tasks y de commands (407 tests). Decisiones y consecuencias en `docs/adr/0001-celery-redis-cola-y-scheduler.md`. `AGENTS.md` **no** se modificó (pendiente de aprobación del desarrollador). |
 | 2026-10-21 | **O4 resuelta por el cliente** (criterio completo en §11.2). La app `budgets` **no** se implementó: el trabajo se detuvo en el análisis del código. Se deja el análisis verificado y las decisiones de implementación pendientes en §11.3 para retomar. |
+| 2026-10-21 | **Tres mejoras chicas**: `6efb50f` aplica `IsKycApproved` a las vistas que mueven dinero (movimientos del ledger, publicar oferta, aceptar préstamo, pagar cuota, abrir posición) con un mixin que solo afecta los métodos que no son de lectura; `89d6f49` agrega `GET /health/` (200 `{"status": "ok"}` / 503 `{"status": "unavailable"}`, público y fuera del esquema OpenAPI); `45eefa8` crea `docker-compose.prod.yml` (db, redis, web con gunicorn, worker y beat; sin puertos de db/redis, secretos por entorno, `restart: unless-stopped`, healthchecks y volúmenes persistentes) y ajusta `SECURE_PROXY_SSL_HEADER` en producción para que el chequeo de salud no reciba un 301. **504 tests pasan**, cobertura 98,81%. El stack de producción se levantó de verdad: `db`, `redis` y `web` healthy, `worker` y `beat` Up y `/health/` respondiendo 200. |
 | 2026-10-21 | **Bloque 6b implementado: app `budgets`** en 7 commits: `29f9b96` selector de patas y reversión en el ledger, `82793c2` `ledger_transaction_id` en `Installment`/`Loan` + selector de desglose, `e18b0a7` app con `Category` y `Budget`, `91b3858` service de categorización, `9f1a546` cálculo del gasto acumulado por categoría y moneda, `9125429` API y OpenAPI sin warnings, `92f2e1a` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0002. **491 tests pasan**, cobertura total 98,85% y `budgets/services.py` al 100%. Migraciones: `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_installment_ledger_transaction_id_and_more`. Los endpoints quedaron verificados en runtime real contra el `web` local (crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401). |
 | 2026-10-21 | **Reescritura del documento** para traspaso a Claude: §2 con el stack real (Celery 5.6.3 en uso), §3 con el árbol real (celery.py, tasks.py, ADR 0001), §5 con las reglas de API/seguridad/testing, §6.3 con los módulos verificados, §6.4 con la tabla de verificaciones comprobadas hoy (407 tests, 99,07% de cobertura, 11 contratos, 5 servicios Up), §7 con D19-D24 (Celery), §8 con P15-P17, §9 corregido (una billetera por moneda; depósitos simulados apagados en local), §10 con los comandos reales (`docker compose ps` muestra 5 servicios), §11 con el bloque 6b como tarea recomendada y §11.3 con el contexto técnico de `budgets`, §11.4 con los huecos de especificación de `reports`/`notifications`, **§13 nueva con las reglas para Claude** y §14 el registro. Se eliminaron datos obsoletos (conteo de commits, "374 passed", "3 servicios Up", `docs/adr/` vacío) sin perder decisiones vigentes. |
