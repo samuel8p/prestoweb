@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     # Core apps
     'apps.core',
     'apps.identity',
+    'apps.ledger',
     # Third party
     'rest_framework',
     'drf_spectacular',
