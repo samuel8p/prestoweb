@@ -381,3 +381,53 @@ def test_budget_status_accepts_an_explicit_period(client):
     assert response.status_code == 200
     assert response.data['year'] == now.year
     assert response.data['month'] == now.month
+
+
+def test_category_detail_of_own_category_returns_200(client):
+    """El detalle de una categoría propia devuelve 200."""
+    user = create_approved_user(email='detalle-categoria@example.com')
+    authenticate(client, user)
+    category = client.post(
+        '/api/v1/budgets/categories/',
+        {'name': 'Comida'},
+        format='json',
+    ).data
+
+    response = client.get(f'/api/v1/budgets/categories/{category["id"]}/')
+
+    assert response.status_code == 200
+    assert response.data['name'] == 'Comida'
+
+
+def test_category_detail_of_another_user_returns_404(client):
+    """La categoría de otro usuario no se expone."""
+    user = create_approved_user(email='detalle-categoria-ajeno@example.com')
+    other = create_approved_user(email='detalle-categoria-otro@example.com')
+    authenticate(client, other)
+    category = client.post(
+        '/api/v1/budgets/categories/',
+        {'name': 'Ajena'},
+        format='json',
+    ).data
+    client.credentials()
+    authenticate(client, user)
+
+    response = client.get(f'/api/v1/budgets/categories/{category["id"]}/')
+
+    assert response.status_code == 404
+
+
+def test_category_detail_requires_authentication(client):
+    """El detalle de una categoría pide token."""
+    user = create_approved_user(email='detalle-categoria-sin-token@example.com')
+    authenticate(client, user)
+    category = client.post(
+        '/api/v1/budgets/categories/',
+        {'name': 'Comida'},
+        format='json',
+    ).data
+    client.credentials()
+
+    response = client.get(f'/api/v1/budgets/categories/{category["id"]}/')
+
+    assert response.status_code == 401
