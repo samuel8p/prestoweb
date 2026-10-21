@@ -19,6 +19,10 @@ LEDGER_SIMULATED_DEPOSITS_ENABLED = (
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+# El proxy inverso (Nginx o Caddy) termina TLS y reenvía X-Forwarded-Proto.
+# Sin esto, SECURE_SSL_REDIRECT redirigía en loop y el chequeo de salud
+# (/health/) recibía un 301 en vez de un 200.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Celery: el broker es obligatorio en producción, no hay default silencioso
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL') or os.environ.get('REDIS_URL')
