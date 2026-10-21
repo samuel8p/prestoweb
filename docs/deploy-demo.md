@@ -177,7 +177,43 @@ curl -s http://127.0.0.1:8000/api/v1/meta/     # {"mode": "production", "simulat
 docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f worker
 ```
 
-## 7. Caveats conocidos del modo demo
+## 7. Compatibilidad arm64 (Oracle Cloud Ampere)
+
+Las VM de Oracle Cloud en Linux son **aarch64** (ARM), no x86. Todo el stack se
+verificó contra esa arquitectura el **2026-10-21**:
+
+| Imagen | `linux/arm64` | `linux/amd64` |
+|---|---|---|
+| `python:3.12-slim` (base del `Dockerfile`) | ✅ | ✅ |
+| `postgres:16` | ✅ | ✅ |
+| `redis:7-alpine` | ✅ | ✅ |
+| `caddy:2-alpine` (perfil `proxy`) | ✅ | ✅ |
+
+Cómo se verificó:
+
+```sh
+docker buildx imagetools inspect python:3.12-slim     # y postgres:16, redis:7-alpine, caddy:2-alpine
+docker buildx build --platform linux/arm64 --load -t presto:arm64-check .
+docker run --rm presto:arm64-check uname -m           # aarch64
+```
+
+El build de la imagen completa **para arm64 funciona** ✓ y dentro de la imagen
+importan sin problema `django`, `djangorestframework`, `drf_spectacular`,
+`psycopg2`, `argon2`, `celery`, `gunicorn` y `django-cors-headers` ✓.
+
+Las dos únicas dependencias con código nativo tienen ruedas para aarch64 ✓
+(`psycopg2-binary` 18 ruedas aarch64 y `argon2-cffi-bindings` 16 ✓), así que
+no hace falta compilar nada en la VM. El resto son paquetes puros de Python ✓.
+
+En el `Dockerfile` no hay nada específico de x86 ✓ (no hay `apt` con paquetes
+binarios, ni `COPY` de binarios, ni `--platform` fijo ✗). `deploy/backup-postgres.sh`
+es un script de bash ✓ y el `Caddyfile` es texto ✓: los dos funcionan igual en
+ARM.
+
+> La VM arma `linux/arm64` de forma nativa ✓: el `docker compose up --build` de
+> producción no necesita `--platform` ni QEMU ✗.
+
+## 8. Caveats conocidos del modo demo
 
 - **El KYC se resuelve desde el admin**: para crear ofertas, aceptar préstamos o
   abrir inversiones, el usuario tiene que tener el KYC aprobado. Se aprueba en
@@ -190,7 +226,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f worker
 - El `ledger` es **inmutable**: los movimientos no se editan, se revierten con
   un movimiento compensatorio (acción de admin, solo staff).
 
-## 8. Comandos de verificación
+## 9. Comandos de verificación
 
 ```sh
 docker compose run --rm web python -m pytest -q          # suite completa
