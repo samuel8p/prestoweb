@@ -51,6 +51,8 @@ services:
   web:
     build: .
     restart: unless-stopped
+    # The application never runs as root (audit M-3)
+    user: presto
     command: >
       bash -c "export PYTHONPATH=/app &&
                python manage.py migrate --no-input &&
@@ -90,6 +92,8 @@ services:
   worker:
     build: .
     restart: unless-stopped
+    # The application never runs as root (audit M-3)
+    user: presto
     command: >
       bash -c "export PYTHONPATH=/app &&
                celery -A config worker -l info"
@@ -114,6 +118,8 @@ services:
   beat:
     build: .
     restart: unless-stopped
+    # The application never runs as root (audit M-3)
+    user: presto
     command: >
       bash -c "export PYTHONPATH=/app &&
                celery -A config beat -l info --schedule /var/celerybeat/celerybeat-schedule"
