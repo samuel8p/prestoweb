@@ -21,7 +21,7 @@ shell:
 	docker compose run --rm web python manage.py shell
 
 makemigrations:
-	docker compose run --rm web python manage.py makemigrations
+	docker compose run --rm --user root web python manage.py makemigrations
 
 # Additional useful targets
 logs:

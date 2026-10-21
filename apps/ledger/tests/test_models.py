@@ -111,6 +111,40 @@ def test_counterpart_account_balance_can_be_negative():
     assert account.balance == Decimal('-100.00')
 
 
+def test_account_currency_must_be_ars_or_usd():
+    """Una cuenta no puede tener una moneda que no sea ARS o USD."""
+    from apps.ledger.models import Account
+
+    with pytest.raises(IntegrityError):
+        AccountFactory(currency='EUR')
+
+
+def test_account_currency_is_case_sensitive():
+    """La moneda en minúscula no es la misma moneda (los reportes comparan con `ARS`)."""
+    from apps.ledger.models import Account
+
+    with pytest.raises(IntegrityError):
+        AccountFactory(currency='ars')
+
+
+def test_account_accepts_both_project_currencies():
+    """ARS y USD son las dos monedas válidas."""
+    from apps.ledger.models import Account
+
+    for currency in (Account.Currency.ARS, Account.Currency.USD):
+        account = AccountFactory(currency=currency)
+
+        assert account.currency == currency
+
+
+def test_entry_currency_must_be_ars_or_usd():
+    """Un asiento no puede tener una moneda que no sea ARS o USD."""
+    from apps.ledger.models import Account
+
+    with pytest.raises(IntegrityError):
+        LedgerEntryFactory(currency='EUR')
+
+
 def test_idempotency_key_is_unique_per_user():
     """La clave de idempotencia es única por usuario."""
     from apps.ledger.models import LedgerTransaction

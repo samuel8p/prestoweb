@@ -51,6 +51,10 @@ class Account(BaseModel):
                 condition=~models.Q(kind='user_wallet') | models.Q(balance__gte=0),
                 name='ledger_account_user_wallet_balance_non_negative',
             ),
+            models.CheckConstraint(
+                condition=models.Q(currency__in=['ARS', 'USD']),
+                name='ledger_account_currency_ars_or_usd',
+            ),
         ]
 
     def __str__(self):
@@ -117,6 +121,10 @@ class LedgerEntry(BaseModel):
             models.CheckConstraint(
                 condition=models.Q(amount__gt=0),
                 name='ledger_entry_amount_positive',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(currency__in=['ARS', 'USD']),
+                name='ledger_entry_currency_ars_or_usd',
             ),
         ]
 
