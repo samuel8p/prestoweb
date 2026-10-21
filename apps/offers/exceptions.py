@@ -13,3 +13,11 @@ class OfferNotFound(OffersError):
 
 class OfferNotEditable(OffersError):
     """La oferta no se puede modificar en su estado actual."""
+
+
+class OfferNotAcceptable(OffersError):
+    """La oferta no está activa y no se puede aceptar."""
+
+
+class CannotAcceptOwnOffer(OffersError):
+    """El prestamista no puede aceptar su propia oferta."""

@@ -51,6 +51,21 @@ def get_active_offer(offer_id: uuid.UUID) -> Offer | None:
     return Offer.objects.filter(id=offer_id, status=Offer.Status.ACTIVE).first()
 
 
+def get_offer_locked(offer_id: uuid.UUID) -> Offer | None:
+    """Devuelve la oferta bloqueada para acceptarla.
+
+    El bloqueo (`select_for_update`) evita que dos prestatarios acepten la
+    misma oferta al mismo tiempo.
+
+    Args:
+        offer_id: identificador de la oferta.
+
+    Returns:
+        La Offer bloqueada o None.
+    """
+    return Offer.objects.select_for_update().filter(id=offer_id).first()
+
+
 def search_active_offers(
     currency: str | None = None,
     amount_min: Decimal | None = None,

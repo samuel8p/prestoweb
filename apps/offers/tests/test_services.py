@@ -1,5 +1,6 @@
 """Tests de los servicios de escritura de offers."""
 
+import uuid
 from decimal import Decimal
 
 import pytest
@@ -150,3 +151,52 @@ def test_expire_offer_sets_status():
     expired = expire_offer(offer_id=offer.id, lender_user_id=user.id)
 
     assert expired.status == Offer.Status.EXPIRED
+
+
+def test_accept_offer_marks_offer_as_accepted():
+    """Aceptar una oferta la marca como aceptada."""
+    from apps.offers.models import Offer
+    from apps.offers.services import accept_offer
+
+    user = create_approved_user()
+    offer = OfferFactory(lender_user_id=uuid.uuid4())
+
+    accepted = accept_offer(offer_id=offer.id, borrower_user_id=user.id)
+
+    assert accepted.status == Offer.Status.ACCEPTED
+
+
+def test_accept_offer_rejects_unknown_offer():
+    """Una oferta inexistente no se puede aceptar."""
+    from apps.offers.exceptions import OfferNotFound
+    from apps.offers.services import accept_offer
+
+    user = create_approved_user()
+
+    with pytest.raises(OfferNotFound):
+        accept_offer(offer_id=uuid.uuid4(), borrower_user_id=user.id)
+
+
+def test_accept_offer_rejects_inactive_offer():
+    """Una oferta que no está activa no se puede aceptar."""
+    from apps.offers.exceptions import OfferNotAcceptable
+    from apps.offers.models import Offer
+    from apps.offers.services import accept_offer
+
+    user = create_approved_user()
+    offer = OfferFactory(lender_user_id=uuid.uuid4(), status=Offer.Status.EXPIRED)
+
+    with pytest.raises(OfferNotAcceptable):
+        accept_offer(offer_id=offer.id, borrower_user_id=user.id)
+
+
+def test_accept_offer_rejects_own_offer():
+    """El prestamista no puede aceptar su propia oferta."""
+    from apps.offers.exceptions import CannotAcceptOwnOffer
+    from apps.offers.services import accept_offer
+
+    user = create_approved_user()
+    offer = OfferFactory(lender_user_id=user.id)
+
+    with pytest.raises(CannotAcceptOwnOffer):
+        accept_offer(offer_id=offer.id, borrower_user_id=user.id)

@@ -4,9 +4,17 @@ import logging
 import uuid
 from decimal import Decimal
 
+from django.db import transaction
+
 from apps.core.exceptions import InvalidAmount, KYCNotCompleted
 from apps.identity.selectors import is_kyc_approved
-from apps.offers.exceptions import OfferNotEditable, OfferNotFound
+from apps.offers import selectors as offers_selectors
+from apps.offers.exceptions import (
+    CannotAcceptOwnOffer,
+    OfferNotAcceptable,
+    OfferNotEditable,
+    OfferNotFound,
+)
 from apps.offers.models import Offer
 
 logger = logging.getLogger(__name__)
@@ -134,6 +142,43 @@ def expire_offer(offer_id: uuid.UUID, lender_user_id: uuid.UUID) -> Offer:
     offer.status = Offer.Status.EXPIRED
     offer.save(update_fields=['status', 'updated_at'])
     logger.info('Oferta expirada: offer_id=%s lender_user_id=%s', offer.id, lender_user_id)
+    return offer
+
+
+def accept_offer(offer_id: uuid.UUID, borrower_user_id: uuid.UUID) -> Offer:
+    """Marca la oferta como aceptada por el prestatario.
+
+    La oferta se bloquea (`select_for_update`) para que dos prestatarios no
+    puedan aceptarla a la vez.
+
+    Args:
+        offer_id: identificador de la oferta.
+        borrower_user_id: prestatario que la acepta.
+
+    Returns:
+        La Offer aceptada.
+
+    Raises:
+        OfferNotFound: si la oferta no existe.
+        OfferNotAcceptable: si la oferta no está activa.
+        CannotAcceptOwnOffer: si el prestatario es el prestamista.
+    """
+    with transaction.atomic():
+        offer = offers_selectors.get_offer_locked(offer_id=offer_id)
+        if offer is None:
+            raise OfferNotFound('La oferta no existe.')
+        if offer.status != Offer.Status.ACTIVE:
+            raise OfferNotAcceptable('La oferta no está activa.')
+        if offer.lender_user_id == borrower_user_id:
+            raise CannotAcceptOwnOffer('No podés aceptar tu propia oferta.')
+        offer.status = Offer.Status.ACCEPTED
+        offer.save(update_fields=['status', 'updated_at'])
+    logger.info(
+        'Oferta aceptada: offer_id=%s lender_user_id=%s borrower_user_id=%s',
+        offer.id,
+        offer.lender_user_id,
+        borrower_user_id,
+    )
     return offer
 
 

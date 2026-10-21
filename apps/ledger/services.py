@@ -265,6 +265,86 @@ def transfer(
         return _recover_from_idempotency_race(user_id, idempotency_key, request_hash)
 
 
+def transfer_between_users(
+    source_user_id: uuid.UUID,
+    destination_user_id: uuid.UUID,
+    currency: str,
+    amount: Decimal,
+    idempotency_key: str,
+    initiated_by_user_id: uuid.UUID,
+    description: str = '',
+) -> LedgerTransaction:
+    """Mueve fondos entre dos usuarios con una operación iniciada por un tercero.
+
+    Es un service **interno**: no está expuesto por la API. Lo usa el flujo de
+    préstamos, donde el desembolso lo pide el prestatario pero el saldo sale de
+    la cuenta del prestamista. Las reglas de saldo no negativo, de bloqueo de
+    cuentas en orden por `id` y de idempotencia son las mismas que en
+    `transfer`.
+
+    Args:
+        source_user_id: usuario cuyo saldo se debita.
+        destination_user_id: usuario cuyo saldo se acredita.
+        currency: código ISO de la moneda.
+        amount: importe a mover, mayor que cero.
+        idempotency_key: clave de idempotencia de la operación.
+        initiated_by_user_id: usuario que origina la operación.
+        description: descripción del movimiento.
+
+    Returns:
+        La LedgerTransaction creada, o la original si la clave ya se usó.
+
+    Raises:
+        InvalidAmount: si el importe no es un Decimal positivo.
+        InsufficientFunds: si la cuenta de origen quedaría en negativo.
+        IdempotencyConflict: si la clave ya existe con otro payload.
+    """
+    _assert_valid_amount(amount)
+    request_hash = build_request_hash(
+        {
+            'type': LedgerTransaction.Type.TRANSFER,
+            'source_user_id': str(source_user_id),
+            'destination_user_id': str(destination_user_id),
+            'currency': currency,
+            'amount': str(amount),
+            'description': description,
+        }
+    )
+    try:
+        with transaction.atomic():
+            existing = _resolve_idempotent(
+                initiated_by_user_id,
+                idempotency_key,
+                request_hash,
+            )
+            if existing is not None:
+                return existing
+            source = create_user_wallet(user_id=source_user_id, currency=currency)
+            destination = create_user_wallet(user_id=destination_user_id, currency=currency)
+            locked = _lock_accounts([source.id, destination.id])
+            _assert_sufficient_funds(locked[source.id], -amount)
+            legs = [
+                (locked[source.id], LedgerEntry.Direction.DEBIT, amount),
+                (locked[destination.id], LedgerEntry.Direction.CREDIT, amount),
+            ]
+            return _post_transaction(
+                movement_type=LedgerTransaction.Type.TRANSFER,
+                user_id=initiated_by_user_id,
+                currency=currency,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                legs=legs,
+                description=description,
+                destination_account_id=locked[destination.id].id,
+            )
+    except IntegrityError:
+        return _recover_from_idempotency_race(
+            initiated_by_user_id,
+            idempotency_key,
+            request_hash,
+        )
+
+
 def reverse_transaction(
     transaction_id: uuid.UUID,
     staff_user_id: uuid.UUID,

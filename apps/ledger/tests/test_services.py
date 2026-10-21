@@ -508,3 +508,125 @@ def test_reverse_is_only_allowed_once():
 
     with pytest.raises(LedgerError):
         reverse_transaction(transaction_id=original.id, staff_user_id=uuid.uuid4())
+
+
+def test_transfer_between_users_moves_money():
+    """El service interno mueve saldo entre dos usuarios."""
+    from apps.ledger.models import Account
+    from apps.ledger.services import deposit, transfer_between_users
+
+    lender = create_approved_user()
+    borrower = create_approved_user(email='receptor-interno@example.com')
+    deposit(
+        user_id=lender.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='int-dep',
+    )
+
+    transfer_between_users(
+        source_user_id=lender.id,
+        destination_user_id=borrower.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='loan-1',
+        initiated_by_user_id=borrower.id,
+        description='Desembolso de préstamo',
+    )
+
+    lender_wallet = Account.objects.get(user_id=lender.id, kind=Account.Kind.USER_WALLET)
+    borrower_wallet = Account.objects.get(user_id=borrower.id, kind=Account.Kind.USER_WALLET)
+    assert lender_wallet.balance == Decimal('40.00')
+    assert borrower_wallet.balance == Decimal('60.00')
+
+
+def test_transfer_between_users_is_initiated_by_a_third_party():
+    """La transacción queda registrada a nombre de quien la inició."""
+    from apps.ledger.models import Account, LedgerTransaction
+    from apps.ledger.services import deposit, transfer_between_users
+
+    lender = create_approved_user()
+    borrower = create_approved_user(email='tercero-interno@example.com')
+    deposit(
+        user_id=lender.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='int-dep-2',
+    )
+
+    ledger_transaction = transfer_between_users(
+        source_user_id=lender.id,
+        destination_user_id=borrower.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='loan-2',
+        initiated_by_user_id=borrower.id,
+        description='Desembolso de préstamo',
+    )
+
+    assert ledger_transaction.type == LedgerTransaction.Type.TRANSFER
+    assert ledger_transaction.created_by_user_id == borrower.id
+    assert ledger_transaction.description == 'Desembolso de préstamo'
+
+
+def test_transfer_between_users_requires_source_balance():
+    """Sin saldo en el origen el desembolso falla."""
+    from apps.core.exceptions import InsufficientFunds
+    from apps.ledger.models import Account
+    from apps.ledger.services import transfer_between_users
+
+    lender = create_approved_user()
+    borrower = create_approved_user(email='sin-saldo-interno@example.com')
+
+    with pytest.raises(InsufficientFunds):
+        transfer_between_users(
+            source_user_id=lender.id,
+            destination_user_id=borrower.id,
+            currency=Account.Currency.ARS,
+            amount=Decimal('60.00'),
+            idempotency_key='loan-3',
+            initiated_by_user_id=borrower.id,
+        )
+
+
+def test_transfer_between_users_is_idempotent():
+    """La misma clave devuelve la transacción original."""
+    from apps.ledger.models import Account, LedgerTransaction
+    from apps.ledger.services import deposit, transfer_between_users
+
+    lender = create_approved_user()
+    borrower = create_approved_user(email='idem-interno@example.com')
+    deposit(
+        user_id=lender.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='int-dep-3',
+    )
+
+    first = transfer_between_users(
+        source_user_id=lender.id,
+        destination_user_id=borrower.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='loan-4',
+        initiated_by_user_id=borrower.id,
+    )
+    second = transfer_between_users(
+        source_user_id=lender.id,
+        destination_user_id=borrower.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('60.00'),
+        idempotency_key='loan-4',
+        initiated_by_user_id=borrower.id,
+    )
+
+    assert first.id == second.id
+    assert (
+        LedgerTransaction.objects.filter(
+            created_by_user_id=borrower.id,
+            idempotency_key='loan-4',
+        ).count()
+        == 1
+    )
+    lender_wallet = Account.objects.get(user_id=lender.id, kind=Account.Kind.USER_WALLET)
+    assert lender_wallet.balance == Decimal('40.00')
