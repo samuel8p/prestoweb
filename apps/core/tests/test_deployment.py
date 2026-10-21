@@ -1,5 +1,6 @@
 """Tests de la configuración de despliegue (compose, health check y usuario sin root)."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -40,3 +41,36 @@ def test_the_image_keeps_the_writes_out_of_the_project_directory():
     assert 'PYTHONDONTWRITEBYTECODE=1' in dockerfile
     assert 'COVERAGE_FILE=' in dockerfile
     assert 'cache_dir=' in dockerfile
+
+
+def test_every_environment_variable_read_by_the_settings_is_documented():
+    """Cada variable que leen los settings está en los archivos de ejemplo.
+
+    Copiar `.env.example` tiene que bastar para saber qué se puede
+    configurar: si una variable se lee y no está documentada, nadie la
+    encuentra.
+    """
+    variables = set()
+    for path in sorted((ROOT / 'config/settings').glob('*.py')):
+        text = path.read_text(encoding='utf-8')
+        variables.update(re.findall(r"os\.getenv\(\s*['\"]([A-Z_]+)['\"]", text))
+        variables.update(re.findall(r"os\.environ\.get\(\s*['\"]([A-Z_]+)['\"]", text))
+
+    examples = (ROOT / '.env.example').read_text(encoding='utf-8')
+    examples += (ROOT / '.env.prod.example').read_text(encoding='utf-8')
+
+    missing = [name for name in sorted(variables) if name not in examples]
+
+    assert missing == []
+
+
+def test_the_development_example_documents_the_demo_switches():
+    """El ejemplo de desarrollo documenta el modo demo y el dinero simulado.
+
+    Son las dos variables que el compose de desarrollo pasa al contenedor:
+    sin documentar, no hay forma de saber que existen.
+    """
+    example = (ROOT / '.env.example').read_text(encoding='utf-8')
+
+    assert 'DEMO_MODE=' in example
+    assert 'LEDGER_SIMULATED_DEPOSITS_ENABLED=' in example
