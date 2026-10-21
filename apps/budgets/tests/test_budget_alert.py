@@ -125,11 +125,11 @@ def test_the_alert_reference_is_the_same_for_the_same_budget_and_month():
     assert first != other_month
 
 
-def test_categorizing_a_movement_creates_one_alert_per_budget_and_month():
-    """Dos categorizaciones del mismo mes dejan un solo aviso de alerta."""
+def test_categorizing_a_movement_alerts_once_per_budget_and_month():
+    """Dos categorizaciones del mismo mes avisan con el mismo identificador."""
+    from apps.budgets import signals
     from apps.budgets.services import categorize_movement
     from apps.ledger.services import deposit
-    from apps.notifications.models import Notification
 
     user = create_approved_user(email='alerta-unica@example.com')
     category = create_category(user)
@@ -142,51 +142,21 @@ def test_categorizing_a_movement_creates_one_alert_per_budget_and_month():
     )
     first = make_withdrawal(user.id, amount='60.00', key='alerta-unica-a')
     second = make_withdrawal(user.id, amount='20.00', key='alerta-unica-b')
+    received = []
 
-    for movement in (first, second):
-        categorize_movement(
-            user_id=user.id,
-            ledger_transaction_id=movement.id,
-            category_id=category.id,
-        )
+    def receiver(sender, **kwargs):
+        received.append(kwargs)
 
-    alerts = Notification.objects.filter(
-        user_id=user.id,
-        event_type=Notification.EventType.BUDGET_ALERT,
-    )
-    assert alerts.count() == 1
+    signals.budget_alert.connect(receiver)
+    try:
+        for movement in (first, second):
+            categorize_movement(
+                user_id=user.id,
+                ledger_transaction_id=movement.id,
+                category_id=category.id,
+            )
+    finally:
+        signals.budget_alert.disconnect(receiver)
 
-
-def test_the_budget_alert_sends_an_email_with_the_amounts(django_capture_on_commit_callbacks):
-    """La alerta manda un email con el gastado y el límite del presupuesto."""
-    from django.core import mail
-
-    from apps.budgets.services import categorize_movement
-    from apps.ledger.services import deposit
-    from apps.notifications.models import Notification
-
-    user = create_approved_user(email='alerta-email@example.com')
-    category = create_category(user)
-    create_budget(user, category, limit='100.00', threshold=50)
-    deposit(
-        user_id=user.id,
-        currency='ARS',
-        amount=Decimal('1000.00'),
-        idempotency_key='alerta-email-fondo',
-    )
-    movement = make_withdrawal(user.id, amount='60.00', key='alerta-email-gasto')
-    mail.outbox.clear()
-
-    with django_capture_on_commit_callbacks(execute=True):
-        categorize_movement(
-            user_id=user.id,
-            ledger_transaction_id=movement.id,
-            category_id=category.id,
-        )
-
-    alert = Notification.objects.get(event_type=Notification.EventType.BUDGET_ALERT)
-    assert alert.status == Notification.Status.SENT
-    assert len(mail.outbox) == 1
-    assert mail.outbox[0].to == ['alerta-email@example.com']
-    assert '60.00' in mail.outbox[0].body
-    assert '100.00' in mail.outbox[0].body
+    assert len(received) == 2
+    assert received[0]['reference_id'] == received[1]['reference_id']

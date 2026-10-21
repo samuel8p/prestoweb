@@ -1,5 +1,6 @@
 """Tests de la tarea de envío de emails de las notificaciones."""
 
+import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -169,4 +170,19 @@ def test_send_notification_email_of_an_unknown_notification_does_nothing():
     sent = send_notification_email('99999999-9999-9999-9999-999999999999')
 
     assert sent is False
+    assert len(mail.outbox) == 0
+
+
+def test_send_notification_email_marks_failed_without_an_email():
+    """Si el usuario no tiene email, el aviso queda fallido."""
+    from apps.notifications.tasks import send_notification_email
+    from apps.notifications.tests.factories import NotificationFactory
+
+    notification = NotificationFactory(user_id=uuid.uuid4())
+
+    sent = send_notification_email(str(notification.id))
+
+    assert sent is False
+    notification.refresh_from_db()
+    assert notification.status == Notification.Status.FAILED
     assert len(mail.outbox) == 0

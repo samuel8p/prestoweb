@@ -293,3 +293,84 @@ source_modules =
     apps.identity
 forbidden_modules =
     apps.reports
+
+# notifications llega a las otras apps por sus services y selectors. La excepcion
+# documentada de AGENTS 5.3 son las signals: los receptores de notifications conectan
+# las senales que define cada app emisora.
+[importlinter:contract:notifications-only-services-and-selectors]
+name = notifications-only-services-and-selectors
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.notifications
+forbidden_modules =
+    apps.ledger.models
+    apps.ledger.views
+    apps.ledger.serializers
+    apps.ledger.admin
+    apps.ledger.urls
+    apps.loans.models
+    apps.loans.views
+    apps.loans.serializers
+    apps.loans.admin
+    apps.loans.urls
+    apps.investments.models
+    apps.investments.views
+    apps.investments.serializers
+    apps.investments.admin
+    apps.investments.urls
+    apps.budgets.models
+    apps.budgets.views
+    apps.budgets.serializers
+    apps.budgets.admin
+    apps.budgets.urls
+    apps.identity.models
+    apps.identity.views
+    apps.identity.serializers
+    apps.identity.admin
+    apps.identity.urls
+
+[importlinter:contract:ledger-no-notifications]
+name = ledger-no-notifications
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.ledger
+forbidden_modules =
+    apps.notifications
+
+[importlinter:contract:loans-no-notifications]
+name = loans-no-notifications
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.loans
+forbidden_modules =
+    apps.notifications
+
+[importlinter:contract:investments-no-notifications]
+name = investments-no-notifications
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.investments
+forbidden_modules =
+    apps.notifications
+
+[importlinter:contract:budgets-no-notifications]
+name = budgets-no-notifications
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.budgets
+forbidden_modules =
+    apps.notifications
+
+[importlinter:contract:identity-no-notifications]
+name = identity-no-notifications
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.identity
+forbidden_modules =
+    apps.notifications

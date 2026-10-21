@@ -168,6 +168,19 @@ jobs:
           --cov-report=term-missing
           --cov-fail-under=90
 
+      - name: Coverage gate for the notifications app
+        run: >
+          python -m pytest apps/notifications
+          --cov=apps.notifications.models
+          --cov=apps.notifications.selectors
+          --cov=apps.notifications.services
+          --cov=apps.notifications.views
+          --cov=apps.notifications.emails
+          --cov=apps.notifications.tasks
+          --cov=apps.notifications.receivers
+          --cov-report=term-missing
+          --cov-fail-under=90
+
       - name: Coverage gate for the reports app
         run: >
           python -m pytest apps/reports

@@ -12,7 +12,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.pagination import StandardPagination
-from apps.notifications.exceptions import InvalidEventType
 from apps.notifications.selectors import list_notifications_for_user
 from apps.notifications.serializers import (
     NotificationPreferenceListSerializer,
@@ -67,14 +66,11 @@ class NotificationPreferenceView(APIView):
         serializer = NotificationPreferenceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        try:
-            preference = set_preference(
-                user_id=request.user.id,
-                event_type=data['event_type'],
-                enabled=data['enabled'],
-            )
-        except InvalidEventType as exc:
-            raise ValidationError({'detail': [str(exc)]}) from exc
+        preference = set_preference(
+            user_id=request.user.id,
+            event_type=data['event_type'],
+            enabled=data['enabled'],
+        )
         return Response(
             NotificationPreferenceSerializer(
                 {'event_type': preference.event_type, 'enabled': preference.enabled}

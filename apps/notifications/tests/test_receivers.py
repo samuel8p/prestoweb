@@ -89,3 +89,27 @@ def test_receiver_dispatches_the_email_task(django_capture_on_commit_callbacks):
         event_type=Notification.EventType.INSTALLMENT_OVERDUE,
     ).exists()
     assert len(mail.outbox) == 1
+
+
+def test_receiver_creates_the_investment_notification():
+    """El receptor de la inversión liquidada crea el aviso."""
+    from apps.notifications.receivers import handle_investment_settled
+
+    handle_investment_settled(sender=None, user_id=USER_ID, reference_id=REFERENCE_ID)
+
+    assert Notification.objects.filter(
+        user_id=USER_ID,
+        event_type=Notification.EventType.INVESTMENT_SETTLED,
+    ).exists()
+
+
+def test_receiver_creates_the_budget_alert_notification():
+    """El receptor de la alerta de presupuesto crea el aviso."""
+    from apps.notifications.receivers import handle_budget_alert
+
+    handle_budget_alert(sender=None, user_id=USER_ID, reference_id=REFERENCE_ID)
+
+    assert Notification.objects.filter(
+        user_id=USER_ID,
+        event_type=Notification.EventType.BUDGET_ALERT,
+    ).exists()

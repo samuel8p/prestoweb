@@ -56,30 +56,3 @@ def test_settling_a_position_emits_the_signal():
     assert len(received) == 1
     assert received[0]['user_id'] == user.id
     assert received[0]['reference_id'] == position.id
-
-
-def test_settling_a_position_creates_the_notification_and_sends_the_email(
-    django_capture_on_commit_callbacks,
-):
-    """La liquidación deja el aviso enviado y el email en la bandeja."""
-    from django.core import mail
-
-    from apps.investments.services import settle_matured_positions
-    from apps.notifications.models import Notification
-
-    user = create_approved_user(email='notif-inversion-email@example.com')
-    position = open_position(user, key='notif-inv-2')
-    mail.outbox.clear()
-
-    with django_capture_on_commit_callbacks(execute=True):
-        settle_matured_positions(today=date(2030, 1, 1))
-
-    notification = Notification.objects.get(
-        user_id=user.id,
-        event_type=Notification.EventType.INVESTMENT_SETTLED,
-        reference_id=position.id,
-    )
-    assert notification.status == Notification.Status.SENT
-    assert len(mail.outbox) == 1
-    assert mail.outbox[0].to == ['notif-inversion-email@example.com']
-    assert 'liquidó' in mail.outbox[0].subject

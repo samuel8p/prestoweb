@@ -175,3 +175,41 @@ def test_get_notification_for_user_returns_none_for_another_user():
 
     assert get_notification_for_user(USER_ID, notification.id) is not None
     assert get_notification_for_user(OTHER_USER_ID, notification.id) is None
+
+
+def test_create_notification_rejects_an_unknown_event_type():
+    """Un evento que no es del proyecto es un error de dominio."""
+    from apps.notifications.exceptions import InvalidEventType
+    from apps.notifications.services import create_notification
+
+    with pytest.raises(InvalidEventType):
+        create_notification(
+            user_id=USER_ID,
+            event_type='evento_inventado',
+            reference_id=REFERENCE_ID,
+        )
+
+
+def test_set_preference_rejects_an_unknown_event_type():
+    """Un evento que no es del proyecto es un error de dominio."""
+    from apps.notifications.exceptions import InvalidEventType
+    from apps.notifications.services import set_preference
+
+    with pytest.raises(InvalidEventType):
+        set_preference(user_id=USER_ID, event_type='evento_inventado', enabled=False)
+
+
+def test_models_have_a_readable_representation():
+    """Los modelos se muestran con su contenido."""
+    from apps.notifications.models import Notification, NotificationPreference
+    from apps.notifications.tests.factories import NotificationFactory
+
+    notification = NotificationFactory()
+    preference = NotificationPreference(
+        user_id=USER_ID,
+        event_type=Notification.EventType.BUDGET_ALERT,
+        enabled=True,
+    )
+
+    assert notification.event_type in str(notification)
+    assert 'budget_alert' in str(preference)
