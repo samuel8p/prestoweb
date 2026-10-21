@@ -21,6 +21,10 @@ LEDGER_SIMULATED_DEPOSITS_ENABLED = DEMO_MODE or (
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+# HSTS (AGENTS §9.4). No se activa el preload: es irreversible y exige que
+# todos los subdominios sirvan HTTPS.
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS') or 31536000)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 # El proxy inverso (Nginx o Caddy) termina TLS y reenvía X-Forwarded-Proto.
 # Sin esto, SECURE_SSL_REDIRECT redirigía en loop y el chequeo de salud
 # (/health/) recibía un 301 en vez de un 200.

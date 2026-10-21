@@ -29,3 +29,7 @@ class InvalidDocuments(IdentityError):
 
 class InvalidProfileField(IdentityError):
     """Se intentó modificar un campo que no pertenece al perfil."""
+
+
+class WeakPassword(IdentityError):
+    """La contraseña no pasa los validadores de Django."""

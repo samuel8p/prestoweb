@@ -4,6 +4,8 @@ import logging
 import uuid
 from typing import Any
 
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -14,6 +16,7 @@ from apps.identity.exceptions import (
     InvalidProfileField,
     KYCAlreadyResolved,
     PendingKYCExists,
+    WeakPassword,
 )
 from apps.identity.models import KYCVerification, Profile, User
 
@@ -35,9 +38,14 @@ def register_user(email: str, password: str) -> User:
 
     Raises:
         EmailAlreadyRegistered: si ya existe un usuario con ese email.
+        WeakPassword: si la contraseña no pasa los validadores de Django.
     """
     if User.objects.filter(email__iexact=email).exists():
         raise EmailAlreadyRegistered('Ya existe un usuario registrado con ese email.')
+    try:
+        validate_password(password)
+    except DjangoValidationError as exc:
+        raise WeakPassword('; '.join(exc.messages)) from exc
     with transaction.atomic():
         user = User.objects.create_user(email=email, password=password)
         Profile.objects.create(user=user)

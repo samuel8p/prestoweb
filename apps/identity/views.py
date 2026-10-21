@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView as SimpleJWTTokenRefreshView
 
-from apps.identity.exceptions import EmailAlreadyRegistered, PendingKYCExists
+from apps.identity.exceptions import EmailAlreadyRegistered, PendingKYCExists, WeakPassword
 from apps.identity.permissions import LoginThrottle, RegisterThrottle
 from apps.identity.selectors import get_kyc_by_id, get_kyc_for_user, get_profile
 from apps.identity.serializers import (
@@ -57,6 +57,8 @@ class RegisterView(APIView):
             )
         except EmailAlreadyRegistered as exc:
             raise ValidationError({'email': [str(exc)]}) from exc
+        except WeakPassword as exc:
+            raise ValidationError({'password': [str(exc)]}) from exc
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
