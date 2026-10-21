@@ -31,6 +31,9 @@ services:
       - DJANGO_DEBUG=True
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
       - REDIS_URL=redis://redis:6379/0
+      # Modo demo: el dinero es simulado y los avisos salen por consola
+      - DEMO_MODE=${DEMO_MODE:-true}
+      - LEDGER_SIMULATED_DEPOSITS_ENABLED=${LEDGER_SIMULATED_DEPOSITS_ENABLED:-true}
     volumes:
       - .:/app
     ports:
