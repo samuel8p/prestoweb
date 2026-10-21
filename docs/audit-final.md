@@ -296,12 +296,17 @@ Además, por pedido explícito:
 
 ## 3. Lo que NO se va a tocar (decisiones del cliente)
 
-- El **schema del ledger** (triggers, inmutabilidad, constraints de moneda).
+> Actualizado el 2026-10-21: el desarrollador autorizó el `CheckConstraint` de
+> moneda del ledger (D-3), que es la **única** parte de esta lista que cambió.
+
+- El **schema del ledger**: solo el `CheckConstraint` de moneda, ya aplicado
+  (D-3). Los **triggers** y la **inmutabilidad** quedan intocables.
 - Los **management commands**.
 - Los **contratos de import-linter** existentes.
-- **`AGENTS.md`**: se prepara el texto propuesto en
-  `docs/agents-changelog-proposal.md`, sin editar el archivo.
-- **Dependencias nuevas** (Sentry, pip-audit, django-cors-headers).
+- **`AGENTS.md`**: el registro de la §17 quedó aplicado (D-1); el resto de las
+  secciones sigue sin tocarse.
+- **Dependencias nuevas**: `pip-audit` ya está (D-2); `sentry-sdk` y
+  `django-cors-headers` siguen esperando.
 - El **reintento** de avisos fallidos y el **resumen** de avisos.
 - Todo lo que dependa de **negocio**: `payments` (O1), el marco regulatorio de la
   custodia (O2), el rendimiento de los plazos fijos (O3), PLA/FT (O5) y el CFT
@@ -320,14 +325,25 @@ Además, por pedido explícito:
 
 ## 5. Requiere decisión (con recomendación)
 
-| # | Tema | Qué hay que decidir | Recomendación |
-|---|---|---|---|
-| D-1 | **AGENTS.md** | Registrar en §17 las decisiones D19-D48 y el modo demo, y actualizar §7 (modelos de `budgets`, `reports`, `notifications`) y §15 (numeración de bloques) | Adoptar el texto propuesto de `docs/agents-changelog-proposal.md` tal cual: es un registro de lo ya implementado y probado, sin cambiar reglas |
-| D-2 | **Dependencias nuevas** | `sentry-sdk` (errores en producción), `pip-audit` (vulnerabilidades en la CI) y `django-cors-headers` (CORS real para el front) | Agregar `sentry-sdk` y `pip-audit` (son de bajo riesgo y cierran dos huecos de §9 y de la CI). `django-cors-headers` solo cuando exista el front que consuma la API |
-| D-3 | **Schema del ledger** | Agregar `CheckConstraint` de moneda (`ARS`/`USD`) a `Account` y `LedgerEntry` (B-2) | Sí: es una migración pequeña, reversible y protege el invariante de los reportes. Requiere una migración nueva y revisada (AGENTS §12) |
-| D-4 | **Management commands** | Ningún cambio propuesto: hoy son correctos y el usuario los pidió intocables | No tocar |
-| D-5 | **Contratos de import-linter** | Ningún cambio propuesto: los 28 contratos cubren el estado actual | No tocar |
-| D-6 | **Avisos fallidos** | Si un envío falla, ¿se reintenta? ¿con qué backoff? ¿y se agrupan varios avisos en un mismo email? | Reintentar con backoff exponencial (3 intentos) y **no** agrupar: un aviso por email es más simple de auditar. Es una decisión de producto |
-| D-7 | **Negocio** | `payments` (O1: proveedor), custodia (O2), rendimiento de plazos fijos (O3), PLA/FT (O5) y CFT (O6) | Depende del cliente: sin O1 no se puede empezar el Bloque 7 |
-| D-8 | **CORS real** | Instalar `django-cors-headers` o resolver el CORS en el proxy inverso | Resolverlo en el proxy: menos dependencias y el front igual necesita el dominio configurado |
-| D-9 | **Fijar imágenes a digest** | Fijar `postgres`, `redis` y `caddy` a un digest o a un parche exacto | Fijar a digest: el tag mayor deja entrar parches de seguridad sin control |
+**Estado a 2026-10-21:** el desarrollador autorizó tres de los nueve temas (D-1,
+la parte de `pip-audit` de D-2 y D-3) y quedaron resueltos ✓. Los demás siguen
+abiertos ✗.
+
+| # | Tema | Qué hay que decidir | Recomendación | Estado |
+|---|---|---|---|---|
+| D-1 | **AGENTS.md** | Registrar en §17 las decisiones D19-D48 y el modo demo, y actualizar §7 (modelos de `budgets`, `reports`, `notifications`) y §15 (numeración de bloques) | Adoptar el texto propuesto de `docs/agents-changelog-proposal.md` tal cual: es un registro de lo ya implementado y probado, sin cambiar reglas | ✅ **Resuelto**: el registro de la §17 quedó aplicado (commit `301beca`). Las §§7, 15 y 4 **no** se tocaron: no fueron autorizadas (siguen propuestas en `docs/agents-changelog-proposal.md`) |
+| D-2 | **Dependencias nuevas** | `sentry-sdk` (errores en producción), `pip-audit` (vulnerabilidades en la CI) y `django-cors-headers` (CORS real para el front) | Agregar `sentry-sdk` y `pip-audit` (son de bajo riesgo y cierran dos huecos de §9 y de la CI). `django-cors-headers` solo cuando exista el front que consuma la API | ◐ **Parcial**: `pip-audit` ya es dependencia de desarrollo y la CI lo corre (commit `307e2a6`); las dependencias del proyecto están limpias. `sentry-sdk` y `django-cors-headers` siguen abiertos |
+| D-3 | **Schema del ledger** | Agregar `CheckConstraint` de moneda (`ARS`/`USD`) a `Account` y `LedgerEntry` (B-2) | Sí: es una migración pequeña, reversible y protege el invariante de los reportes. Requiere una migración nueva y revisada (AGENTS §12) | ✅ **Resuelto**: los dos constraints están, con la migración `ledger.0003` y sus tests (commit `b875471`) |
+| D-4 | **Management commands** | Ningún cambio propuesto: hoy son correctos y el usuario los pidió intocables | No tocar | ⬜ Sin cambios |
+| D-5 | **Contratos de import-linter** | Ningún cambio propuesto: los 28 contratos cubren el estado actual | No tocar | ⬜ Sin cambios |
+| D-6 | **Avisos fallidos** | Si un envío falla, ¿se reintenta? ¿con qué backoff? ¿y se agrupan varios avisos en un mismo email? | Reintentar con backoff exponencial (3 intentos) y **no** agrupar: un aviso por email es más simple de auditar. Es una decisión de producto | ⬜ Abierto |
+| D-7 | **Negocio** | `payments` (O1: proveedor), custodia (O2), rendimiento de plazos fijos (O3), PLA/FT (O5) y CFT (O6) | Depende del cliente: sin O1 no se puede empezar el Bloque 7 | ⬜ Abierto |
+| D-8 | **CORS real** | Instalar `django-cors-headers` o resolver el CORS en el proxy inverso | Resolverlo en el proxy: menos dependencias y el front igual necesita el dominio configurado | ⬜ Abierto |
+| D-9 | **Fijar imágenes a digest** | Fijar `postgres`, `redis` y `caddy` a un digest o a un parche exacto | Fijar a digest: el tag mayor deja entrar parches de seguridad sin control | ⬜ Abierto |
+
+Además, el desarrollador autorizó el **`check --deploy` en la CI** (B-5): la CI
+corre `manage.py check --deploy --fail-level WARNING` con los settings de
+producción y falla con cualquier aviso (commit `caac920`). El único aviso que
+queda (el preload del HSTS, `security.W021`) está silenciado en los settings de
+producción con la razón escrita al lado, porque el preload es irreversible y la
+decisión es del cliente.

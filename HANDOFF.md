@@ -214,10 +214,15 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 Los commits anteriores de este mismo `HANDOFF.md` están listados; este commit no
 puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**124**).
+**129**).
 
 | Commit | Asunto |
 |---|---|
+| `b875471` | feat(ledger): restrict the currency to ARS and USD in the database |
+| `caac920` | ci: check the production settings with the deploy check |
+| `307e2a6` | chore(deps): audit the dependencies for known vulnerabilities |
+| `301beca` | docs(agents): register the decisions of the last blocks in the changelog |
+| `330cd91` | docs(handoff): update the handoff after the final audit |
 | `8a1c99b` | docs(agents): propose the changelog entries for AGENTS.md |
 | `d9b6377` | docs(audit): add the findings of the correction phase |
 | `2972006` | test(e2e): add the end to end suite |
@@ -362,6 +367,7 @@ puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Bloque 6d — `notifications`** | ✅ completa | Avisos por email de cuatro eventos (cuota por vencer, cuota vencida, inversión liquidada, alerta de presupuesto) con idempotencia por evento, preferencias por usuario, API de lectura y señales definidas por las apps emisoras. ADR 0004. |
 | **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 | **Auditoría final y pulido** | ✅ completa | Auditoría de solo lectura (`docs/audit-final.md`: 0 críticos, 2 altos, 9 medios, 8 bajos) y corrección de todo lo crítico, alto y medio: validadores de contraseña de Django, HSTS en producción, carrera de las ofertas, contenedores sin root, health check de producción, tests faltantes (detalle de categoría, concurrencia de budgets), suite end-to-end, `docs/architecture.md`, ADR 0005-0007 y README al día. |
+| **Autorizaciones del 2026-10-21** | ✅ completa | Los cuatro puntos autorizados: el registro de la §17 de `AGENTS.md` aplicado (solo el changelog), `pip-audit` como dependencia de desarrollo con su puerta en la CI, `manage.py check --deploy` con los settings de producción en la CI y el `CheckConstraint` de moneda (`ARS`/`USD`) en `ledger.Account` y `ledger.LedgerEntry` con su migración. |
 
 ### 6.3 Funcionalidades implementadas (por app)
 
@@ -419,7 +425,7 @@ contra el código de este bloque):
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web python -m pytest -q` | **655 passed** (628 del bloque anterior + 27 nuevos) |
+| Tests | `docker compose run --rm web python -m pytest -q` | **662 passed** |
 | Cobertura total | `... pytest --cov=apps --cov-report=term` | **99%** (`ledger/services.py` 93%, `budgets/services.py` 99%, `loans/services.py` 99%, `investments/services.py` 99%, `offers/services.py` 97%, `notifications/*` 100%, `reports/selectors.py` 98%) |
 | Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **99%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Lint | `ruff check .` | All checks passed |
@@ -428,7 +434,8 @@ contra el código de este bloque):
 | Migraciones | `makemigrations --check --dry-run` | No changes detected |
 | System checks | `manage.py check` | System check identified no issues (0 silenced) |
 | OpenAPI | `spectacular --validate --fail-on-warn --file schema.yml` | **PASA: 0 errores, 0 warnings** (lo mismo que corre la CI) |
-| `check --deploy` (producción) | `manage.py check --deploy` con los settings de producción | 1 aviso: `security.W021` (HSTS preload apagado a propósito, ver ADR 0006 y `docs/audit-final.md` §5) |
+| `check --deploy` (producción) | `manage.py check --deploy --fail-level WARNING` con los settings de producción | **PASA: no issues (1 silenced)**; es el mismo paso que corre la CI |
+| Auditoría de dependencias | `pip-audit .` (también `make audit`) | **No known vulnerabilities found** |
 | Docker (desarrollo) | `docker compose up --build -d` | **5 servicios Up**: `db`, `redis`, `web`, `worker`, `beat`; los tres de la aplicación corren como `uid=1000(presto)` |
 | Flujo real (desarrollo) | `curl` contra el `web` local | registro 201, login 200, KYC 201, depósito simulado 201, saldo 1500.00 ARS, reporte 200, sin token 401, sin `Idempotency-Key` 400 |
 | Docker (producción, demo) | `docker compose -p presto-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build` con `DEMO_MODE=true` | `db`, `redis` y `web` **healthy**, `worker` y `beat` Up; `/health/` 200, `/api/v1/meta/` 200 `{"mode":"demo","simulated_money":true}`, depósito simulado 201 y **suma de saldos por moneda = 0.00** |
@@ -638,6 +645,25 @@ docker compose run --rm web lint-imports --cache-dir /tmp/import-linter-cache
 > privilegios: el proyecto viene montado como volumen del host y ahí no se
 > puede escribir (ver `docs/audit-final.md` B-8). La cache de ruff ya apunta a
 > `/tmp` por variable de entorno en el `Dockerfile`.
+
+Auditoría de vulnerabilidades conocidas y chequeo de producción:
+
+```sh
+make audit      # pip-audit sobre las dependencias del proyecto
+
+docker compose run --rm web bash -c "
+  export DJANGO_SETTINGS_MODULE=config.settings.production
+  export DJANGO_SECRET_KEY=\"\$(python -c 'import secrets; print(secrets.token_urlsafe(50))')\"
+  export DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+  export DJANGO_DEBUG=0
+  export REDIS_URL=redis://localhost:6379/0
+  python manage.py check --deploy --fail-level WARNING"
+```
+
+> Los dos comandos corren también en la CI (job *quality*). El
+> `check --deploy` falla con cualquier aviso de seguridad; el único silenciado
+> es el preload del HSTS (`security.W021`), que es irreversible y la decisión
+> es del cliente.
 
 Los hooks de git se validan en el **host** (pre-commit corre hooks, no pytest):
 
@@ -906,10 +932,11 @@ Orden real de lo que falta, de mayor a menor prioridad.
     pero la aplicación no la lee: sin `django-cors-headers` el CORS se resuelve
     en el proxy inverso).
 11. **Decisiones técnicas que siguen abiertas** (ver `docs/audit-final.md` §5):
-    `sentry-sdk` y `pip-audit` como dependencias, `CheckConstraint` de moneda
-    en el schema del ledger, CORS real, imágenes fijadas a digest, un
-    `check --deploy` en la CI, y el reintento o el resumen de los avisos
-    fallidos. Ninguna se implementó: las decisiones del cliente.
+    `sentry-sdk` y `django-cors-headers` como dependencias, CORS real, imágenes
+    fijadas a digest y el reintento o el resumen de los avisos fallidos. Ninguna
+    se implementó: son decisiones del cliente. **Ya resueltas** en la
+    autorización del 2026-10-21: `pip-audit` en la CI, el `check --deploy` en la
+    CI y el `CheckConstraint` de moneda del ledger.
 
 ### 11.1 Decisiones abiertas con el cliente
 
@@ -1142,3 +1169,4 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Bloque 6b implementado: app `budgets`** en 7 commits: `29f9b96` selector de patas y reversión en el ledger, `82793c2` `ledger_transaction_id` en `Installment`/`Loan` + selector de desglose, `e18b0a7` app con `Category` y `Budget`, `91b3858` service de categorización, `9f1a546` cálculo del gasto acumulado por categoría y moneda, `9125429` API y OpenAPI sin warnings, `92f2e1a` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0002. **491 tests pasan**, cobertura total 98,85% y `budgets/services.py` al 100%. Migraciones: `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_installment_ledger_transaction_id_and_more`. Los endpoints quedaron verificados en runtime real contra el `web` local (crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401). |
 | 2026-10-21 | **Reescritura del documento** para traspaso a Claude: §2 con el stack real (Celery 5.6.3 en uso), §3 con el árbol real (celery.py, tasks.py, ADR 0001), §5 con las reglas de API/seguridad/testing, §6.3 con los módulos verificados, §6.4 con la tabla de verificaciones comprobadas hoy (407 tests, 99,07% de cobertura, 11 contratos, 5 servicios Up), §7 con D19-D24 (Celery), §8 con P15-P17, §9 corregido (una billetera por moneda; depósitos simulados apagados en local), §10 con los comandos reales (`docker compose ps` muestra 5 servicios), §11 con el bloque 6b como tarea recomendada y §11.3 con el contexto técnico de `budgets`, §11.4 con los huecos de especificación de `reports`/`notifications`, **§13 nueva con las reglas para Claude** y §14 el registro. Se eliminaron datos obsoletos (conteo de commits, "374 passed", "3 servicios Up", `docs/adr/` vacío) sin perder decisiones vigentes. |
 | 2026-10-21 | **Auditoría final y pulido del backend** (14 commits): auditoría de solo lectura en `docs/audit-final.md` (0 críticos, 2 altos, 9 medios y 8 bajos, con la evidencia de cada uno y una sección "Requiere decisión" con recomendación) y corrección de todo lo crítico, alto y medio, con TDD: validadores de contraseña de Django activos (AGENTS §9.5), HSTS en producción (AGENTS §9.4), `update_offer`/`expire_offer` con `transaction.atomic()` y `select_for_update()`, contenedores de la aplicación corriendo como el usuario `presto` (uid 1000), health check de producción mandando un `Host` permitido, test del endpoint de detalle de categoría, test de concurrencia de la categorización de gastos, test de concurrencia de la actualización de ofertas, suite end-to-end del flujo completo (registro → login → KYC → depósito → oferta → préstamo → cuota → inversión → reportes → avisos, en ARS y USD, verificando que la suma de saldos por moneda sea 0), `docs/architecture.md`, ADR 0005 (saldo desnormalizado), 0006 (doble entrada con trigger diferido) y 0007 (orden de las apps), README al día y `.env.example` con todas las variables. **655 tests pasan**, 28 contratos de import-linter, cobertura del 99%, OpenAPI sin warnings y arranque real verificado de los stacks de desarrollo y de producción (este último con `DEMO_MODE=true` y luego bajado con `down -v`). `AGENTS.md` **no** se modificó: el texto propuesto para su §17 quedó en `docs/agents-changelog-proposal.md`. |
+| 2026-10-21 | **Autorizaciones del desarrollador (4 commits)**: (1) `docs(agents)` aplicó el texto de `docs/agents-changelog-proposal.md` **solo en el registro de la §17** de `AGENTS.md` (bloque 6a, bloque 6b, modo demo, correcciones de la auditoría y documentación); las §§7, 15 y 4 no se tocaron. (2) `chore(deps)` agregó `pip-audit` como dependencia de desarrollo (pyproject, imagen y lista de la CI) con un paso en la CI que falla si hay vulnerabilidades conocidas, más el target `make audit`: **las dependencias del proyecto están limpias** (la auditoría previa solo mostró avisos en el propio `pip`, que la CI actualiza). El repo **no tiene lock file**, así que no había nada que fijar ahí. (3) `ci` agregó `manage.py check --deploy --fail-level WARNING` con los settings de producción (clave secreta aleatoria en el paso); el único aviso que quedaba, el preload del HSTS (`security.W021`), quedó silenciado en `production.py` con la razón escrita al lado, porque el preload es irreversible y la decisión es del cliente. (4) `feat(ledger)` agregó el `CheckConstraint` de moneda (`ARS`/`USD`) a `Account` y `LedgerEntry` con la migración `ledger.0003`: la base ya no acepta `EUR` ni `ars` en minúscula, y los triggers, la inmutabilidad y la idempotencia siguen funcionando. **662 tests pasan**. `docs/audit-final.md` §5 quedó con el estado de cada decisión. |
