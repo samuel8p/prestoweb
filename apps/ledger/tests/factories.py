@@ -71,3 +71,24 @@ class LedgerEntryFactory(factory.django.DjangoModelFactory):
             amount=entry.amount,
             currency=entry.currency,
         )
+
+
+def create_identity_user(email: str = 'ledger@example.com'):
+    """Crea un usuario usando los servicios de identity (sin importar sus modelos)."""
+    from apps.identity.services import register_user
+
+    return register_user(email=email, password='TestPass123!')
+
+
+def create_approved_user(email: str = 'kyc@example.com'):
+    """Crea un usuario con KYC aprobada usando los servicios de identity."""
+    from apps.identity.services import resolve_kyc, submit_kyc
+
+    user = create_identity_user(email=email)
+    verification = submit_kyc(user=user, documents={})
+    resolve_kyc(
+        verification_id=verification.id,
+        status='approved',
+        resolved_by_user_id=uuid.uuid4(),
+    )
+    return user

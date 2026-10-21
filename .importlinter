@@ -21,6 +21,7 @@ forbidden_modules =
 [importlinter:contract:ledger-no-identity-models]
 name = ledger-no-identity-models
 type = forbidden
+allow_indirect_imports = True
 source_modules =
     apps.ledger
 forbidden_modules =

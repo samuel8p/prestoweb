@@ -139,6 +139,14 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Environment marker used by the system checks (never rely on DEBUG)
+DJANGO_ENV = os.getenv('DJANGO_ENV', 'local')
+
+# Ledger: simulated deposits are only for local/test environments
+LEDGER_SIMULATED_DEPOSITS_ENABLED = (
+    os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False') == 'True'
+)
+
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = str(BASE_DIR / 'staticfiles')
