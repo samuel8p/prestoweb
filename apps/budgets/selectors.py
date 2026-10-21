@@ -6,11 +6,13 @@ esta app no guarda importes, solo la clasificación del usuario.
 """
 
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from django.db.models import QuerySet
 
 from apps.budgets.models import Budget, Category, Expense
+from apps.core.money import round_two
 from apps.ledger import selectors as ledger_selectors
 from apps.loans import selectors as loans_selectors
 
@@ -200,3 +202,100 @@ def _classify_movement(user_id: uuid.UUID, detail: dict, breakdown: dict | None)
     analysis['is_expense'] = True
     analysis['amount'] = amount
     return analysis
+
+
+def get_monthly_spending(
+    user_id: uuid.UUID,
+    category_id: uuid.UUID,
+    currency: str,
+    year: int,
+    month: int,
+) -> Decimal:
+    """Gasto acumulado de una categoría en un mes y una moneda.
+
+    Solo cuentan los movimientos que el usuario categorizó, que no fueron
+    revertidos y que son un gasto. El mes es el mes calendario **en UTC** y
+    la moneda no se mezcla con otras: un presupuesto en ARS nunca suma gastos
+    en USD.
+
+    Args:
+        user_id: identificador del usuario.
+        category_id: identificador de la categoría.
+        currency: moneda del presupuesto (`ARS` o `USD`).
+        year: año del período.
+        month: mes del período (1-12).
+
+    Returns:
+        El importe gastado en el período.
+    """
+    transaction_ids = list(
+        Expense.objects.filter(user_id=user_id, category_id=category_id).values_list(
+            'ledger_transaction_id',
+            flat=True,
+        )
+    )
+    if not transaction_ids:
+        return Decimal('0.00')
+    analysis = analyze_movement_spending(user_id=user_id, transaction_ids=transaction_ids)
+    start, end = _month_bounds(year=year, month=month)
+    total = Decimal('0.00')
+    for movement in analysis.values():
+        if not movement['is_expense'] or movement['currency'] != currency:
+            continue
+        if not start <= movement['occurred_at'] < end:
+            continue
+        total += movement['amount']
+    return total
+
+
+def get_budget_status(budget: Budget, year: int, month: int) -> dict:
+    """Estado del presupuesto: gastado, límite, umbral, saldo y alerta.
+
+    Args:
+        budget: presupuesto del usuario.
+        year: año del período.
+        month: mes del período (1-12).
+
+    Returns:
+        Dict con el estado del presupuesto.
+    """
+    spent = get_monthly_spending(
+        user_id=budget.user_id,
+        category_id=budget.category_id,
+        currency=budget.currency,
+        year=year,
+        month=month,
+    )
+    limit = budget.limit_amount
+    threshold = round_two(limit * Decimal(budget.alert_threshold) / 100)
+    return {
+        'budget_id': budget.id,
+        'category_id': budget.category_id,
+        'period': budget.period,
+        'currency': budget.currency,
+        'year': year,
+        'month': month,
+        'limit_amount': limit,
+        'spent_amount': spent,
+        'remaining_amount': limit - spent,
+        'threshold_amount': threshold,
+        'alert_triggered': spent >= threshold,
+    }
+
+
+def _month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
+    """Devuelve el inicio y el fin excluido del mes calendario en UTC.
+
+    Args:
+        year: año del período.
+        month: mes del período (1-12).
+
+    Returns:
+        Tupla con el inicio y el fin del mes.
+    """
+    start = datetime(year, month, 1, tzinfo=UTC)
+    if month == 12:
+        end = datetime(year + 1, 1, 1, tzinfo=UTC)
+    else:
+        end = datetime(year, month + 1, 1, tzinfo=UTC)
+    return start, end
