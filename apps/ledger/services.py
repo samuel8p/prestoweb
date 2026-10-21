@@ -349,6 +349,7 @@ def transfer_between_users(
 
 SYSTEM_COUNTERPART = Account.Kind.SYSTEM
 CUSTODY_COUNTERPART = Account.Kind.CUSTODY
+INTEREST_MOVEMENT_TYPE = LedgerTransaction.Type.INTEREST
 
 
 def transfer_to_counterpart(
