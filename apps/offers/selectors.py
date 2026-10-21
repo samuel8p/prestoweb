@@ -66,6 +66,25 @@ def get_offer_locked(offer_id: uuid.UUID) -> Offer | None:
     return Offer.objects.select_for_update().filter(id=offer_id).first()
 
 
+def get_own_offer_locked(offer_id: uuid.UUID, lender_user_id: uuid.UUID) -> Offer | None:
+    """Devuelve la oferta del prestamista bloqueada para modificarla.
+
+    El bloqueo (`select_for_update`) serializa las actualizaciones y las
+    expiraciones de la misma oferta: sin él, dos escrituras simultáneas
+    parten de la misma versión vieja y una pisa a la otra.
+
+    Args:
+        offer_id: identificador de la oferta.
+        lender_user_id: identificador del prestamista.
+
+    Returns:
+        La Offer bloqueada del prestamista o None.
+    """
+    return (
+        Offer.objects.select_for_update().filter(id=offer_id, lender_user_id=lender_user_id).first()
+    )
+
+
 def search_active_offers(
     currency: str | None = None,
     amount_min: Decimal | None = None,

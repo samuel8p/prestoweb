@@ -99,26 +99,27 @@ def update_offer(
         KYCNotCompleted: si el prestamista no tiene KYC aprobada.
         InvalidAmount: si los valores nuevos no son válidos.
     """
-    offer = _get_own_offer(offer_id=offer_id, lender_user_id=lender_user_id)
-    if offer.status != Offer.Status.ACTIVE:
-        raise OfferNotEditable('Solo se pueden modificar ofertas activas.')
-    _require_kyc(lender_user_id)
-    changes = {
-        'amount': amount,
-        'currency': currency,
-        'interest_rate': interest_rate,
-        'term_months': term_months,
-        'requirements': requirements,
-    }
-    changes = {field: value for field, value in changes.items() if value is not None}
-    _assert_valid_offer(
-        amount=changes.get('amount', offer.amount),
-        interest_rate=changes.get('interest_rate', offer.interest_rate),
-        term_months=changes.get('term_months', offer.term_months),
-    )
-    for field, value in changes.items():
-        setattr(offer, field, value)
-    offer.save(update_fields=[*EDITABLE_FIELDS, 'updated_at'])
+    with transaction.atomic():
+        offer = _get_own_offer_locked(offer_id=offer_id, lender_user_id=lender_user_id)
+        if offer.status != Offer.Status.ACTIVE:
+            raise OfferNotEditable('Solo se pueden modificar ofertas activas.')
+        _require_kyc(lender_user_id)
+        changes = {
+            'amount': amount,
+            'currency': currency,
+            'interest_rate': interest_rate,
+            'term_months': term_months,
+            'requirements': requirements,
+        }
+        changes = {field: value for field, value in changes.items() if value is not None}
+        _assert_valid_offer(
+            amount=changes.get('amount', offer.amount),
+            interest_rate=changes.get('interest_rate', offer.interest_rate),
+            term_months=changes.get('term_months', offer.term_months),
+        )
+        for field, value in changes.items():
+            setattr(offer, field, value)
+        offer.save(update_fields=[*EDITABLE_FIELDS, 'updated_at'])
     return offer
 
 
@@ -136,11 +137,12 @@ def expire_offer(offer_id: uuid.UUID, lender_user_id: uuid.UUID) -> Offer:
         OfferNotFound: si la oferta no existe o es de otro prestamista.
         OfferNotEditable: si la oferta ya no está activa.
     """
-    offer = _get_own_offer(offer_id=offer_id, lender_user_id=lender_user_id)
-    if offer.status != Offer.Status.ACTIVE:
-        raise OfferNotEditable('Solo se pueden expirar ofertas activas.')
-    offer.status = Offer.Status.EXPIRED
-    offer.save(update_fields=['status', 'updated_at'])
+    with transaction.atomic():
+        offer = _get_own_offer_locked(offer_id=offer_id, lender_user_id=lender_user_id)
+        if offer.status != Offer.Status.ACTIVE:
+            raise OfferNotEditable('Solo se pueden expirar ofertas activas.')
+        offer.status = Offer.Status.EXPIRED
+        offer.save(update_fields=['status', 'updated_at'])
     logger.info('Oferta expirada: offer_id=%s lender_user_id=%s', offer.id, lender_user_id)
     return offer
 
@@ -182,13 +184,20 @@ def accept_offer(offer_id: uuid.UUID, borrower_user_id: uuid.UUID) -> Offer:
     return offer
 
 
-def _get_own_offer(offer_id: uuid.UUID, lender_user_id: uuid.UUID) -> Offer:
-    """Devuelve la oferta del prestamista o falla.
+def _get_own_offer_locked(offer_id: uuid.UUID, lender_user_id: uuid.UUID) -> Offer:
+    """Devuelve la oferta del prestamista bloqueada, o falla.
+
+    El bloqueo (`select_for_update`) serializa las escrituras sobre la misma
+    oferta: sin él, dos actualizaciones simultáneas parten de la misma versión
+    vieja y la última en guardar pisa a la otra.
 
     Raises:
         OfferNotFound: si la oferta no existe o es de otro prestamista.
     """
-    offer = Offer.objects.filter(id=offer_id, lender_user_id=lender_user_id).first()
+    offer = offers_selectors.get_own_offer_locked(
+        offer_id=offer_id,
+        lender_user_id=lender_user_id,
+    )
     if offer is None:
         raise OfferNotFound('La oferta no existe.')
     return offer
