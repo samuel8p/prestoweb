@@ -1,12 +1,15 @@
-# Propuesta de cambios en AGENTS.md (sin aplicarlos)
+# Propuesta de cambios en AGENTS.md
 
-Este documento **no** modifica `AGENTS.md`: es el texto propuesto para que el
-desarrollor lo apruebe y lo aplique. Está escrito en el mismo formato del
-registro de la §17 (una fila por decisión) y con el mismo tono del resto del
-documento.
+> **Estado:** la §1 (el registro de la §17) fue **aplicada** a `AGENTS.md` con
+> la aprobación del desarrollador (2026-10-21). Las secciones 2, 3 y 4 de este
+> documento (modelos de la §7, detalle de la §15 y árbol de la §4) **siguen sin
+> aplicarse**: no fueron autorizadas.
 
-Cada bloque dice **qué se propone**, **dónde** va y **por qué**. Nada de esto
-está aplicado: `AGENTS.md` sigue como estaba.
+Este documento es el texto propuesto para que el desarrollador lo apruebe y lo
+aplique. Está escrito en el mismo formato del registro de la §17 (una fila por
+decisión) y con el mismo tono del resto del documento.
+
+Cada bloque dice **qué se propone**, **dónde** va y **por qué**.
 
 ---
 
