@@ -160,3 +160,10 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -v --cov=apps --cov-report=term-missing --cov-fail-under=80
+
+      - name: Coverage gate for budgets services
+        run: >
+          python -m pytest apps/budgets
+          --cov=apps.budgets.services
+          --cov-report=term-missing
+          --cov-fail-under=90

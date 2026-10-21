@@ -151,3 +151,67 @@ source_modules =
     apps.ledger
 forbidden_modules =
     apps.investments
+
+[importlinter:contract:budgets-only-services-and-selectors]
+name = budgets-only-services-and-selectors
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.budgets
+forbidden_modules =
+    apps.ledger.models
+    apps.ledger.views
+    apps.ledger.serializers
+    apps.ledger.admin
+    apps.ledger.urls
+    apps.loans.models
+    apps.loans.views
+    apps.loans.serializers
+    apps.loans.admin
+    apps.loans.urls
+    apps.identity.models
+    apps.identity.views
+    apps.identity.serializers
+    apps.identity.admin
+    apps.identity.urls
+    apps.offers.models
+    apps.offers.views
+    apps.offers.serializers
+    apps.offers.admin
+    apps.offers.urls
+
+[importlinter:contract:ledger-no-budgets]
+name = ledger-no-budgets
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.ledger
+forbidden_modules =
+    apps.budgets
+
+[importlinter:contract:loans-no-budgets]
+name = loans-no-budgets
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.loans
+forbidden_modules =
+    apps.budgets
+
+[importlinter:contract:identity-no-budgets]
+name = identity-no-budgets
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.identity
+forbidden_modules =
+    apps.budgets
+
+[importlinter:contract:offers-no-budgets]
+name = offers-no-budgets
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.offers
+forbidden_modules =
+    apps.budgets
