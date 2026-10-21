@@ -256,3 +256,37 @@ def test_position_detail_of_unknown_position_returns_404(client):
     response = client.get(f'/api/v1/investments/positions/{uuid.uuid4()}/')
 
     assert response.status_code == 404
+
+
+def test_open_position_without_kyc_is_blocked_by_the_permission(client):
+    """Sin KYC abrir una posición se corta con el 403 del permiso (AGENTS §9.9)."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='sin-kyc-inversion@example.com', password='TestPass123!')
+    product = InvestmentProductFactory(min_amount=Decimal('1000.00'))
+    authenticate(client, user)
+
+    response = client.post(
+        '/api/v1/investments/positions/',
+        {'product_id': str(product.id), 'amount': '5000.00'},
+        format='json',
+        HTTP_IDEMPOTENCY_KEY='sin-kyc-inversion',
+    )
+
+    assert response.status_code == 403
+    assert response.data['error']['code'] == 'permission_denied'
+    assert response.data['error']['message'] == (
+        'Necesitás completar la verificación KYC para realizar esta operación.'
+    )
+
+
+def test_list_positions_without_kyc_is_allowed(client):
+    """Las lecturas no cambian: sin KYC se pueden listar las posiciones."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='sin-kyc-inversion-lectura@example.com', password='TestPass123!')
+    authenticate(client, user)
+
+    response = client.get('/api/v1/investments/positions/')
+
+    assert response.status_code == 200

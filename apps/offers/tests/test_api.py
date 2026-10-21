@@ -272,3 +272,40 @@ def test_patch_unknown_offer_returns_404(client):
     )
 
     assert response.status_code == 404
+
+
+def test_create_offer_without_kyc_is_blocked_by_the_permission(client):
+    """Sin KYC publicar una oferta se corta con el 403 del permiso (AGENTS §9.9)."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='sin-kyc-oferta@example.com', password='TestPass123!')
+    authenticate(client, user)
+
+    response = client.post(
+        '/api/v1/offers/',
+        {
+            'amount': '10000.00',
+            'currency': 'ARS',
+            'interest_rate': '24.00',
+            'term_months': 12,
+        },
+        format='json',
+    )
+
+    assert response.status_code == 403
+    assert response.data['error']['code'] == 'permission_denied'
+    assert response.data['error']['message'] == (
+        'Necesitás completar la verificación KYC para realizar esta operación.'
+    )
+
+
+def test_list_offers_without_kyc_is_allowed(client):
+    """Las lecturas no cambian: sin KYC se pueden listar las ofertas."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='sin-kyc-oferta-lectura@example.com', password='TestPass123!')
+    authenticate(client, user)
+
+    response = client.get('/api/v1/offers/')
+
+    assert response.status_code == 200

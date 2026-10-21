@@ -1,6 +1,6 @@
 """Permisos y límites de tasa de la app identity."""
 
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.throttling import ScopedRateThrottle
 
 from apps.identity.selectors import is_kyc_approved
@@ -29,3 +29,20 @@ class IsKycApproved(BasePermission):
         """Devuelve True solo si el usuario autenticado tiene KYC aprobada."""
         user = request.user
         return bool(user and user.is_authenticated and is_kyc_approved(user_id=user.id))
+
+
+class KycApprovedForUnsafeMethods:
+    """Exige KYC aprobada en las operaciones que mueven dinero.
+
+    Las lecturas no cambian: siguen exigiendo solo autenticación. El control
+    equivalente en la capa de services sigue vigente (defense in depth): este
+    permiso da el `403` temprano y explícito de AGENTS §9.9, antes de tocar
+    el saldo.
+    """
+
+    def get_permissions(self):
+        """Agrega `IsKycApproved` a los métodos que no son de lectura."""
+        permissions = list(super().get_permissions())
+        if self.request.method not in SAFE_METHODS:
+            permissions.append(IsKycApproved())
+        return permissions

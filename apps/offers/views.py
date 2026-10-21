@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from apps.core.exceptions import InvalidAmount, KYCNotCompleted
 from apps.core.pagination import StandardPagination
+from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.offers.exceptions import OfferNotEditable, OfferNotFound
 from apps.offers.models import Offer
 from apps.offers.permissions import HasApprovedKyc
@@ -21,7 +22,7 @@ from apps.offers.serializers import (
 from apps.offers.services import create_offer, expire_offer, update_offer
 
 
-class OfferListCreateView(APIView):
+class OfferListCreateView(KycApprovedForUnsafeMethods, APIView):
     """Ofertas publicadas por el prestamista autenticado."""
 
     permission_classes = [IsAuthenticated]

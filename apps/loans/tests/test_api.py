@@ -1,5 +1,6 @@
 """Tests de la API de loans."""
 
+import uuid
 from decimal import Decimal
 
 import pytest
@@ -382,3 +383,72 @@ def test_installment_pay_view_declares_its_serializer():
     from apps.loans.views import InstallmentPayView
 
     assert InstallmentPayView.serializer_class is InstallmentSerializer
+
+
+def test_accept_offer_without_kyc_is_blocked_by_the_permission(client):
+    """Sin KYC aceptar un préstamo se corta con el 403 del permiso (AGENTS §9.9)."""
+    from apps.identity.services import register_user
+
+    lender = create_approved_user(email='kyc-permiso-prestamista@example.com')
+    borrower = register_user(email='kyc-permiso-prestatario@example.com', password='TestPass123!')
+    offer = make_offer(lender.id)
+    fund_user(lender.id, key='fund-kyc-permiso')
+    authenticate(client, borrower)
+
+    response = client.post(
+        '/api/v1/loans/',
+        {'offer_id': str(offer.id)},
+        format='json',
+        HTTP_IDEMPOTENCY_KEY='kyc-permiso-aceptar',
+    )
+
+    assert response.status_code == 403
+    assert response.data['error']['code'] == 'permission_denied'
+    assert response.data['error']['message'] == (
+        'Necesitás completar la verificación KYC para realizar esta operación.'
+    )
+
+
+def test_pay_installment_without_kyc_is_blocked_by_the_permission(client):
+    """Sin KYC pagar una cuota se corta con el 403 del permiso (AGENTS §9.9)."""
+    from apps.identity.services import register_user, resolve_kyc, submit_kyc
+    from apps.loans.services import accept_offer
+
+    lender = create_approved_user(email='kyc-cuota-prestamista@example.com')
+    borrower = register_user(email='kyc-cuota-prestatario@example.com', password='TestPass123!')
+    verification = submit_kyc(user=borrower, documents={})
+    resolve_kyc(
+        verification_id=verification.id,
+        status='approved',
+        resolved_by_user_id=uuid.uuid4(),
+    )
+    offer = make_offer(lender.id)
+    fund_user(lender.id, key='fund-kyc-cuota')
+    loan = accept_offer(
+        borrower_user_id=borrower.id,
+        offer_id=offer.id,
+        idempotency_key='kyc-cuota-aceptar',
+    )
+    # Una verificación nueva deja la anterior sin efecto: la vigente es `pending`.
+    submit_kyc(user=borrower, documents={})
+    authenticate(client, borrower)
+
+    response = client.post(f'/api/v1/loans/{loan.id}/installments/1/pay/')
+
+    assert response.status_code == 403
+    assert response.data['error']['code'] == 'permission_denied'
+    assert response.data['error']['message'] == (
+        'Necesitás completar la verificación KYC para realizar esta operación.'
+    )
+
+
+def test_list_loans_without_kyc_is_allowed(client):
+    """Las lecturas no cambian: sin KYC se pueden listar los préstamos."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='kyc-lectura-prestamos@example.com', password='TestPass123!')
+    authenticate(client, user)
+
+    response = client.get('/api/v1/loans/')
+
+    assert response.status_code == 200

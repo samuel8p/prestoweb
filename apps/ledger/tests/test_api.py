@@ -278,3 +278,36 @@ def test_transaction_detail_of_own_transaction_returns_200(client):
     assert response.status_code == 200
     assert response.data['id'] == str(ledger_transaction.id)
     assert response.data['id'] != str(uuid.uuid4())
+
+
+def test_create_transaction_without_kyc_is_blocked_by_the_permission(client):
+    """Sin KYC el movimiento se corta con el 403 del permiso (AGENTS §9.9)."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='sin-kyc-movimiento@example.com', password='TestPass123!')
+    authenticate(client, user)
+
+    response = client.post(
+        '/api/v1/ledger/transactions/',
+        {'type': 'deposit', 'currency': 'ARS', 'amount': '100.00'},
+        format='json',
+        HTTP_IDEMPOTENCY_KEY='sin-kyc-movimiento',
+    )
+
+    assert response.status_code == 403
+    assert response.data['error']['code'] == 'permission_denied'
+    assert response.data['error']['message'] == (
+        'Necesitás completar la verificación KYC para realizar esta operación.'
+    )
+
+
+def test_list_transactions_without_kyc_is_allowed(client):
+    """Las lecturas no cambian: sin KYC se pueden listar los movimientos."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='sin-kyc-lectura@example.com', password='TestPass123!')
+    authenticate(client, user)
+
+    response = client.get('/api/v1/ledger/transactions/')
+
+    assert response.status_code == 200

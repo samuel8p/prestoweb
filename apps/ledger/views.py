@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from apps.core.exceptions import InsufficientFunds, InvalidAmount, KYCNotCompleted
 from apps.core.pagination import StandardPagination
+from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.ledger.exceptions import (
     AccountKindNotAllowed,
     AccountNotFound,
@@ -160,7 +161,7 @@ class AccountBalanceView(APIView):
         )
 
 
-class TransactionListCreateView(APIView):
+class TransactionListCreateView(KycApprovedForUnsafeMethods, APIView):
     """Movimientos del libro mayor del usuario autenticado."""
 
     permission_classes = [IsAuthenticated]
