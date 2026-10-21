@@ -83,8 +83,8 @@ def test_accept_offer_creates_immutable_snapshot():
 
 
 def test_accept_offer_disburses_to_borrower():
-    """Aceptar unachoice desembolsa el capital al prestatario."""
-    from apps.ledger.models import Account
+    """Aceptar una oferta desembolsa el capital al prestatario."""
+    from apps.ledger.selectors import get_user_wallet
     from apps.loans.services import accept_offer
 
     lender = create_approved_user(email='prestamista-pago@example.com')
@@ -98,8 +98,8 @@ def test_accept_offer_disburses_to_borrower():
         idempotency_key='accept-pago',
     )
 
-    lender_wallet = Account.objects.get(user_id=lender.id, kind=Account.Kind.USER_WALLET)
-    borrower_wallet = Account.objects.get(user_id=borrower.id, kind=Account.Kind.USER_WALLET)
+    lender_wallet = get_user_wallet(user_id=lender.id, currency='ARS')
+    borrower_wallet = get_user_wallet(user_id=borrower.id, currency='ARS')
     assert lender_wallet.balance == Decimal('0.00')
     assert borrower_wallet.balance == Decimal('10000.00')
 
@@ -211,7 +211,6 @@ def test_accept_offer_rolls_back_when_lender_has_no_funds():
     from apps.core.exceptions import InsufficientFunds
     from apps.loans.models import Loan
     from apps.loans.services import accept_offer
-    from apps.offers.models import Offer
 
     lender = create_approved_user(email='prestamista-sin-plata@example.com')
     borrower = create_approved_user(email='prestatario-sin-plata@example.com')
@@ -225,7 +224,7 @@ def test_accept_offer_rolls_back_when_lender_has_no_funds():
         )
 
     offer.refresh_from_db()
-    assert offer.status == Offer.Status.ACTIVE
+    assert offer.status == 'active'
     assert Loan.objects.count() == 0
 
 
@@ -300,7 +299,7 @@ def test_installments_have_consecutive_due_dates():
 
 def test_pay_installment_moves_money_to_lender():
     """Pagar una cuota mueve el importe al prestamista."""
-    from apps.ledger.models import Account
+    from apps.ledger.selectors import get_user_wallet
     from apps.loans.services import accept_offer, pay_installment
 
     lender = create_approved_user(email='prestamista-cuota-pago@example.com')
@@ -323,8 +322,8 @@ def test_pay_installment_moves_money_to_lender():
 
     assert paid.status == 'paid'
     assert paid.paid_at is not None
-    lender_wallet = Account.objects.get(user_id=lender.id, kind=Account.Kind.USER_WALLET)
-    borrower_wallet = Account.objects.get(user_id=borrower.id, kind=Account.Kind.USER_WALLET)
+    lender_wallet = get_user_wallet(user_id=lender.id, currency='ARS')
+    borrower_wallet = get_user_wallet(user_id=borrower.id, currency='ARS')
     assert lender_wallet.balance == installment.amount
     assert borrower_wallet.balance == Decimal('10000.00') - installment.amount
 

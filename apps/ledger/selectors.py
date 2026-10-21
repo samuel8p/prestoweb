@@ -35,6 +35,23 @@ def list_accounts_for_user(user_id: uuid.UUID) -> QuerySet[Account]:
     )
 
 
+def get_user_wallet(user_id: uuid.UUID, currency: str) -> Account | None:
+    """Devuelve la billetera del usuario para una moneda, o None si no tiene.
+
+    Args:
+        user_id: identificador del usuario.
+        currency: código ISO de la moneda.
+
+    Returns:
+        La Account user_wallet del usuario o None.
+    """
+    return Account.objects.filter(
+        user_id=user_id,
+        currency=currency,
+        kind=Account.Kind.USER_WALLET,
+    ).first()
+
+
 def get_balance(account_id: uuid.UUID, user_id: uuid.UUID) -> Decimal | None:
     """Devuelve el saldo de la cuenta del usuario, o None si no le pertenece.
 

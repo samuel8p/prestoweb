@@ -83,3 +83,44 @@ forbidden_modules =
     apps.offers.admin
     apps.offers.urls
     apps.offers.services
+
+[importlinter:contract:loans-only-services-and-selectors]
+name = loans-only-services-and-selectors
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.loans
+forbidden_modules =
+    apps.ledger.models
+    apps.ledger.views
+    apps.ledger.serializers
+    apps.ledger.admin
+    apps.ledger.urls
+    apps.offers.models
+    apps.offers.views
+    apps.offers.serializers
+    apps.offers.admin
+    apps.offers.urls
+    apps.identity.models
+    apps.identity.views
+    apps.identity.serializers
+    apps.identity.admin
+    apps.identity.urls
+
+[importlinter:contract:ledger-no-loans]
+name = ledger-no-loans
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.ledger
+forbidden_modules =
+    apps.loans
+
+[importlinter:contract:offers-no-loans]
+name = offers-no-loans
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    apps.offers
+forbidden_modules =
+    apps.loans

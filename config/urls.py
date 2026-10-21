@@ -8,6 +8,7 @@ urlpatterns = [
     path('api/v1/', include('apps.ledger.urls')),
     path('api/v1/', include('apps.offers.urls')),
     path('api/v1/', include('apps.matching.urls')),
+    path('api/v1/', include('apps.loans.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='docs'),
 ]
