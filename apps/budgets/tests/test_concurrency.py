@@ -66,7 +66,6 @@ def test_concurrent_categorization_of_the_same_movement_creates_one_expense():
 
     assert len(Expense.objects.filter(user_id=user.id)) == 1
     created = [outcome for outcome in outcomes if not isinstance(outcome, Exception)]
+    failed = [outcome for outcome in outcomes if isinstance(outcome, Exception)]
     assert len(created) == 1
-    assert any(
-        isinstance(outcome, Exception) for outcome in outcomes
-    ), 'la segunda categorización concurrente debería fallar'
+    assert failed, 'la segunda categorización concurrente debería fallar'
