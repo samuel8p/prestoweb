@@ -630,3 +630,31 @@ def test_transfer_between_users_is_idempotent():
     )
     lender_wallet = Account.objects.get(user_id=lender.id, kind=Account.Kind.USER_WALLET)
     assert lender_wallet.balance == Decimal('40.00')
+
+
+def test_transfer_between_users_supports_interest_movements():
+    """El service interno puede registrar un movimiento de tipo interest."""
+    from apps.ledger.models import Account, LedgerTransaction
+    from apps.ledger.services import deposit, transfer_between_users
+
+    lender = create_approved_user()
+    borrower = create_approved_user(email='interes-interno@example.com')
+    deposit(
+        user_id=lender.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='int-dep-interest',
+    )
+
+    ledger_transaction = transfer_between_users(
+        source_user_id=lender.id,
+        destination_user_id=borrower.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('10.00'),
+        idempotency_key='interest-1',
+        initiated_by_user_id=borrower.id,
+        movement_type=LedgerTransaction.Type.INTEREST,
+        description='Interés acreditado',
+    )
+
+    assert ledger_transaction.type == LedgerTransaction.Type.INTEREST

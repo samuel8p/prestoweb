@@ -142,3 +142,73 @@ def test_french_installment_rejects_invalid_amounts():
             annual_tna=Decimal('-1.00'),
             months=12,
         )
+
+
+def test_simple_interest_for_a_full_year():
+    """El interés simple de un año completo es amount * tna."""
+    from decimal import Decimal
+
+    from apps.core.money import simple_interest
+
+    interest = simple_interest(
+        amount=Decimal('1000.00'),
+        annual_tna=Decimal('12.00'),
+        days=365,
+    )
+
+    assert interest == Decimal('120.00')
+
+
+def test_simple_interest_is_prorated_by_days():
+    """El interés se prorratea por los días transcurridos."""
+    from decimal import Decimal
+
+    from apps.core.money import simple_interest
+
+    interest = simple_interest(
+        amount=Decimal('1000.00'),
+        annual_tna=Decimal('12.00'),
+        days=30,
+    )
+
+    assert interest == Decimal('9.86')
+
+
+def test_simple_interest_without_rate_or_days_is_zero():
+    """Sin tasa o sin días el interés es cero."""
+    from decimal import Decimal
+
+    from apps.core.money import simple_interest
+
+    assert simple_interest(
+        amount=Decimal('1000.00'),
+        annual_tna=Decimal('0'),
+        days=100,
+    ) == Decimal('0.00')
+    assert simple_interest(
+        amount=Decimal('1000.00'),
+        annual_tna=Decimal('12.00'),
+        days=0,
+    ) == Decimal('0.00')
+
+
+def test_simple_interest_rejects_invalid_inputs():
+    """Un monto o una cantidad de días inválidos se rechazan."""
+    from decimal import Decimal
+
+    from apps.core.exceptions import InvalidAmount
+    from apps.core.money import simple_interest
+
+    with pytest.raises(InvalidAmount):
+        simple_interest(
+            amount=Decimal('-1.00'),
+            annual_tna=Decimal('12.00'),
+            days=30,
+        )
+
+    with pytest.raises(InvalidAmount):
+        simple_interest(
+            amount=Decimal('1000.00'),
+            annual_tna=Decimal('12.00'),
+            days=-1,
+        )

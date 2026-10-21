@@ -273,14 +273,15 @@ def transfer_between_users(
     idempotency_key: str,
     initiated_by_user_id: uuid.UUID,
     description: str = '',
+    movement_type: str = LedgerTransaction.Type.TRANSFER,
 ) -> LedgerTransaction:
     """Mueve fondos entre dos usuarios con una operación iniciada por un tercero.
 
-    Es un service **interno**: no está expuesto por la API. Lo usa el flujo de
-    préstamos, donde el desembolso lo pide el prestatario pero el saldo sale de
-    la cuenta del prestamista. Las reglas de saldo no negativo, de bloqueo de
-    cuentas en orden por `id` y de idempotencia son las mismas que en
-    `transfer`.
+    Es un service **interno**: no está expuesto por la API. Lo usan el flujo de
+    préstamos y el de inversiones, donde el movimiento lo pide un tercero pero
+    el saldo sale de la cuenta de otra parte. Las reglas de saldo no negativo,
+    de bloqueo de cuentas en orden por `id` y de idempotencia son las mismas
+    que en `transfer`.
 
     Args:
         source_user_id: usuario cuyo saldo se debita.
@@ -290,6 +291,7 @@ def transfer_between_users(
         idempotency_key: clave de idempotencia de la operación.
         initiated_by_user_id: usuario que origina la operación.
         description: descripción del movimiento.
+        movement_type: tipo de la transacción (`transfer` por defecto).
 
     Returns:
         La LedgerTransaction creada, o la original si la clave ya se usó.
@@ -302,7 +304,7 @@ def transfer_between_users(
     _assert_valid_amount(amount)
     request_hash = build_request_hash(
         {
-            'type': LedgerTransaction.Type.TRANSFER,
+            'type': movement_type,
             'source_user_id': str(source_user_id),
             'destination_user_id': str(destination_user_id),
             'currency': currency,
@@ -328,7 +330,7 @@ def transfer_between_users(
                 (locked[destination.id], LedgerEntry.Direction.CREDIT, amount),
             ]
             return _post_transaction(
-                movement_type=LedgerTransaction.Type.TRANSFER,
+                movement_type=movement_type,
                 user_id=initiated_by_user_id,
                 currency=currency,
                 idempotency_key=idempotency_key,

@@ -6,6 +6,7 @@ ZERO = Decimal('0')
 ONE = Decimal('1')
 HUNDRED = Decimal('100')
 TWELVE = Decimal('12')
+DAYS_PER_YEAR = Decimal('365')
 
 
 def round_two(value: Decimal) -> Decimal:
@@ -64,6 +65,31 @@ def french_installment(principal: Decimal, annual_tna: Decimal, months: int) -> 
         return round_two(principal / Decimal(months))
     discount = ONE / ((ONE + monthly_rate) ** months)
     return round_two(principal * monthly_rate / (ONE - discount))
+
+
+def simple_interest(amount: Decimal, annual_tna: Decimal, days: int) -> Decimal:
+    """Calcula el interés simple de un depósito a tasa fija.
+
+    `interés = monto * tna / 100 * días / 365`. El cálculo no aplica
+    redondeos intermedios: el redondeo a dos decimales ocurre una sola vez,
+    al final.
+
+    Args:
+        amount: capital invertido.
+        annual_tna: tasa nominal anual en porcentaje.
+        days: cantidad de días corridas.
+
+    Returns:
+        El interés simple, redondeado a dos decimales.
+
+    Raises:
+        InvalidAmount: si el monto o los días no son válidos.
+    """
+    if amount < ZERO:
+        raise InvalidAmount('El monto no puede ser negativo.')
+    if days < 0:
+        raise InvalidAmount('La cantidad de días no puede ser negativa.')
+    return round_two(amount * (annual_tna / HUNDRED) * (Decimal(days) / DAYS_PER_YEAR))
 
 
 def french_total_interest(principal: Decimal, annual_tna: Decimal, months: int) -> Decimal:
