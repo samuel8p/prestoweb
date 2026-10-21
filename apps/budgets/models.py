@@ -31,6 +31,31 @@ class Category(BaseModel):
         return f'Category<{self.user_id}:{self.name}>'
 
 
+class Expense(BaseModel):
+    """Gasto personal: un movimiento del ledger atribuido a una categoría.
+
+    La tabla **no guarda importes**: el monto que suma al gasto se deriva del
+    ledger al leer (ver `selectors.py`). Lo único que registra es la
+    clasificación del usuario: qué movimiento es gasto de qué categoría.
+    """
+
+    user_id = models.UUIDField()
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='expenses')
+    ledger_transaction_id = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user_id', 'ledger_transaction_id'],
+                name='budgets_expense_unique_per_movement',
+            ),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Expense<{self.user_id}:{self.category_id}:{self.ledger_transaction_id}>'
+
+
 class Budget(BaseModel):
     """Presupuesto mensual de gasto por categoría y moneda.
 

@@ -29,3 +29,15 @@ class DuplicateCategory(BudgetsError):
 
 class DuplicateBudget(BudgetsError):
     """El usuario ya tiene un presupuesto para esa categoría, período y moneda."""
+
+
+class MovementNotFound(BudgetsError):
+    """El movimiento no existe o no es visible para el usuario."""
+
+
+class NotAnExpense(BudgetsError):
+    """El movimiento no cuenta como gasto del usuario."""
+
+
+class AlreadyCategorized(BudgetsError):
+    """El movimiento ya tiene una categoría."""

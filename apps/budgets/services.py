@@ -6,14 +6,20 @@ from decimal import Decimal
 from django.db import IntegrityError, transaction
 
 from apps.budgets.exceptions import (
+    AlreadyCategorized,
     CategoryNotFound,
     DuplicateBudget,
     DuplicateCategory,
     InvalidBudget,
     InvalidCategory,
+    MovementNotFound,
+    NotAnExpense,
 )
-from apps.budgets.models import CATEGORY_NAME_MAX_LENGTH, Budget, Category
-from apps.budgets.selectors import get_category_for_user
+from apps.budgets.models import CATEGORY_NAME_MAX_LENGTH, Budget, Category, Expense
+from apps.budgets.selectors import (
+    analyze_movement_spending,
+    get_category_for_user,
+)
 
 
 def create_category(user_id: uuid.UUID, name: str) -> Category:
@@ -106,3 +112,56 @@ def create_budget(
         raise DuplicateBudget(
             'Ya tenés un presupuesto para esa categoría, período y moneda.'
         ) from None
+
+
+def categorize_movement(
+    user_id: uuid.UUID,
+    ledger_transaction_id: uuid.UUID,
+    category_id: uuid.UUID,
+) -> Expense:
+    """Categoriza un movimiento del ledger como gasto personal de una categoría.
+
+    El gasto no guarda importe: el monto se deriva del ledger al leer. Aquí
+    solo se valida que el movimiento sea un gasto del usuario y se registra
+    a qué categoría pertenece.
+
+    Args:
+        user_id: identificador del usuario.
+        ledger_transaction_id: identificador del movimiento del ledger.
+        category_id: identificador de la categoría del gasto.
+
+    Returns:
+        El Expense creado.
+
+    Raises:
+        CategoryNotFound: si la categoría no existe o no es del usuario.
+        MovementNotFound: si el movimiento no existe o no es del usuario.
+        NotAnExpense: si el movimiento no cuenta como gasto.
+        AlreadyCategorized: si el movimiento ya tiene categoría.
+    """
+    category = get_category_for_user(category_id=category_id, user_id=user_id)
+    if category is None:
+        raise CategoryNotFound('La categoría no existe.')
+    if Expense.objects.filter(
+        user_id=user_id,
+        ledger_transaction_id=ledger_transaction_id,
+    ).exists():
+        raise AlreadyCategorized('Ese movimiento ya está categorizado.')
+    analysis = analyze_movement_spending(
+        user_id=user_id,
+        transaction_ids=[ledger_transaction_id],
+    )
+    movement = analysis.get(ledger_transaction_id)
+    if movement is None or not movement['is_visible']:
+        raise MovementNotFound('El movimiento no existe.')
+    if not movement['is_expense']:
+        raise NotAnExpense('Ese movimiento no cuenta como gasto.')
+    try:
+        with transaction.atomic():
+            return Expense.objects.create(
+                user_id=user_id,
+                category=category,
+                ledger_transaction_id=ledger_transaction_id,
+            )
+    except IntegrityError:
+        raise AlreadyCategorized('Ese movimiento ya está categorizado.') from None
