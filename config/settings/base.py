@@ -194,8 +194,13 @@ CELERY_TASK_SOFT_TIME_LIMIT = 10 * 60
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 
+# Demo mode: with DEMO_MODE=true the stack behaves like a demo (the simulated
+# deposits are enabled and the ledger system check allows them). Without it,
+# the simulated deposits are only for local/test environments.
+DEMO_MODE = os.getenv('DEMO_MODE', 'False') == 'True'
+
 # Ledger: simulated deposits are only for local/test environments
-LEDGER_SIMULATED_DEPOSITS_ENABLED = (
+LEDGER_SIMULATED_DEPOSITS_ENABLED = DEMO_MODE or (
     os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False') == 'True'
 )
 

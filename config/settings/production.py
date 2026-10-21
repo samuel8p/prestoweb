@@ -10,8 +10,10 @@ DEBUG = False
 # Environment marker: the system checks rely on it, never on DEBUG
 DJANGO_ENV = 'production'
 
-# Simulated deposits must stay off in production (a system check enforces it)
-LEDGER_SIMULATED_DEPOSITS_ENABLED = (
+# Simulated deposits must stay off in production (a system check enforces it).
+# The only exception is the demo mode, where DEMO_MODE=true enables them on
+# purpose and the check lets them pass.
+LEDGER_SIMULATED_DEPOSITS_ENABLED = DEMO_MODE or (
     os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False') == 'True'
 )
 
