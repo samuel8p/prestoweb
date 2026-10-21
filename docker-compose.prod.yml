@@ -13,6 +13,9 @@
 #      DJANGO_ALLOWED_HOSTS (y los opcionales DOMAIN, CORS_ALLOWED_ORIGINS)
 #   2. `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`
 #
+# El backup diario de PostgreSQL es opcional: vive bajo el perfil `backup`
+# (ver deploy/backup-postgres.sh, que también documenta cómo restaurar).
+#
 # El proxy inverso con TLS automático es opcional: vive bajo el perfil `proxy`
 # (Caddy). Con el perfil activo es el único que publica puertos 80/443 y `web`
 # queda solo en la red interna del compose. Sin el perfil, la plataforma debe
@@ -130,6 +133,27 @@ services:
     volumes:
       - celerybeat:/var/celerybeat
 
+  backup:
+    image: postgres:16
+    profiles: ["backup"]
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-presto}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-}
+      PGDATABASE: ${POSTGRES_DB:-presto}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+    volumes:
+      - ./deploy/backup-postgres.sh:/usr/local/bin/backup-postgres.sh:ro
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -c "while true; do
+               /usr/local/bin/backup-postgres.sh && sleep 86400 || sleep 300; done"
+
   caddy:
     image: caddy:2-alpine
     profiles: ["proxy"]
@@ -152,3 +176,4 @@ volumes:
   celerybeat:
   caddy_data:
   caddy_config:
+  backups:
