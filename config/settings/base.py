@@ -104,6 +104,9 @@ SPECTACULAR_SETTINGS = {
 }
 
 MIDDLEWARE = [
+    # El CORS va lo más arriba posible: tiene que responder los preflight
+    # OPTIONS antes de que otro middleware genere la respuesta.
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'apps.core.middleware.DemoModeHeaderMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -211,6 +214,29 @@ DEMO_MODE = os.getenv('DEMO_MODE', 'False').strip().lower() == 'true'
 LEDGER_SIMULATED_DEPOSITS_ENABLED = DEMO_MODE or (
     os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False').strip().lower() == 'true'
 )
+
+# CORS (AGENTS §9.3): el front vive en otro origen (Vercel), así que la API
+# responde con los headers de CORS.
+# - Los orígenes vienen de `CORS_ALLOWED_ORIGINS`, separados por comas.
+# - Nunca se usa `*`: una lista vacía significa "ningún origen permitido".
+# - No se permiten credenciales: la autenticación va en `Authorization: Bearer`.
+CORS_ALLOWED_ORIGINS = [
+    origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()
+]
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type']
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'

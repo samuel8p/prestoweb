@@ -31,6 +31,8 @@ services:
       - DJANGO_DEBUG=True
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
       - REDIS_URL=redis://redis:6379/0
+      # CORS: orígenes del front, separados por comas (vacío = ninguno)
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
       # Modo demo: el dinero es simulado y los avisos salen por consola
       - DEMO_MODE=${DEMO_MODE:-true}
       - LEDGER_SIMULATED_DEPOSITS_ENABLED=${LEDGER_SIMULATED_DEPOSITS_ENABLED:-true}
