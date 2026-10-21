@@ -72,10 +72,10 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 │   ├── Caddyfile                  # proxy inverso con TLS automático (perfil proxy)
 │   └── backup-postgres.sh         # backup diario de PostgreSQL con rotación
 ├── docker-compose.prod.yml        # producción: sin puertos de db/redis, secretos por env
-├── Dockerfile                    # python:3.12-slim + deps de pyproject.toml
+├── Dockerfile                    # python:3.12-slim + deps + usuario `presto` sin root
 ├── pytest.ini                    # DJANGO_SETTINGS_MODULE + --ds=config.settings.test
 ├── pyproject.toml                # deps + config de ruff
-├── .importlinter                 # 11 contratos de límites entre apps
+├── .importlinter                 # 28 contratos de límites entre apps
 ├── .pre-commit-config.yaml       # ruff, ruff-format, import-linter
 ├── .github/workflows/ci.yml      # ruff, import-linter, spectacular, makemigrations, pytest
 ├── .env.example                  # SOLO placeholders, nunca secretos reales
@@ -114,18 +114,26 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 │   ├── celery.py                 # app de Celery + beat schedule diario
 │   ├── urls.py                   # /api/v1/ + /api/schema/ + /api/docs/ + /admin/
 │   ├── wsgi.py, asgi.py
+├── tests/                         # suite end-to-end (cruza todas las apps)
+│   └── test_end_to_end.py         #   flujo completo en ARS y USD
 └── docs/
+    ├── architecture.md             # arquitectura real: apps, capas, invariantes
+    ├── audit-final.md              # auditoría final: hallazgos y "requiere decisión"
+    ├── agents-changelog-proposal.md  # texto propuesto para AGENTS.md §17 (sin aplicarlo)
     ├── deploy-demo.md              # modo demo: email por consola (logs del worker)
     └── adr/
         ├── 0001-celery-redis-cola-y-scheduler.md
         ├── 0002-budgets-derivacion-del-gasto.md
         ├── 0003-reports-reportes-de-solo-lectura.md
-        └── 0004-notifications-avisos-por-email.md
+        ├── 0004-notifications-avisos-por-email.md
+        ├── 0005-saldo-desnormalizado.md
+        ├── 0006-doble-entrada-diferida.md
+        └── 0007-orden-de-las-apps.md
 ```
 
 Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 `investments`, `budgets`, `reports`, `notifications`. **No existe** (aún):
-`payments`. `docs/architecture.md` **tampoco existe**.
+`payments`.
 
 ## 4. Entorno local e invariantes del dinero
 
@@ -142,7 +150,13 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 - `DJANGO_SETTINGS_MODULE` del servicio web: `config.settings.local`
   (`config.settings.test` solo para los tests, `config.settings.production` para
   producción).
-- Variables de entorno: ver `.env.example` (placeholders, sin secretos).
+- Los contenedores de la aplicación (`web`, `worker`, `beat`) corren como el
+  usuario **`presto`** (uid 1000), no como root. Por eso el bytecode, la cache
+  de pytest, la de ruff y la cobertura van a `/tmp`: el código del proyecto
+  viene montado como volumen del host y ahí el contenedor no puede escribir.
+- Variables de entorno: ver `.env.example` (placeholders, sin secretos). Las que
+  importan: `DEMO_MODE` (modo demostración), `LEDGER_SIMULATED_DEPOSITS_ENABLED`
+  (dinero simulado) y, solo en producción, `SECURE_HSTS_SECONDS` (HSTS).
 
 ### Invariantes del ledger (requisitos de negocio, garantizados en código y en la DB)
 
@@ -198,17 +212,35 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 ### 6.1 Commits (log real y completo, `git log --oneline`)
 
-Los 6 commits anteriores de este mismo `HANDOFF.md` están listados; este commit
-no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**82**).
+Los commits anteriores de este mismo `HANDOFF.md` están listados; este commit no
+puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
+**124**).
 
 | Commit | Asunto |
-|---|---|---|
+|---|---|
+| `8a1c99b` | docs(agents): propose the changelog entries for AGENTS.md |
+| `d9b6377` | docs(audit): add the findings of the correction phase |
+| `2972006` | test(e2e): add the end to end suite |
+| `71eaeae` | fix(infra): keep the linters cache out of the project directory |
+| `12b099e` | fix(structure): add the missing package markers |
+| `c462f18` | docs(architecture): document the architecture and the pending ADRs |
+| `d2a2979` | docs(readme): rewrite the readme with the real project |
+| `22c00d2` | docs(config): document every environment variable in the examples |
+| `9d34696` | chore(infra): run the application containers as a non-root user |
+| `9714456` | fix(deploy): make the production health check pass |
+| `471ca4e` | chore(quality): keep the formatting stable across ruff versions |
+| `c46a6c6` | fix(offers): lock the offer on update and expire |
+| `c5933b1` | test(budgets): cover the category detail and the concurrent categorization |
+| `b6d2a51` | fix(security): enable the django password validators and hsts |
+| `4589a41` | docs: add the final backend audit |
+| `9e28f68` | docs: register the complete demo mode in the handoff |
 | `4560912` | docs: complete the demo mode guide and enable it in the dev stack |
 | `52915b5` | chore(infra): daily postgres backup with rotation |
 | `5b567e7` | chore(infra): demo mode, explicit CORS and optional TLS proxy in production |
 | `813e43c` | feat(core): public meta endpoint and the demo mode header |
 | `9ef8560` | feat(core): demo mode setting for the simulated money |
+| `c77e5f9` | feat(core): demo mode sends the notification emails to the worker logs |
+| `329b090` | docs: register the notifications app in the handoff |
 | `a4e51d2` | chore(notifications): import-linter contracts, coverage gate and ADR |
 | `79d0a77` | feat(notifications): notifications api |
 | `0ae71d3` | feat(notifications): budget alert when the spending crosses the threshold |
@@ -216,6 +248,7 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | `454fa87` | feat(notifications): alerts for the installments due soon and overdue |
 | `a9bb4a9` | feat(notifications): celery task to send the notification emails |
 | `cc1d359` | feat(notifications): notifications app with models and services |
+| `90cdb03` | docs: register the reports app in the handoff |
 | `9599982` | chore(reports): import-linter contracts, coverage gate and ADR |
 | `73b62f1` | feat(reports): csv export for the four reports |
 | `2a75626` | feat(reports): investments report |
@@ -223,9 +256,11 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | `593a34b` | feat(reports): spending report |
 | `b68975f` | feat(reports): movements report |
 | `4bb5fe7` | feat(reports): reports app and parameter validation |
+| `7120813` | docs: register the kyc permission, health check and production compose |
 | `45eefa8` | chore(infra): add the production docker compose |
 | `89d6f49` | feat(core): add the health check endpoint |
 | `6efb50f` | feat(identity): require approved kyc on the views that move money |
+| `ee845fd` | docs: register the budgets app in the handoff |
 | `92f2e1a` | chore(budgets): import-linter contracts, coverage gate and ADR |
 | `9125429` | feat(budgets): budgets api |
 | `9f1a546` | feat(budgets): monthly spending per category and currency |
@@ -233,6 +268,7 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | `e18b0a7` | feat(budgets): budgets app with categories and monthly budgets |
 | `82793c2` | feat(loans): link loan movements to the ledger and expose the breakdown |
 | `29f9b96` | feat(ledger): movement detail selector with legs and reversal state |
+| `f4d6759` | docs: rewrite handoff for the next agent with the verified project state |
 | `b3cbf8b` | docs: register the celery infrastructure decision |
 | `7fe012f` | test(loans,investments): cover the management commands and their celery tasks |
 | `393b422` | chore(infra): run the celery worker and beat in docker compose |
@@ -243,64 +279,64 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | `c4be917` | docs: refine handoff |
 | `ed9e602` | docs: list the handoff commits in the section 6 log table |
 | `57b1cf4` | docs: refine handoff sections per client review |
-| `cffd42e` | docs: add handoff document with current repo state |
+| `cffd42e` | docs: add handoff document with current repo state - Section 6: real git log table (62 commits), per phase/block status with the files   touched by each commit, and the checks verified on 2026-10-21 - Section 7: technical decisions D1-D18 with rationale - Section 8: problems P1-P14 and how each was resolved - Section 10: verified commands, including the OpenAPI validation one - Section 11: real remaining work, starting with the OpenAPI schema fix - New section: real /api/v1/ routes extracted from the URLConf - Section 13: registry entry |
 | `867d1fa` | chore: ignore generated openapi schema files |
-| `0cfb2ea` | test(investments): concurrency and ledger invariant coverage |
-| `39707da` | feat(investments): api endpoints, admin and import-linter contracts |
-| `1b2199d` | feat(investments): open and settle fixed term positions |
-| `7ebf030` | feat(ledger): transfers between a user wallet and a counterpart account |
-| `1ba05b9` | feat(investments): investment product and position models |
-| `f1d97fe` | feat(core,ledger): simple interest helper and configurable movement type |
-| `098e745` | docs: register Block 5 investments decisions in AGENTS.md |
-| `675ad76` | test(loans): concurrency, idempotency and isolation coverage |
-| `b19b4be` | feat(loans): api endpoints, selectors and import-linter contracts |
-| `7b9d0c5` | feat(loans): accept offer, pay installment and mark overdue services |
-| `b9e0ded` | feat(ledger,offers): internal third-party transfer and offer acceptance |
-| `a176f12` | feat(loans): loan, offer terms snapshot and installment models |
-| `42569d3` | docs: register Block 4 loans decisions in AGENTS.md |
-| `266cdbc` | test(offers): cover error branches of views and permission |
-| `c5338dd` | feat(matching): search by amount range instead of exact amount |
-| `40ca761` | feat(matching): marketplace search and comparison endpoints |
-| `5c36dd8` | feat(matching): search and comparison selectors |
-| `abb5336` | feat(offers): offer model, services, selectors and API |
-| `5bd3bea` | feat(core): french amortization helpers in money.py |
-| `d48fe62` | docs: register Block 3 decisions and new phase order in AGENTS.md |
-| `b2d6dcb` | test(ledger): custody equals negative sum of user wallets |
-| `16f5029` | test(ledger): api coverage for withdrawals and transfers |
-| `4bb1263` | feat(ledger): transaction listing includes movements touching user accounts |
-| `f0a73c6` | test(ledger): concurrency tests against real PostgreSQL |
-| `3ec686b` | feat(ledger): api endpoints and admin reversal action |
-| `1d7f387` | feat(ledger): services and selectors for deposits, withdrawals, transfers and reversals |
-| `a876038` | feat(ledger): postgres triggers for double entry and immutability |
-| `2bbacd9` | feat(ledger): account, transaction and entry models |
-| `d07a4f2` | docs: register Phase 1B ledger decisions in AGENTS.md and add import-linter contracts |
+| `0cfb2ea` | test(investments): concurrency and ledger invariant coverage - Two concurrent openings with the same key return the same position and create one - Two concurrent settlements pay the position only once - Ledger invariant: counterparties equal the negative of the user wallets, and the   total balance per currency is zero, with investments included - ledger.selectors.get_balance_breakdown exposes the invariant publicly - investments/services.py coverage: 99% (minimum 90%) - 374 tests pass |
+| `39707da` | feat(investments): api endpoints, admin and import-linter contracts - Endpoints /api/v1/investments/: products lists the active products, positions lists   the own ones, POST opens a position with the Idempotency-Key header and GET shows the   detail; third parties get 404 - Admin: products are created only by staff, positions are read only - import-linter: investments-only-services-and-selectors and ledger-no-investments - 370 tests pass |
+| `1b2199d` | feat(investments): open and settle fixed term positions - open_position requires approved KYC, an active product, amount >= min_amount and the   product currency; in one transaction.atomic it moves the money to the system account   through the ledger, stores the position and computes the simple interest - settle_matured_positions pays capital and interest from the system account, once per   position, with the interest as a ledger movement of type interest - management command settle_investments - 357 tests pass |
+| `7ebf030` | feat(ledger): transfers between a user wallet and a counterpart account - transfer_to_counterpart and transfer_from_counterpart move money between a user_wallet   and the custody/system account, which has no user and cannot be resolved by   transfer_between_users - Same balance, locking order and idempotency rules as the rest of the ledger - Public constants SYSTEM_COUNTERPART and CUSTODY_COUNTERPART for other apps - 340 tests pass |
+| `1ba05b9` | feat(investments): investment product and position models - InvestmentProduct: fixed_term type, currency, term_days, annual_rate_tna, min_amount,   status active|matured|cancelled, positive constraints (migration 0001) - Position: user_id UUIDField, product FK, amount, status active|matured, opened_at,   maturity_date, interest_amount and idempotency key per (user_id, key) with request_hash - 336 tests pass |
+| `f1d97fe` | feat(core,ledger): simple interest helper and configurable movement type - core.money.simple_interest computes amount * tna/100 * days/365 with a single rounding - ledger.services.transfer_between_users accepts a movement_type so the investments   settlement can register an interest movement; balance and locking rules unchanged - 328 tests pass |
+| `098e745` | docs: register Block 5 investments decisions in AGENTS.md - New phase order: investments -> budgets/reports/notifications -> payments last - New section: rules for investments (simple interest, atomic opening, settlement,   no early cancellation, system account as counterpart, staff only products) - Section 7: InvestmentProduct and Position with English field names - Section 17: Block 5 decisions log |
+| `675ad76` | test(loans): concurrency, idempotency and isolation coverage - Concurrent acceptance of the same offer: only one borrower succeeds - Concurrent payment of the same installment: only one succeeds - Concurrent acceptance with the same idempotency key: a single loan with its schedule - Recovery from an IntegrityError race returns the original loan - API tests: lender without funds, double payment, lender paying, unknown loan and   unknown installment - loans/services.py coverage: 99% (minimum 90%) - 321 tests pass |
+| `b19b4be` | feat(loans): api endpoints, selectors and import-linter contracts - Endpoints /api/v1/loans/: POST accepts an offer with the Idempotency-Key header, GET lists   the loans of the user as borrower or lender, GET /{id}/ returns the snapshot and the   installments, POST /{id}/installments/{number}/pay/ pays an installment - Only the parties see a loan; third parties get 404, the lender gets 403 when paying - ledger.selectors.get_user_wallet added for cross-app reads - import-linter: loans-only-services-and-selectors, ledger-no-loans, offers-no-loans - 311 tests pass |
+| `7b9d0c5` | feat(loans): accept offer, pay installment and mark overdue services - accept_offer runs in one transaction.atomic: locks and accepts the offer, stores the   immutable snapshot, persists the French schedule and disburses lender to borrower;   rolls back everything when the lender has no funds - build_installment_schedule keeps the installment constant and adjusts the last capital part   so the sum of capitals equals the principal exactly - pay_installment: only the borrower, in order, full amount; loan becomes paid on the last one - mark_overdue and change_loan_status with the valid transition machine - management command mark_overdue_loans - 301 tests pass |
+| `b9e0ded` | feat(ledger,offers): internal third-party transfer and offer acceptance - ledger.services.transfer_between_users moves money between two users initiated by a   third party, with type transfer, description and idempotency key; balance rules unchanged - offers.services.accept_offer locks the offer, rejects inactive offers and own offers - offers.selectors.get_offer_locked returns the offer with select_for_update - 277 tests pass |
+| `a176f12` | feat(loans): loan, offer terms snapshot and installment models - Loan with states active|paid|defaulted (pending is not used) and idempotency key   unique per (borrower_user_id, idempotency_key) plus request_hash - OfferTermsSnapshot one to one with loan, immutable by default - Installment with unique number per loan and positive amount constraints - Migration 0001 - 269 tests pass |
+| `42569d3` | docs: register Block 4 loans decisions in AGENTS.md - New section: rules for loans (atomic offer acceptance, third-party initiated disbursement,   French schedule with last installment adjusting principal, installment payment order,   overdue marking, state machine, visibility) - Sections 6 and 7: Loan states are active|paid|defaulted, pending is not used - Section 17: Block 4 decisions log and block order (Block 4 = loans, Block 5 = payments) |
+| `266cdbc` | test(offers): cover error branches of views and permission - 7 new API tests: expired offer, invalid amount, missing KYC, unknown offer, cross access - 4 permission tests: approved KYC, without KYC, anonymous, message - apps/offers/views.py 100%, apps/offers/permissions.py 100% - 253 tests pass |
+| `c5338dd` | feat(matching): search by amount range instead of exact amount - The loan takes the full offer amount, so the search filters by amount_min/amount_max - offers.selectors.search_active_offers and matching.search_offers updated - Query params of GET /api/v1/matching/offers/ updated and validated - AGENTS.md documents the range filter rule - 244 tests pass |
+| `40ca761` | feat(matching): marketplace search and comparison endpoints - GET /api/v1/matching/offers/ with currency, amount, max_rate, term_months filters and   rate|term|amount ordering, paginated - POST /api/v1/matching/comparisons/ returns installment, total interest and total cost - All views documented with drf-spectacular - 241 tests pass |
+| `5c36dd8` | feat(matching): search and comparison selectors - search_offers searches active offers with currency/amount/max_rate/term_months filters   and rate|term|amount ordering, built on offers.selectors only - compare_offers returns installment, total interest and total cost per offer using   core/money.py french helpers - Domain exceptions in apps/matching/exceptions.py - 228 tests pass |
+| `abb5336` | feat(offers): offer model, services, selectors and API - Offer model: lender_user_id UUIDField, amount, currency, TNA annual interest rate,   term_months, requirements, status active|expired|accepted (migration 0001) - services: create_offer (requires approved KYC, does not reserve funds), update_offer,   expire_offer; only the owner can act on its offers - selectors: get_offer, list_offers_for_lender, get_active_offer, search_active_offers   with currency/amount/max_rate/term_months filters and rate|term|amount ordering - API /api/v1/offers/: list own, create, detail, patch (update or expire) - import-linter: offers-no-identity-models, offers-no-matching, matching-no-offers-models - 219 tests pass |
+| `5bd3bea` | feat(core): french amortization helpers in money.py - monthly_rate_from_annual_tna converts annual TNA percent to the monthly rate - french_installment computes the monthly installment with Decimal, rounding once - french_total_interest and french_total_cost for the comparison - InvalidAmount raised for invalid principal, rate or months - 9 money tests pass |
+| `d48fe62` | docs: register Block 3 decisions and new phase order in AGENTS.md - New phase order: offers + matching -> loans -> payments - New section: rules for offers and matching (TNA annual rate, French installment in   core/money.py, creating an offer does not reserve funds, lender needs approved KYC,   matching is read only and only uses offers.selectors, offers does not import matching) - Section 7: Offer fields with English names and TNA semantics - Section 17: Block 3 decisions log |
+| `b2d6dcb` | test(ledger): custody equals negative sum of user wallets - Invariant test per currency after deposits, withdrawals and transfers - 178 tests pass |
+| `16f5029` | test(ledger): api coverage for withdrawals and transfers - 14 API tests: success paths, KYC 403, insufficient funds 400, invalid currency/amount,   missing destination, currency mismatch, non wallet destination and cross access - Removed dead code: unreachable fallback in views.create_transaction and   unused selectors.get_counterpart_account - ledger/views.py 100%, ledger/selectors.py 100%, ledger/services.py 93% - 177 tests pass |
+| `4bb1263` | feat(ledger): transaction listing includes movements touching user accounts - list_transactions_for_user now matches created_by_user_id or entries on the user's accounts - Isolation test: movements of other users stay invisible - 163 tests pass |
+| `f0a73c6` | test(ledger): concurrency tests against real PostgreSQL - Concurrent deposits with the same idempotency key create a single transaction - Concurrent withdrawals never leave a negative user_wallet balance - Concurrent transfers conserve the total balance (no lost update) - Balance invariant holds after concurrent movements - Threads with their own connections, transaction=True - ledger/services.py coverage: 93% (minimum 90%) - 161 tests pass |
+| `3ec686b` | feat(ledger): api endpoints and admin reversal action - Endpoints /api/v1/ledger/: accounts, accounts/{id}/balance, transactions, transactions/{id} - Idempotency-Key header required; same key with different payload returns 409 - KYC failure returns 403, domain errors mapped to 400 - Admin action reverse_transactions calls services.reverse_transaction (staff only, no endpoint) - Core exception handler uses the exception own code for non generic statuses - 157 tests pass |
+| `1d7f387` | feat(ledger): services and selectors for deposits, withdrawals, transfers and reversals - services: deposit, withdraw, transfer, reverse_transaction, create_user_wallet - Accounts locked with select_for_update in ascending id order; balance only changed in services - Idempotency per (created_by_user_id, idempotency_key) with request_hash: same hash returns   original, different hash raises conflict, IntegrityError race returns the original - KYC approved required via identity.selectors.is_kyc_approved - System check fails when LEDGER_SIMULATED_DEPOSITS_ENABLED is on in production (uses DJANGO_ENV) - import-linter: allow indirect imports for ledger -> identity.selectors - ledger/services.py coverage: 90% (minimum 90%) |
+| `a876038` | feat(ledger): postgres triggers for double entry and immutability - Deferred constraint trigger: sum(debits) = sum(credits) per transaction at commit - Triggers blocking UPDATE/DELETE on LedgerTransaction and LedgerEntry - Migration 0002 - 107 tests pass |
+| `2bbacd9` | feat(ledger): account, transaction and entry models - Account with denormalized balance, UUIDField user_id (no FK) and per-kind uniqueness - CheckConstraint balance>=0 only for user_wallet; counterpart accounts may go negative - LedgerTransaction with idempotency per (created_by_user_id, idempotency_key), request_hash   and single reversal per original - LedgerEntry with amount > 0 constraint - Migration 0001 - 100 tests pass |
+| `d07a4f2` | docs: register Phase 1B ledger decisions in AGENTS.md and add import-linter contracts - Section 6: new 'Reglas adicionales del ledger' (denormalized balance, deferred constraint   trigger, immutability triggers, idempotency per user+key, transfers, reversals, simulated   deposits, KYC requirement, cross-app limits) - Section 7: Account/LedgerTransaction/LedgerEntry with denormalized balance and constraints - Section 17: Phase 1B decisions and the 4 resolved AGENTS.md conflicts - .importlinter: ledger-no-identity-models and identity-no-ledger contracts - apps/ledger: app skeleton so the contracts resolve |
 | `127de6e` | chore: add .gitattributes with LF line endings |
-| `5aa5004` | ci: add coverage gate and document project in README |
-| `819cd15` | fix: flatten duplicated config package |
+| `5aa5004` | ci: add coverage gate and document project in README - CI runs pytest with --cov=apps and --cov-fail-under=80 - pytest-cov added to CI dependencies - README with structure, commands, API endpoints and error format |
+| `819cd15` | fix: flatten duplicated config package - Remove leftover config/config/ package and duplicate config/manage.py - Add config/__init__.py, config/settings/__init__.py, config/wsgi.py, config/asgi.py - WSGI/ASGI now point to config.settings.local and load correctly - Web service stays Up and serves /api/v1/, /api/schema/ and /admin/ |
 | `3de20bb` | chore: ignore coverage and import-linter cache artifacts |
-| `d418176` | test(identity): cover openapi schema, kyc permission and model branches |
-| `4eb59ef` | feat(identity): kyc resolution action in django admin |
-| `6b61282` | feat(identity): auth, profile and kyc API endpoints |
-| `ad00056` | feat(core): uniform api error handler |
-| `2351bd7` | feat(identity): services and selectors for registration, profile and kyc |
-| `efafa8d` | feat(identity): kyc verification model with pending uniqueness |
-| `d48490b` | feat(identity): profile model |
-| `7562c2a` | feat(identity): email-only user model with custom manager |
+| `d418176` | test(identity): cover openapi schema, kyc permission and model branches - Schema endpoints and IsKycApproved permission coverage - Superuser validation branches and model __str__ methods - apps/identity coverage: 100% (minimo 80%) - 87 tests pass |
+| `4eb59ef` | feat(identity): kyc resolution action in django admin - KYCVerificationAdmin with approve_kyc and reject_kyc actions calling services.resolve_kyc - Admin registered for User, Profile and KYCVerification - Admin URLs mounted at /admin/ - 77 tests pass |
+| `6b61282` | feat(identity): auth, profile and kyc API endpoints - Endpoints /api/v1/: auth/register, auth/login, auth/token/refresh, auth/me, kyc, kyc/{id} - JWT login with refresh rotation and blacklist, scoped throttles (login 5/min, register 5/hour) - IsKycApproved permission implements AGENTS section 9.9 rule - DRF + simplejwt + spectacular settings, uniform error handler wired - 73 tests pass |
+| `ad00056` | feat(core): uniform api error handler - apps/core/exception_handler.py normalizes DRF errors to AGENTS section 8 format - Body shape: error.code, error.message, error.details - 46 tests pass |
+| `2351bd7` | feat(identity): services and selectors for registration, profile and kyc - services: register_user (user+profile atomic), submit_kyc, resolve_kyc with audit log - selectors: get_profile, get_kyc_for_user, is_kyc_approved - Domain exceptions in apps/identity/exceptions.py - 41 tests pass |
+| `efafa8d` | feat(identity): kyc verification model with pending uniqueness - KYCVerification FK to User with request history - Fields: status, requested_at, resolved_at, resolved_by_user_id, documents - Conditional UniqueConstraint: one pending verification per user - Migration 0004 - 23 tests pass |
+| `d48490b` | feat(identity): profile model - Profile 1:1 with User (phone_number, date_of_birth, country ISO 3166-1 alpha-2) - Country validated with RegexValidator - Migration 0003 - 18 tests pass |
+| `7562c2a` | feat(identity): email-only user model with custom manager - User without username field (UUID primary key, unique email) - UserManager.create_user/create_superuser keyed by email - Migration 0002 removes username column - Tests: 7 identity model tests + 7 core tests pass |
 | `a66fd7b` | chore(deps): add pytest-cov for coverage reporting |
-| `67b0ef2` | docs: register Phase 1A decisions and naming corrections in AGENTS.md |
-| `6826e28` | fix: pre-commit import-linter hook rev and args |
-| `ea1edb4` | fix: import-linter forbidden contract |
-| `7d5cf6c` | test: remove obsolete test_simple |
-| `3b3e401` | fix: tests use test settings |
-| `7d571fc` | fix: import-linter contract |
-| `def5baf` | fix: pytest and ruff config |
-| `9442e63` | feat: import-linter config, pre-commit hooks, ruff updates |
-| `39198aa` | feat: pre-commit, import-linter, Makefile, CI |
-| `886cf55` | style: ruff format codebase |
-| `654cc03` | fix: Django 5.x constraint, pytest test settings, web localhost port |
-| `b0dbd58` | feat: Block C |
+| `67b0ef2` | docs: register Phase 1A decisions and naming corrections in AGENTS.md - Loan states in English: active/pending/paid/defaulted - Account without amount field (balance derived from entries) - KYCVerification with English field names - signals.py as documented exception for cross-app imports - Phase 1A decisions (a-f) and extras recorded in section 17 |
+| `6826e28` | fix: pre-commit import-linter hook rev and args - rev: v2.15.0 -> v2.15 (tag does not exist upstream) - args: --config-file -> --config (option renamed in v2.x) - Verified on host: ruff, ruff-format and import-linter hooks all pass |
+| `ea1edb4` | fix: import-linter forbidden contract - .importlinter: forbidden type with source_modules/forbidden_modules - apps.core cannot import apps.identity - Verified: 1 kept when clean, 1 broken with import chain shown when violated |
+| `7d5cf6c` | test: remove obsolete test_simple - Deleted apps/core/tests/test_simple.py (placeholder heredado) - pytest now collects 10 tests |
+| `3b3e401` | fix: tests use test settings - pytest.ini: add addopts = --ds=config.settings.test - Overrides DJANGO_SETTINGS_MODULE env var from docker-compose (config.settings.local) - pytest header now shows: settings: config.settings.test (from option) |
+| `7d571fc` | fix: import-linter contract - .importlinter: core isolation contract (independence type) - apps.core cannot import apps.identity - Verified: 1 kept when clean, 1 broken when forbidden import added - All checks pass: lint-imports, ruff, pytest |
+| `def5baf` | fix: pytest and ruff config - pytest.ini: minimal DJANGO_SETTINGS_MODULE=config.settings.test - config/settings/test.py: removed DATABASES override (pytest-django creates test_<NAME>) - pyproject.toml: moved select to [tool.ruff.lint], consolidated ignore/per-file-ignores - All checks pass: pytest 11 passed, ruff check, ruff format |
+| `9442e63` | feat: import-linter config, pre-commit hooks, ruff updates - .importlinter: core isolation from domain apps (independence contract) - .pre-commit-config.yaml: ruff check, ruff format, import-linter (v2.15.0) - pyproject.toml: ruff config with select=[E,F,I,B,UP], line-length=100 - apps/core/money.py: ruff format fix - All checks pass: ruff, format, pytest (10 passed) |
+| `39198aa` | feat: pre-commit, import-linter, Makefile, CI - .pre-commit-config.yaml: ruff check, ruff format, import-linter - .importlinter: core isolation from domain apps - Makefile: up, down, test, lint, migrate, shell, makemigrations - .github/workflows/ci.yml: ruff, import-linter, makemigrations --check, pytest on PostgreSQL 16 |
+| `886cf55` | style: ruff format codebase - Single quotes, 100 char line length - Import sorting with isort (apps, config first-party) - Format all Python files via ruff format |
+| `654cc03` | fix: Django 5.x constraint, pytest test settings, web localhost port - pyproject.toml: Django>=5.2,<6, pytest-django>=4.0, ruff config - Dockerfile: install deps with Django 5.x constraint - pytest.ini: DJANGO_SETTINGS_MODULE=config.settings.test - docker-compose.yml: web port 127.0.0.1:8000:8000 |
+| `b0dbd58` | feat: Block C - core money/models tests, identity User tests - test_money.py: round_two, money functions with Decimal (3 tests pass) - test_models.py: BaseModel field definitions (4 tests pass) - test_user.py: email login, uniqueness, str (3 tests pass) - User model: UUID primary key, email as USERNAME_FIELD - base.py: remove deprecated SHA1PasswordHasher - test.py: use presto_test DB for isolated tests - pytest.ini: standard django_db marker config All 10 tests pass GREEN via docker compose run --rm web pytest |
 | `e27b2fc` | fix: docker-compose add source volume mount for live code reload |
-| `ff28c71` | feat: add core money/tests, models/tests, identity user/tests |
+| `ff28c71` | feat: add core money/tests, models/tests, identity user/tests - test_money.py: round_two and money Decimal functions - test_models.py: BaseModel UUID and timestamp tests - test_user.py: User email login and str representation - test.py: use existing presto DB for tests - pytest.ini: basic django_db marker config |
 | `f1f92ce` | fix: docker-compose ports localhost only, web serves runserver, test config updated |
 | `3e701e5` | feat: Docker configuration, PostgreSQL settings and pytest integration |
 | `9aa1eab` | feat: initial project skeleton with Docker-ready config, settings, pyproject and gitignore |
@@ -325,6 +361,7 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Bloque 6c — `reports`** | ✅ completa | Cuatro reportes de solo lectura (gasto por categoría, préstamos, inversiones y movimientos) con una moneda por reporte, rango de hasta 12 meses y exportación CSV. ADR 0003. |
 | **Bloque 6d — `notifications`** | ✅ completa | Avisos por email de cuatro eventos (cuota por vencer, cuota vencida, inversión liquidada, alerta de presupuesto) con idempotencia por evento, preferencias por usuario, API de lectura y señales definidas por las apps emisoras. ADR 0004. |
 | **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
+| **Auditoría final y pulido** | ✅ completa | Auditoría de solo lectura (`docs/audit-final.md`: 0 críticos, 2 altos, 9 medios, 8 bajos) y corrección de todo lo crítico, alto y medio: validadores de contraseña de Django, HSTS en producción, carrera de las ofertas, contenedores sin root, health check de producción, tests faltantes (detalle de categoría, concurrencia de budgets), suite end-to-end, `docs/architecture.md`, ADR 0005-0007 y README al día. |
 
 ### 6.3 Funcionalidades implementadas (por app)
 
@@ -377,37 +414,38 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 ### 6.4 Estado verificado (2026-10-21, comandos del §10)
 
+Verificación del cierre de la auditoría final (todos los comandos ejecutados
+contra el código de este bloque):
+
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web pytest -q` | **620 passed** |
-| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,9%** (`reports` 99% y `notifications` 99%) |
-| Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **100%** en `budgets/services.py` (umbral de la CI: 90%) |
-| Cobertura por módulo | idem | `identity/*` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `ledger/selectors.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `loans/tasks.py` 100% · `investments/services.py` 99% · `investments/tasks.py` 100% · `matching/views.py` 97% |
+| Tests | `docker compose run --rm web python -m pytest -q` | **655 passed** (628 del bloque anterior + 27 nuevos) |
+| Cobertura total | `... pytest --cov=apps --cov-report=term` | **99%** (`ledger/services.py` 93%, `budgets/services.py` 99%, `loans/services.py` 99%, `investments/services.py` 99%, `offers/services.py` 97%, `notifications/*` 100%, `reports/selectors.py` 98%) |
+| Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **99%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Lint | `ruff check .` | All checks passed |
-| Formato | `ruff format --check .` | 151 files already formatted |
-| Límites entre apps | `lint-imports` | **28 kept, 0 broken** |
+| Formato | `ruff format --check .` | 248 files already formatted |
+| Límites entre apps | `lint-imports --cache-dir /tmp/import-linter-cache` | **28 kept, 0 broken** |
 | Migraciones | `makemigrations --check --dry-run` | No changes detected |
-| System checks | `manage.py check` | System check identified no issues |
+| System checks | `manage.py check` | System check identified no issues (0 silenced) |
 | OpenAPI | `spectacular --validate --fail-on-warn --file schema.yml` | **PASA: 0 errores, 0 warnings** (lo mismo que corre la CI) |
-| Docker | `docker compose ps` | **5 servicios Up**: `db`, `redis`, `web`, `worker`, `beat` |
-| Worker | `docker compose logs worker` | `transport: redis://redis:6379/0`, `results: disabled://`, 2 tasks registradas, `ready.` |
-| Beat | `celery -A config inspect conf` | `mark_overdue_loans_diario` → crontab `5 0 * * *`; `settle_investments_diario` → `15 0 * * *` |
-| End-to-end | `celery -A config call apps.loans.tasks.mark_overdue_loans` | task `received` y `succeeded` en el worker |
-| Migraciones de budgets | `manage.py migrate` | `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_...` aplicadas |
-| Endpoints de budgets (runtime) | `curl` contra el `web` local | crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401 |
-| Compose de producción | `docker compose -f docker-compose.prod.yml config` | válido (5 servicios) |
-| Compose de producción (arranque real) | `docker compose -f docker-compose.prod.yml -p presto-prod up -d --build` | `db`, `redis` y `web` **healthy**, `worker` y `beat` Up, `/health/` → 200 `{"status": "ok"}` |
+| `check --deploy` (producción) | `manage.py check --deploy` con los settings de producción | 1 aviso: `security.W021` (HSTS preload apagado a propósito, ver ADR 0006 y `docs/audit-final.md` §5) |
+| Docker (desarrollo) | `docker compose up --build -d` | **5 servicios Up**: `db`, `redis`, `web`, `worker`, `beat`; los tres de la aplicación corren como `uid=1000(presto)` |
+| Flujo real (desarrollo) | `curl` contra el `web` local | registro 201, login 200, KYC 201, depósito simulado 201, saldo 1500.00 ARS, reporte 200, sin token 401, sin `Idempotency-Key` 400 |
+| Docker (producción, demo) | `docker compose -p presto-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build` con `DEMO_MODE=true` | `db`, `redis` y `web` **healthy**, `worker` y `beat` Up; `/health/` 200, `/api/v1/meta/` 200 `{"mode":"demo","simulated_money":true}`, depósito simulado 201 y **suma de saldos por moneda = 0.00** |
+| Bajada del stack de producción | `docker compose -p presto-prod -f docker-compose.prod.yml down -v` | contenedores, red y volúmenes eliminados (no queda ningún `presto-prod*`) |
+| Suite end-to-end | `pytest tests/test_end_to_end.py` | 1 passed (ARS y USD, flujo completo, invariante del ledger) |
+| Worker | `docker compose logs worker` | `transport: redis://redis:6379/0`, `results: disabled://`, 5 tasks registradas, `ready.` |
+| Beat | `celery -A config inspect conf` | 4 entradas: `mark_overdue_loans_diario` (00:05), `notify_installments_due_soon_diario` (00:10), `settle_investments_diario` (00:15) y `notify_overdue_installments_diario` (00:20) |
+| Tareas en el worker | `docker compose logs worker` | 5 tasks registradas: `mark_overdue_loans`, `settle_investments`, `notify_installments_due_soon`, `notify_overdue_installments`, `send_notification_email` |
+| Modo demo (stack de desarrollo) | `curl /api/v1/meta/` | `{"mode":"demo","simulated_money":true}` + cabecera `X-Presto-Mode: demo` |
+| Modo demo (stack de producción) | el mismo arranque con `DEMO_MODE=true` | `DEMO_MODE=True`, `simulated=True`, `/api/v1/meta/` 200 y depósito simulado **201** |
+| Endpoints de budgets (runtime) | `curl` contra el `web` local | crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401, detalle de categoría 200/404/401 |
 | Endpoints de reports (runtime) | `curl` contra el `web` local | los 4 reportes 200, sin moneda 400, sin token 401, CSV con `text/csv` y `Content-Disposition` |
 | Endpoints de notifications (runtime) | `curl` contra el `web` local | listado 200, preferencias GET 200 y PUT 200, sin token 401 |
-| Tareas en el worker | `docker compose logs worker` | 5 tasks registradas: `mark_overdue_loans`, `settle_investments`, `notify_installments_due_soon`, `notify_overdue_installments`, `send_notification_email` |
-| Beat schedule | `celery -A config inspect conf` | 4 entradas: 00:05, 00:10, 00:15 y 00:20 UTC |
-| Modo demo (stack de desarrollo) | `curl /api/v1/meta/` | `{"mode":"demo","simulated_money":true}` + cabecera `X-Presto-Mode: demo` |
-| Depósito simulado (modo demo) | `POST /api/v1/ledger/transactions/` | **201**, saldo 500.00 (sin el workaround de P17) |
-| Modo demo (stack de producción) | `docker compose -f docker-compose.prod.yml -p presto-prod up -d --build` con `DEMO_MODE=true` | `DEMO_MODE=True`, `simulated=True`, `/api/v1/meta/` 200 y depósito simulado **201** |
-| Compose de producción | `docker compose -f docker-compose.prod.yml config` | válido; con `--profile proxy` agrega `caddy` (80/443) y `web` no publica puertos |
+| Compose de producción | `docker compose -f docker-compose.prod.yml config` | válido (5 servicios); con `--profile proxy` agrega `caddy` (80/443) y `web` no publica puertos |
 | Backups | `docker compose -f docker-compose.prod.yml --profile backup run --rm backup` | dump comprimido de 12K; con `BACKUP_KEEP=1` conserva solo el más nuevo |
 | Restauración | `gunzip -c <backup>.sql.gz \| psql` en una base de prueba | 28 tablas y las transacciones del ledger restauradas |
-| Estado del repo | `git status` | limpio; `main` al día con `origin/main` |
+| Estado del repo | `git status` | limpio |
 
 **Logs de evidencia** (fuera del repo, en `A:\Samuel\`): `tdd_6.log` (ciclos
 RED/GREEN del bloque Celery), `verif_6.txt` (verificación completa de ese
@@ -570,10 +608,16 @@ docker compose ps
 make test      # docker compose run --rm web python -m pytest -v
 ```
 
-Resultado esperado: **504 passed**. Con cobertura:
+Resultado esperado: **655 passed**. Con cobertura:
 
 ```sh
-docker compose run --rm web pytest -v --cov=apps --cov-report=term-missing
+docker compose run --rm web python -m pytest -v --cov=apps --cov-report=term-missing
+```
+
+La suite end-to-end (el flujo completo, en ARS y USD) va en su propio paquete:
+
+```sh
+docker compose run --rm web python -m pytest tests/test_end_to_end.py -v
 ```
 
 ### Lint, formato y límites entre apps
@@ -587,9 +631,13 @@ Equivalentes sueltos:
 ```sh
 docker compose run --rm web ruff check .
 docker compose run --rm web ruff format --check .
-docker compose run --rm web lint-imports      # alias de import-linter
-docker compose run --rm web import-linter
+docker compose run --rm web lint-imports --cache-dir /tmp/import-linter-cache
 ```
+
+> El `--cache-dir` es necesario desde que el contenedor corre como usuario sin
+> privilegios: el proyecto viene montado como volumen del host y ahí no se
+> puede escribir (ver `docs/audit-final.md` B-8). La cache de ruff ya apunta a
+> `/tmp` por variable de entorno en el `Dockerfile`.
 
 Los hooks de git se validan en el **host** (pre-commit corre hooks, no pytest):
 
@@ -768,6 +816,19 @@ requieren autenticación JWT salvo `auth/register`, `auth/login` y
 | GET, POST | `/api/v1/investments/positions/` | Lista las posiciones propias / abre una inversión |
 | GET | `/api/v1/investments/positions/{position_id}/` | Detalle de una posición propia (404 si es de otro) |
 
+### `budgets`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET, POST | `/api/v1/budgets/` | Lista los presupuestos propios / crea uno por categoría, período y moneda |
+| GET, PATCH | `/api/v1/budgets/{budget_id}/` | Detalle / actualiza el límite o el umbral de un presupuesto propio |
+| GET | `/api/v1/budgets/{budget_id}/status/` | Gasto del período, restante y si la alerta se dispara |
+| GET, POST | `/api/v1/budgets/categories/` | Lista las categorías propias / crea una categoría |
+| GET, PATCH | `/api/v1/budgets/categories/{category_id}/` | Detalle / renombra una categoría propia (404 si es de otro) |
+| GET, POST | `/api/v1/budgets/expenses/` | Lista los gastos categorizados / categoriza un movimiento del ledger |
+
+El importe del gasto **no se guarda**: sale del ledger (ADR 0002).
+
 ### `reports`
 
 | Método | Ruta | Descripción |
@@ -796,6 +857,8 @@ calendario actual en UTC, con un máximo de 12 meses de rango.
 |---|---|---|
 | GET | `/api/schema/` | Esquema OpenAPI (JSON) |
 | GET | `/api/docs/` | Swagger UI |
+| GET | `/health/` | Chequeo de estado (público; 503 si la base no responde) |
+| GET | `/api/v1/meta/` | Modo de la instancia (`demo` o `normal`) y si el dinero es simulado |
 | — | `/admin/` | Django admin (solo staff): usuarios, perfiles, KYC, cuentas, transacciones, asientos, productos y posiciones de inversión |
 
 ---
@@ -822,20 +885,31 @@ Orden real de lo que falta, de mayor a menor prioridad.
    diarios** de PostgreSQL con prueba periódica de restauración, el **proxy
    inverso con HTTPS** y el **CORS** explícito para el front
    (`CORS_ALLOWED_ORIGINS`, sin `*`).
-6. **Documentación**: falta `docs/architecture.md`. Los ADRs de las decisiones
-   grandes siguen sin escribirse (saldo desnormalizado, contrato diferido de doble
-   entrada, orden `offers+matching → loans → investments → payments`).
+6. ✅ **Documentación**: `docs/architecture.md` escrito (apps, capas, invariantes
+   del dinero, recorrido de un movimiento) y los ADR que faltaban ya están
+   (0005 saldo desnormalizado, 0006 doble entrada con trigger diferido, 0007
+   orden de las apps). El `README.md` quedó al día (estructura real, endpoints,
+   tareas de beat, modo demo) y hay tests que impiden que vuelva a quedar viejo.
+   Queda pendiente **aplicar** el texto propuesto para `AGENTS.md` (está en
+   `docs/agents-changelog-proposal.md`; `AGENTS.md` no se toco).
 7. ✅ **`IsKycApproved` en las vistas que mueven dinero**: aplicado a los
    movimientos del ledger, la publicación de ofertas, la aceptación de préstamos,
    el pago de cuotas y la apertura de posiciones de inversión. Los `GET` no cambian
    y los services siguen validando KYC.
-8. **Cobertura de vistas por debajo de 100%**: `loans/views.py` 94%,
-   `matching/views.py` 97%, `investments/views.py` 95%. No es un bloqueo (los
+8. **Cobertura de vistas por debajo de 100%**: `budgets/views.py` 87%,
+   `loans/views.py` 93%, `investments/views.py` 93%. No es un bloqueo (los
    umbrales de AGENTS §10 son 90% en `ledger`/`budgets` y 80% general).
-9. **Agregar `budgets` al umbral de cobertura del 90%** en la CI cuando exista la
-   app.
+9. ✅ **Agregar `budgets` al umbral de cobertura del 90%** en la CI: ya está
+   (gate de `apps.budgets.services`).
 10. **Envío del esquema OpenAPI al frontend**: queda pendiente, así como la
-    configuración de CORS real para el front.
+    configuración de CORS real para el front (hoy la variable está documentada
+    pero la aplicación no la lee: sin `django-cors-headers` el CORS se resuelve
+    en el proxy inverso).
+11. **Decisiones técnicas que siguen abiertas** (ver `docs/audit-final.md` §5):
+    `sentry-sdk` y `pip-audit` como dependencias, `CheckConstraint` de moneda
+    en el schema del ledger, CORS real, imágenes fijadas a digest, un
+    `check --deploy` en la CI, y el reintento o el resumen de los avisos
+    fallidos. Ninguna se implementó: las decisiones del cliente.
 
 ### 11.1 Decisiones abiertas con el cliente
 
@@ -1067,3 +1141,4 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Tres mejoras chicas**: `6efb50f` aplica `IsKycApproved` a las vistas que mueven dinero (movimientos del ledger, publicar oferta, aceptar préstamo, pagar cuota, abrir posición) con un mixin que solo afecta los métodos que no son de lectura; `89d6f49` agrega `GET /health/` (200 `{"status": "ok"}` / 503 `{"status": "unavailable"}`, público y fuera del esquema OpenAPI); `45eefa8` crea `docker-compose.prod.yml` (db, redis, web con gunicorn, worker y beat; sin puertos de db/redis, secretos por entorno, `restart: unless-stopped`, healthchecks y volúmenes persistentes) y ajusta `SECURE_PROXY_SSL_HEADER` en producción para que el chequeo de salud no reciba un 301. **504 tests pasan**, cobertura 98,81%. El stack de producción se levantó de verdad: `db`, `redis` y `web` healthy, `worker` y `beat` Up y `/health/` respondiendo 200. |
 | 2026-10-21 | **Bloque 6b implementado: app `budgets`** en 7 commits: `29f9b96` selector de patas y reversión en el ledger, `82793c2` `ledger_transaction_id` en `Installment`/`Loan` + selector de desglose, `e18b0a7` app con `Category` y `Budget`, `91b3858` service de categorización, `9f1a546` cálculo del gasto acumulado por categoría y moneda, `9125429` API y OpenAPI sin warnings, `92f2e1a` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0002. **491 tests pasan**, cobertura total 98,85% y `budgets/services.py` al 100%. Migraciones: `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_installment_ledger_transaction_id_and_more`. Los endpoints quedaron verificados en runtime real contra el `web` local (crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401). |
 | 2026-10-21 | **Reescritura del documento** para traspaso a Claude: §2 con el stack real (Celery 5.6.3 en uso), §3 con el árbol real (celery.py, tasks.py, ADR 0001), §5 con las reglas de API/seguridad/testing, §6.3 con los módulos verificados, §6.4 con la tabla de verificaciones comprobadas hoy (407 tests, 99,07% de cobertura, 11 contratos, 5 servicios Up), §7 con D19-D24 (Celery), §8 con P15-P17, §9 corregido (una billetera por moneda; depósitos simulados apagados en local), §10 con los comandos reales (`docker compose ps` muestra 5 servicios), §11 con el bloque 6b como tarea recomendada y §11.3 con el contexto técnico de `budgets`, §11.4 con los huecos de especificación de `reports`/`notifications`, **§13 nueva con las reglas para Claude** y §14 el registro. Se eliminaron datos obsoletos (conteo de commits, "374 passed", "3 servicios Up", `docs/adr/` vacío) sin perder decisiones vigentes. |
+| 2026-10-21 | **Auditoría final y pulido del backend** (14 commits): auditoría de solo lectura en `docs/audit-final.md` (0 críticos, 2 altos, 9 medios y 8 bajos, con la evidencia de cada uno y una sección "Requiere decisión" con recomendación) y corrección de todo lo crítico, alto y medio, con TDD: validadores de contraseña de Django activos (AGENTS §9.5), HSTS en producción (AGENTS §9.4), `update_offer`/`expire_offer` con `transaction.atomic()` y `select_for_update()`, contenedores de la aplicación corriendo como el usuario `presto` (uid 1000), health check de producción mandando un `Host` permitido, test del endpoint de detalle de categoría, test de concurrencia de la categorización de gastos, test de concurrencia de la actualización de ofertas, suite end-to-end del flujo completo (registro → login → KYC → depósito → oferta → préstamo → cuota → inversión → reportes → avisos, en ARS y USD, verificando que la suma de saldos por moneda sea 0), `docs/architecture.md`, ADR 0005 (saldo desnormalizado), 0006 (doble entrada con trigger diferido) y 0007 (orden de las apps), README al día y `.env.example` con todas las variables. **655 tests pasan**, 28 contratos de import-linter, cobertura del 99%, OpenAPI sin warnings y arranque real verificado de los stacks de desarrollo y de producción (este último con `DEMO_MODE=true` y luego bajado con `down -v`). `AGENTS.md` **no** se modificó: el texto propuesto para su §17 quedó en `docs/agents-changelog-proposal.md`. |
