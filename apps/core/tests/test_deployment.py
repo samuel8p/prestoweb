@@ -91,3 +91,15 @@ def test_the_dependencies_are_audited_in_the_ci():
     assert 'pip-audit' in pyproject
     assert 'pip-audit' in workflow
     assert 'pip_audit' in workflow or 'pip-audit ' in workflow
+
+
+def test_the_ci_runs_the_deploy_check_with_the_production_settings():
+    """La CI corre el `check --deploy` con los settings de producción.
+
+    Es la puerta que detecta un ajuste de producción que rompe una regla de
+    seguridad (HSTS, cookies seguras, `ALLOWED_HOSTS`, `DEBUG`).
+    """
+    workflow = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
+
+    assert 'check --deploy' in workflow
+    assert 'config.settings.production' in workflow

@@ -70,6 +70,15 @@ jobs:
       - name: Audit the dependencies for known vulnerabilities
         run: pip-audit .
 
+      - name: Check the production settings (deploy check)
+        run: |
+          export DJANGO_SETTINGS_MODULE=config.settings.production
+          export DJANGO_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')"
+          export DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+          export DJANGO_DEBUG=0
+          export REDIS_URL=redis://localhost:6379/0
+          python manage.py check --deploy --fail-level WARNING
+
   migrations:
     name: Check Migrations
     runs-on: ubuntu-latest

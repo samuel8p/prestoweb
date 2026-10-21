@@ -85,3 +85,30 @@ def test_production_enables_hsts():
 
     assert seconds > 0
     assert read_setting('SECURE_HSTS_INCLUDE_SUBDOMAINS') == 'True'
+
+
+def test_the_production_settings_pass_the_deploy_check():
+    """Los settings de producción pasan el `check --deploy` sin avisos.
+
+    La CI corre este mismo chequeo con `--fail-level WARNING`: cualquier
+    aviso de seguridad nuevo rompe la build.
+    """
+    env = {key: value for key, value in os.environ.items() if not key.startswith('EMAIL_')}
+    env.update(
+        {
+            'DJANGO_SETTINGS_MODULE': 'config.settings.production',
+            'DJANGO_SECRET_KEY': 'clave-de-prueba-para-el-check-de-produccion-1234567890abcdefghij',
+            'DJANGO_ALLOWED_HOSTS': 'presto.example.com',
+            'DJANGO_DEBUG': '0',
+            'REDIS_URL': 'redis://localhost:6379/0',
+        }
+    )
+    result = subprocess.run(
+        [sys.executable, 'manage.py', 'check', '--deploy', '--fail-level', 'WARNING'],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
