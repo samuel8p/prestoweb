@@ -2,7 +2,7 @@
 
 import uuid
 
-from apps.identity.models import KYCVerification, Profile
+from apps.identity.models import KYCVerification, Profile, User
 
 
 def get_profile(user_id: uuid.UUID) -> Profile | None:
@@ -53,3 +53,19 @@ def is_kyc_approved(user_id: uuid.UUID) -> bool:
     """
     verification = get_kyc_for_user(user_id=user_id)
     return verification is not None and verification.status == KYCVerification.Status.APPROVED
+
+
+def get_user_email(user_id: uuid.UUID) -> str | None:
+    """Devuelve el email del usuario, o None si no tiene.
+
+    Es el único selector de la app que cruza apps: lo usan las notificaciones
+    para enviarle el aviso por email.
+
+    Args:
+        user_id: identificador del usuario.
+
+    Returns:
+        El email del usuario o None.
+    """
+    email = User.objects.filter(id=user_id).values_list('email', flat=True).first()
+    return email or None

@@ -367,3 +367,21 @@ def test_swagger_docs_are_served(client):
     response = client.get('/api/docs/')
 
     assert response.status_code == 200
+
+
+def test_get_user_email_returns_the_email():
+    """El selector devuelve el email del usuario."""
+    from apps.identity.selectors import get_user_email
+
+    user = UserFactory(email='selector-email@example.com')
+
+    assert get_user_email(user_id=user.id) == 'selector-email@example.com'
+
+
+def test_get_user_email_returns_none_for_an_unknown_user():
+    """Un usuario que no existe no tiene email."""
+    import uuid
+
+    from apps.identity.selectors import get_user_email
+
+    assert get_user_email(user_id=uuid.uuid4()) is None

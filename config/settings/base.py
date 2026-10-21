@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'apps.investments',
     'apps.budgets',
     'apps.reports',
+    'apps.notifications',
     # Third party
     'rest_framework',
     'drf_spectacular',
