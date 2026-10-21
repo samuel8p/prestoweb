@@ -12,7 +12,7 @@ test:
 lint:
 	docker compose run --rm web ruff check .
 	docker compose run --rm web ruff format --check .
-	docker compose run --rm web import-linter
+	docker compose run --rm web lint-imports --cache-dir /tmp/import-linter-cache
 
 migrate:
 	docker compose run --rm web python manage.py migrate

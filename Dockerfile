@@ -39,10 +39,12 @@ RUN pip install --no-cache-dir \
 RUN mkdir -p /var/celerybeat && chown presto:presto /var/celerybeat
 
 # In development the code arrives as a volume owned by the host user, so the
-# container keeps every write (bytecode, pytest cache, coverage) out of it.
+# container keeps every write (bytecode, pytest cache, coverage, linters) out
+# of it.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTEST_ADDOPTS="-o cache_dir=/tmp/pytest_cache" \
-    COVERAGE_FILE=/tmp/.coverage
+    COVERAGE_FILE=/tmp/.coverage \
+    RUFF_CACHE_DIR=/tmp/ruff-cache
 
 USER presto
 

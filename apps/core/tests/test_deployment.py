@@ -31,7 +31,8 @@ def test_the_image_ends_as_a_non_root_user():
 
 
 def test_the_image_keeps_the_writes_out_of_the_project_directory():
-    """El bytecode, la cache de pytest y la cobertura no se escriben en el proyecto.
+    """El bytecode, la cache de pytest, la de ruff y la cobertura no se
+    escriben en el proyecto.
 
     En desarrollo el código llega como un volumen del host: el contenedor no
     puede escribir ahí.
@@ -41,6 +42,7 @@ def test_the_image_keeps_the_writes_out_of_the_project_directory():
     assert 'PYTHONDONTWRITEBYTECODE=1' in dockerfile
     assert 'COVERAGE_FILE=' in dockerfile
     assert 'cache_dir=' in dockerfile
+    assert 'RUFF_CACHE_DIR=' in dockerfile
 
 
 def test_every_environment_variable_read_by_the_settings_is_documented():
