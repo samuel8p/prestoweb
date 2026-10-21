@@ -90,6 +90,30 @@ def list_transactions_for_user(user_id: uuid.UUID) -> QuerySet[LedgerTransaction
     )
 
 
+def get_balance_breakdown(currency: str) -> dict[str, Decimal]:
+    """Devuelve la suma de saldos por tipo de cuenta para una moneda.
+
+    Es la vista pública del invariante del ledger: la suma de todos los
+    saldos de una moneda es cero, y las cuentas de contrapartida (custody y
+    system) compensan exactamente a las billeteras de los usuarios.
+
+    Args:
+        currency: código ISO de la moneda.
+
+    Returns:
+        Dict con las sumas por tipo de cuenta y el total.
+    """
+    sums = {
+        Account.Kind.USER_WALLET: Decimal('0.00'),
+        Account.Kind.CUSTODY: Decimal('0.00'),
+        Account.Kind.SYSTEM: Decimal('0.00'),
+    }
+    rows = Account.objects.filter(currency=currency).values_list('kind', 'balance')
+    for kind, balance in rows:
+        sums[kind] = sums.get(kind, Decimal('0.00')) + balance
+    return {**sums, 'total': sum(sums.values(), Decimal('0.00'))}
+
+
 def get_transaction(transaction_id: uuid.UUID, user_id: uuid.UUID) -> LedgerTransaction | None:
     """Devuelve la transacción del usuario, o None si no existe o es de otro.
 
