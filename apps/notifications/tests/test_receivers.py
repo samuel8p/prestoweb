@@ -14,6 +14,20 @@ USER_ID = uuid.UUID('11111111-1111-1111-1111-111111111111')
 REFERENCE_ID = uuid.UUID('22222222-2222-2222-2222-222222222222')
 
 
+def create_user(email='notif-receptor@example.com'):
+    """Crea un usuario con KYC aprobada (necesita un email real)."""
+    from apps.identity.services import register_user, resolve_kyc, submit_kyc
+
+    user = register_user(email=email, password='TestPass123!')
+    verification = submit_kyc(user=user, documents={})
+    resolve_kyc(
+        verification_id=verification.id,
+        status='approved',
+        resolved_by_user_id=None,
+    )
+    return user
+
+
 def test_receiver_creates_the_notification():
     """El receptor crea el aviso del evento."""
     from apps.notifications.receivers import handle_installment_due_soon
@@ -58,18 +72,20 @@ def test_receiver_does_nothing_when_the_event_is_disabled():
     assert Notification.objects.count() == 0
 
 
-def test_receiver_dispatches_the_email_task():
+def test_receiver_dispatches_the_email_task(django_capture_on_commit_callbacks):
     """El receptor encola la tarea de envío cuando la transacción se confirma."""
     from apps.notifications.receivers import handle_installment_overdue
 
+    user = create_user(email='notif-receptor@example.com')
     mail.outbox.clear()
-    with override_settings(CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True):
+    with django_capture_on_commit_callbacks(execute=True):
         handle_installment_overdue(
             sender=None,
-            user_id=USER_ID,
+            user_id=user.id,
             reference_id=REFERENCE_ID,
         )
 
     assert Notification.objects.filter(
         event_type=Notification.EventType.INSTALLMENT_OVERDUE,
     ).exists()
+    assert len(mail.outbox) == 1

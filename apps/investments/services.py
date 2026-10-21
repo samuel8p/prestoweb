@@ -11,6 +11,7 @@ from django.utils import timezone
 from apps.core.exceptions import KYCNotCompleted
 from apps.core.money import simple_interest
 from apps.identity.selectors import is_kyc_approved
+from apps.investments import signals
 from apps.investments.exceptions import (
     InsufficientInvestmentAmount,
     ProductNotActive,
@@ -165,6 +166,11 @@ def _settle_position(position: Position) -> bool:
             idempotency_key=f'investment-{locked.id}-capital',
             initiated_by_user_id=locked.user_id,
             description=f'Reembolso del capital de la inversión {locked.id}',
+        )
+        signals.investment_settled.send(
+            sender=None,
+            user_id=locked.user_id,
+            reference_id=locked.id,
         )
         if locked.interest_amount > 0:
             ledger_services.transfer_from_counterpart(
