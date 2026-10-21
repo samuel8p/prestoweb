@@ -14,7 +14,13 @@ class SearchOffersQuerySerializer(serializers.Serializer):
     """Filtros de la búsqueda de ofertas."""
 
     currency = serializers.ChoiceField(choices=CURRENCY_CHOICES, required=False)
-    amount = serializers.DecimalField(
+    amount_min = serializers.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+    )
+    amount_max = serializers.DecimalField(
         max_digits=18,
         decimal_places=2,
         min_value=0,

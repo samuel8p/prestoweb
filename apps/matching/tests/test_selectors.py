@@ -39,11 +39,38 @@ def test_search_offers_applies_filters():
     OfferFactory(currency='ARS', amount=Decimal('5000.00'))
     OfferFactory(currency='USD', amount=Decimal('20000.00'))
 
-    results = search_offers(currency='USD', amount=Decimal('10000.00'))
+    results = search_offers(currency='USD', amount_min=Decimal('10000.00'))
 
     assert len(results) == 1
     assert results[0]['currency'] == 'USD'
     assert results[0]['amount'] == Decimal('20000.00')
+
+
+def test_search_offers_filters_by_maximum_amount():
+    """La búsqueda filtra por monto máximo."""
+    from apps.matching.selectors import search_offers
+
+    OfferFactory(amount=Decimal('5000.00'))
+    OfferFactory(amount=Decimal('20000.00'))
+
+    results = search_offers(amount_max=Decimal('10000.00'))
+
+    assert len(results) == 1
+    assert results[0]['amount'] == Decimal('5000.00')
+
+
+def test_search_offers_filters_by_amount_range():
+    """La búsqueda filtra por rango de montos."""
+    from apps.matching.selectors import search_offers
+
+    OfferFactory(amount=Decimal('5000.00'))
+    OfferFactory(amount=Decimal('15000.00'))
+    OfferFactory(amount=Decimal('50000.00'))
+
+    results = search_offers(amount_min=Decimal('10000.00'), amount_max=Decimal('20000.00'))
+
+    assert len(results) == 1
+    assert results[0]['amount'] == Decimal('15000.00')
 
 
 def test_search_offers_orders_by_rate():

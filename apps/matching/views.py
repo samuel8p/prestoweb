@@ -36,7 +36,8 @@ class MatchingOfferListView(APIView):
         data = serializer.validated_data
         offers = search_offers(
             currency=data.get('currency'),
-            amount=data.get('amount'),
+            amount_min=data.get('amount_min'),
+            amount_max=data.get('amount_max'),
             max_rate=data.get('max_rate'),
             term_months=data.get('term_months'),
             ordering=data.get('ordering', 'rate'),

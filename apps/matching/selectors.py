@@ -17,16 +17,21 @@ MIN_OFFERS_TO_COMPARE = 2
 
 def search_offers(
     currency: str | None = None,
-    amount: Decimal | None = None,
+    amount_min: Decimal | None = None,
+    amount_max: Decimal | None = None,
     max_rate: Decimal | None = None,
     term_months: int | None = None,
     ordering: str = 'rate',
 ) -> list[dict[str, Any]]:
     """Busca ofertas activas que coincidan con los filtros indicados.
 
+    El préstamo toma el monto completo de la oferta, por eso el rango se
+    filtra con un mínimo y un máximo.
+
     Args:
         currency: filtra por moneda.
-        amount: monto **mínimo** que se necesita.
+        amount_min: monto mínimo de la oferta.
+        amount_max: monto máximo de la oferta.
         max_rate: TNA anual máxima aceptada.
         term_months: plazo exacto en meses.
         ordering: criterio de orden (`rate`, `term` o `amount`).
@@ -36,7 +41,8 @@ def search_offers(
     """
     offers = offers_selectors.search_active_offers(
         currency=currency,
-        amount=amount,
+        amount_min=amount_min,
+        amount_max=amount_max,
         max_rate=max_rate,
         term_months=term_months,
         ordering=ordering,

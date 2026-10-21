@@ -60,7 +60,8 @@ def test_matching_offers_applies_filters(client):
         '/api/v1/matching/offers/',
         {
             'currency': 'USD',
-            'amount': '10000.00',
+            'amount_min': '10000.00',
+            'amount_max': '30000.00',
             'max_rate': '15.00',
         },
     )
@@ -68,6 +69,22 @@ def test_matching_offers_applies_filters(client):
     assert response.status_code == 200
     assert len(response.data['results']) == 1
     assert response.data['results'][0]['currency'] == 'USD'
+
+
+def test_matching_offers_filters_by_maximum_amount(client):
+    """La búsqueda filtra por monto máximo."""
+    from apps.offers.tests.factories import create_approved_user
+
+    user = create_approved_user()
+    OfferFactory(amount=Decimal('5000.00'))
+    OfferFactory(amount=Decimal('20000.00'))
+    authenticate(client, user)
+
+    response = client.get('/api/v1/matching/offers/', {'amount_max': '10000.00'})
+
+    assert response.status_code == 200
+    assert len(response.data['results']) == 1
+    assert response.data['results'][0]['amount'] == '5000.00'
 
 
 def test_matching_offers_rejects_invalid_currency(client):
