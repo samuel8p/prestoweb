@@ -17,6 +17,7 @@ from typing import TypedDict
 
 from django.db.models import QuerySet
 
+from apps.budgets import selectors as budgets_selectors
 from apps.ledger import selectors as ledger_selectors
 from apps.reports.exceptions import InvalidReportParameters
 
@@ -184,6 +185,52 @@ def build_movement_rows(transactions: Iterable) -> list[MovementRow]:
             )
         )
     return rows
+
+
+def get_spending_report(user_id: uuid.UUID, currency: str, period: ReportPeriod) -> dict:
+    """Gasto acumulado por categoría en el rango y la moneda del reporte.
+
+    Solo cuentan los movimientos que el usuario categorizó: los que no tienen
+    categoría no se asignan a ningún presupuesto (decisión del cliente).
+
+    Args:
+        user_id: identificador del usuario.
+        currency: moneda del reporte.
+        period: rango de fechas del reporte.
+
+    Returns:
+        Dict con el total, el período y las categorías con su gasto.
+    """
+    totals: dict[tuple[uuid.UUID, str], dict] = {}
+    for movement in budgets_selectors.list_spending_movements(user_id=user_id):
+        if movement['currency'] != currency:
+            continue
+        occurred_at = movement['occurred_at']
+        if not period.start_date <= occurred_at.date() <= period.end_date:
+            continue
+        key = (movement['category_id'], movement['category_name'])
+        entry = totals.setdefault(key, {'amount': Decimal('0.00'), 'movements': 0})
+        entry['amount'] += movement['amount']
+        entry['movements'] += 1
+    categories = [
+        {
+            'category_id': category_id,
+            'category_name': category_name,
+            'amount': entry['amount'],
+            'movements': entry['movements'],
+        }
+        for (category_id, category_name), entry in sorted(
+            totals.items(),
+            key=lambda item: (-item[1]['amount'], item[0][1]),
+        )
+    ]
+    return {
+        'currency': currency,
+        'from_date': period.start_date.isoformat(),
+        'to_date': period.end_date.isoformat(),
+        'total': sum((category['amount'] for category in categories), Decimal('0.00')),
+        'categories': categories,
+    }
 
 
 def _parse_date(raw: str | None, name: str) -> date | None:

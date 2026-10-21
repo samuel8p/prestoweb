@@ -248,6 +248,47 @@ def get_monthly_spending(
     return total
 
 
+def list_spending_movements(
+    user_id: uuid.UUID,
+    category_id: uuid.UUID | None = None,
+) -> list[dict]:
+    """Lista los movimientos categorizados del usuario con el importe que suma.
+
+    El importe **no** está guardado: se deriva del ledger (ver
+    `analyze_movement_spending`). Los movimientos que ya no cuentan como gasto
+    (revertidos, inversiones, asignaciones a un activo) quedan afuera.
+
+    Args:
+        user_id: identificador del usuario.
+        category_id: si se indica, solo los gastos de esa categoría.
+
+    Returns:
+        Lista de filas con la transacción, la categoría, el importe, la moneda
+        y la fecha del movimiento.
+    """
+    expenses = list_expenses_for_user(user_id=user_id, category_id=category_id)
+    analysis = analyze_movement_spending(
+        user_id=user_id,
+        transaction_ids=[expense.ledger_transaction_id for expense in expenses],
+    )
+    rows = []
+    for expense in expenses:
+        movement = analysis.get(expense.ledger_transaction_id)
+        if movement is None or not movement['is_expense']:
+            continue
+        rows.append(
+            {
+                'transaction_id': expense.ledger_transaction_id,
+                'category_id': expense.category_id,
+                'category_name': expense.category.name,
+                'amount': movement['amount'],
+                'currency': movement['currency'],
+                'occurred_at': movement['occurred_at'],
+            }
+        )
+    return rows
+
+
 def get_budget_status(budget: Budget, year: int, month: int) -> dict:
     """Estado del presupuesto: gastado, límite, umbral, saldo y alerta.
 
