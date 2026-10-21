@@ -67,7 +67,10 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 ├── HANDOFF.md                    # este documento
 ├── Makefile                      # up, down, test, lint, migrate, shell, makemigrations,
 │                                 #   worker, beat, celery-tasks
-├── docker-compose.yml            # db, redis, web, worker, beat (localhost only)
+├── docker-compose.yml            # db, redis, web, worker, beat (localhost only, DEMO_MODE)
+├── deploy/
+│   ├── Caddyfile                  # proxy inverso con TLS automático (perfil proxy)
+│   └── backup-postgres.sh         # backup diario de PostgreSQL con rotación
 ├── docker-compose.prod.yml        # producción: sin puertos de db/redis, secretos por env
 ├── Dockerfile                    # python:3.12-slim + deps de pyproject.toml
 ├── pytest.ini                    # DJANGO_SETTINGS_MODULE + --ds=config.settings.test
@@ -201,6 +204,11 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 | Commit | Asunto |
 |---|---|---|
+| `4560912` | docs: complete the demo mode guide and enable it in the dev stack |
+| `52915b5` | chore(infra): daily postgres backup with rotation |
+| `5b567e7` | chore(infra): demo mode, explicit CORS and optional TLS proxy in production |
+| `813e43c` | feat(core): public meta endpoint and the demo mode header |
+| `9ef8560` | feat(core): demo mode setting for the simulated money |
 | `a4e51d2` | chore(notifications): import-linter contracts, coverage gate and ADR |
 | `79d0a77` | feat(notifications): notifications api |
 | `0ae71d3` | feat(notifications): budget alert when the spending crosses the threshold |
@@ -371,7 +379,7 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web pytest -q` | **608 passed** |
+| Tests | `docker compose run --rm web pytest -q` | **620 passed** |
 | Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,9%** (`reports` 99% y `notifications` 99%) |
 | Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **100%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Cobertura por módulo | idem | `identity/*` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `ledger/selectors.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `loans/tasks.py` 100% · `investments/services.py` 99% · `investments/tasks.py` 100% · `matching/views.py` 97% |
@@ -393,6 +401,12 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | Endpoints de notifications (runtime) | `curl` contra el `web` local | listado 200, preferencias GET 200 y PUT 200, sin token 401 |
 | Tareas en el worker | `docker compose logs worker` | 5 tasks registradas: `mark_overdue_loans`, `settle_investments`, `notify_installments_due_soon`, `notify_overdue_installments`, `send_notification_email` |
 | Beat schedule | `celery -A config inspect conf` | 4 entradas: 00:05, 00:10, 00:15 y 00:20 UTC |
+| Modo demo (stack de desarrollo) | `curl /api/v1/meta/` | `{"mode":"demo","simulated_money":true}` + cabecera `X-Presto-Mode: demo` |
+| Depósito simulado (modo demo) | `POST /api/v1/ledger/transactions/` | **201**, saldo 500.00 (sin el workaround de P17) |
+| Modo demo (stack de producción) | `docker compose -f docker-compose.prod.yml -p presto-prod up -d --build` con `DEMO_MODE=true` | `DEMO_MODE=True`, `simulated=True`, `/api/v1/meta/` 200 y depósito simulado **201** |
+| Compose de producción | `docker compose -f docker-compose.prod.yml config` | válido; con `--profile proxy` agrega `caddy` (80/443) y `web` no publica puertos |
+| Backups | `docker compose -f docker-compose.prod.yml --profile backup run --rm backup` | dump comprimido de 12K; con `BACKUP_KEEP=1` conserva solo el más nuevo |
+| Restauración | `gunzip -c <backup>.sql.gz \| psql` en una base de prueba | 28 tablas y las transacciones del ledger restauradas |
 | Estado del repo | `git status` | limpio; `main` al día con `origin/main` |
 
 **Logs de evidencia** (fuera del repo, en `A:\Samuel\`): `tdd_6.log` (ciclos
@@ -451,6 +465,11 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D41 | El envío se encola con `transaction.on_commit` | El email nunca corre dentro de la transacción que originó el evento: un fallo de SMTP no rompe ni el ledger ni la app emisora |
 | D42 | La alerta de presupuesto deriva su identificador del presupuesto y del mes (`uuid5`) | El mismo presupuesto avisa **una sola vez por mes**, sin guardar nada extra |
 | D43 | El email del destinatario sale de `identity.selectors.get_user_email` | Ninguna app importa los modelos de otra (AGENTS §5.2): el selector es la única vía |
+| D44 | El **modo demo** se activa con `DEMO_MODE=true` (por defecto apagado) | Convierte el stack en una demostración: habilita el dinero simulado, permite el `E001` en producción solo en ese caso y agrega la cabecera `X-Presto-Mode: demo` |
+| D45 | `GET /api/v1/meta/` es público y no aplica throttling | El frontend y quien diagnostique necesitan saber si el dinero es real sin token |
+| D46 | Los booleanos de entorno se leen **sin distinguir mayúsculas** | El compose pasa `true` en minúscula y la comparación con `'True'` apagaba el modo demo sin avisar |
+| D47 | El proxy con TLS (Caddy) vive bajo el perfil `proxy` del compose de producción | Si la plataforma ya da HTTPS, el proxy sobra; con el perfil activo es el único que publica 80/443 y `web` queda en la red interna |
+| D48 | El backup diario de PostgreSQL es un servicio con el perfil `backup` | Un `pg_dump` comprimido con rotación, con el procedimiento de restauración en el script |
 
 ## 8. Problemas y resoluciones
 
@@ -476,6 +495,9 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | P23 | El `docker-compose.prod.yml` no parseaba: el valor del healthcheck tenía `:` sin comillas | Se entrecomilló el valor YAML del bloque `test` |
 | P24 | El `ruff` del hook de pre-commit (v0.6.0) marcó `UP038` en `apps/reports/export.py` (`isinstance` con tupla) y el del contenedor no | Se adoptó la forma `isinstance(value, datetime | date)` (Python 3.10+), que pasa en las dos versiones |
 | P25 | Los tests de `reports` para el reporte de préstamos necesitaban un `Offer` y no hay service para crearlos (los productos y las ofertas los da staff) | Se usan `offers.services.create_offer` (una **service**, la interfaz autorizada) desde los tests. El contrato de `import-linter` de `reports` no incluye `offers`: queda anotado en el ADR 0003 |
+| P27 | El modo demo no se activaba en el stack de producción: el compose pasa `DEMO_MODE=true` (minúscula) y los settings comparaban con `'True'` | Los booleanos de entorno se leen sin distinguir mayúsculas (D46). El bug apareció en el arranque real del stack, no en los tests |
+| P28 | Los tests heredaban `DEMO_MODE` del entorno del contenedor y fallaban (3 tests) | Los settings de test fijan `DEMO_MODE=False`: los tests son herméticos y activan el modo demo explícitamente |
+| P29 | El primer backup dejó un archivo vacío cuando el `pg_dump` falló (faltaba la contraseña) | El script vuelca a un archivo temporal y solo lo renombra cuando termina: un dump fallido no deja un backup roto |
 | P26 | Los tests de `budgets` e `investments` importaban los modelos de `notifications` | El contrato nuevo de `import-linter` lo detectó: los tests end-to-end se movieron a la app de `notifications` (cada app prueba su propio código) |
 | P27 | La API de notificaciones respondía 500 en el entorno local: `relation "notifications_notificationpreference" does not exist` | Las migraciones nuevas no estaban aplicadas en la base de desarrollo (el `web` corre `migrate` al arrancar): se aplicaron y el servicio se reinició |
 | P18 | El test del filtro de período falló con `IntegrityError: ledger_ledgertransaction rows are immutable: UPDATE is not allowed` | El ledger es inmutable (trigger de PostgreSQL): **no se puede mover la fecha de un movimiento**. El test se reformuló para comparar el mismo movimiento en su mes y en otro período, sin tocar el ledger |
@@ -510,9 +532,13 @@ cambio de rationale) ya están registradas allí y no se repiten.
   monto se deriva del ledger al leer (`budgets.selectors`).
 - **Presupuesto mensual**: límite de gasto de una categoría en una moneda. El
   mes es el calendario en UTC y nunca se suman ARS y USD.
-- **Modo demo**: sin `EMAIL_HOST` definido, el backend de email por defecto es
-  el de **consola**: los avisos de las notificaciones salen en los **logs del
-  worker**. Con `EMAIL_HOST` definido, el backend por defecto pasa a ser SMTP; un
+- **Modo demo**: se activa con `DEMO_MODE=true` (el compose de desarrollo ya
+  lo trae). Habilita el dinero simulado, permite el `E001` en producción solo en
+  ese caso, y `GET /api/v1/meta/` responde `{"mode": "demo", "simulated_money":
+  true}`; todas las respuestas llevan `X-Presto-Mode: demo`.
+- **Email**: sin `EMAIL_HOST` definido, el backend por defecto es el de
+  **consola**: los avisos de las notificaciones salen en los **logs del worker**.
+  Con `EMAIL_HOST` definido, el backend por defecto pasa a ser SMTP; un
   `EMAIL_BACKEND` explícito manda siempre. Está documentado en
   `docs/deploy-demo.md` y en `.env.prod.example`.
 - **Sin implementar todavía**: `payments`
@@ -662,11 +688,14 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f web
 ### Modo demo
 
 ```sh
-docker compose logs -f worker      # los avisos de las notificaciones salen acá
+curl -s http://127.0.0.1:8000/api/v1/meta/     # {"mode":"demo","simulated_money":true}
+docker compose logs -f worker                    # los avisos salen acá
 ```
 
+Con `DEMO_MODE=true` el dinero es simulado y el check `ledger.E001` lo permite.
 Sin `EMAIL_HOST` el backend de email es el de consola; definiéndolo pasa a ser
-SMTP. El detalle está en `docs/deploy-demo.md`.
+SMTP. El detalle (incluido el despliegue en una plataforma con Docker Compose, el
+proxy opcional y los backups) está en `docs/deploy-demo.md`.
 
 ### Otros
 
@@ -777,8 +806,8 @@ Orden real de lo que falta, de mayor a menor prioridad.
 
 1. **Bloque 7 — `payments` con proveedor real**: es la tarea recomendada. Hoy
    los depósitos y retiros son **simulados** y están apagados en producción por
-   el system check `ledger.E001`. Depende de la decisión O1 (qué proveedor),
-   que sigue abierta (§11.1).
+   el system check `ledger.E001` (salvo en modo demo). Depende de la decisión O1
+   (qué proveedor), que sigue abierta (§11.1).
 2. **`Goal`** (AGENTS §7): no se implementó porque no estaba en el alcance de
    `budgets`; queda pendiente de pedido explícito.
 3. **Bloque 7 — `payments` con proveedor real** (al final, a propósito). Hoy los
@@ -1031,6 +1060,7 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). |
 | 2026-10-21 | **Infraestructura de Celery (primer cambio del Bloque 6)**: `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario con `mark_overdue_loans` (00:05) y `settle_investments` (00:15), servicios `worker` y `beat` en el compose con volumen persistente para el scheduler, tasks en `apps/loans/tasks.py` y `apps/investments/tasks.py` que delegan en los services existentes (los management commands no se modifican), y tests de tasks y de commands (407 tests). Decisiones y consecuencias en `docs/adr/0001-celery-redis-cola-y-scheduler.md`. `AGENTS.md` **no** se modificó (pendiente de aprobación del desarrollador). |
 | 2026-10-21 | **O4 resuelta por el cliente** (criterio completo en §11.2). La app `budgets` **no** se implementó: el trabajo se detuvo en el análisis del código. Se deja el análisis verificado y las decisiones de implementación pendientes en §11.3 para retomar. |
+| 2026-10-21 | **Modo demo completo**: `DEMO_MODE` (nuevo setting, apagado por defecto) habilita el dinero simulado y el `E001` lo permite solo en ese caso; `GET /api/v1/meta/` es público y devuelve el modo y si el dinero es simulado; el middleware agrega `X-Presto-Mode: demo` a todas las respuestas; el compose de producción pasa `DEMO_MODE`, `LEDGER_SIMULATED_DEPOSITS_ENABLED` y `CORS_ALLOWED_ORIGINS` por entorno, suma el proxy Caddy con TLS automático bajo el perfil `proxy` (único con 80/443; `web` no publica puertos) y el backup diario de PostgreSQL con rotación bajo el perfil `backup`; `docs/deploy-demo.md` documenta el modo demo, el proxy, los backups y los pasos de despliegue. **620 tests pasan**. Verificado en runtime: el stack de desarrollo y el de producción responden `mode=demo` con la cabecera, el depósito simulado devuelve 201, el backup genera un dump de 12K con rotación y la restauración recupera las 28 tablas. Se corrigió un bug real: los booleanos de entorno se leían con comparación case-sensitive y el compose pasa `true` en minúscula. |
 | 2026-10-21 | **Modo demo de email**: sin `EMAIL_HOST` definido el backend por defecto es el de consola, así que los avisos de las notificaciones salen en los logs del worker; con `EMAIL_HOST` definido pasa a ser SMTP y un `EMAIL_BACKEND` explícito manda siempre. Cubierto por `apps/core/tests/test_email_backend.py` (3 tests) y documentado en `docs/deploy-demo.md` y `.env.prod.example`. Además, `.env.prod` quedó ignorado por `.gitignore`. |
 | 2026-10-21 | **Bloque 6d implementado: app `notifications`** en 7 commits: `cc1d359` app con los modelos `Notification` y `NotificationPreference` y los services idempotentes, `a9bb4a9` tarea de envío de email y configuración SMTP por entorno, `454fa87` señales y tareas diarias de cuota por vencer y vencida, `1ca99a3` aviso de la inversión liquidada, `0ae71d3` alerta de presupuesto con identificador derivado presupuesto+mes, `79d0a77` API de listado y preferencias, `a4e51d2` contratos de import-linter, gate de cobertura del 90% y ADR 0004. **608 tests pasan**, 28 contratos de import-linter y el 99% de cobertura de la app. Verificado en runtime real: los dos endpoints responden 200/401, el worker registra las 5 tasks y el beat tiene 4 entradas. El contrato nuevo detectó dos violaciones reales en tests de otras apps, corregidas. |
 | 2026-10-21 | **Bloque 6c implementado: app `reports`** en 7 commits: `4bb5fe7` app y validación de parámetros, `b68975f` reporte de movimientos (+ selector de rango en `ledger`), `593a34b` reporte de spending (+ selector de gastos en `budgets`), `5fef54f` reporte de préstamos (+ selector de cuotas en `loans`), `2a75626` reporte de inversiones, `73b62f1` exportación CSV con neutralización de fórmulas y tope de 10.000 filas, `9599982` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0003. **556 tests pasan**, 22 contratos de import-linter, cobertura de `reports` del 99%. Verificado en runtime real contra el `web` local: los cuatro reportes 200, sin moneda 400, sin token 401 y el CSV con `text/csv` y `Content-Disposition`. |
