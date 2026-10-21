@@ -23,7 +23,8 @@ reversos y saldo nunca negativo en las billeteras de usuario.
 
 **Estado de la hoja de ruta:** Fase 0 (Cimientos) **completa**. Fase 1 **completa**
 (1A identity + 1B ledger). Bloques 3 (offers+matching), 4 (loans) y 5
-(investments) **completos**. Faltan budgets/reports/notifications y payments.
+(investments) **completos**. Faltan el **Bloque 6**
+(budgets/reports/notifications) y el **Bloque 7** (payments con proveedor real).
 
 ## 2. Stack y versiones
 
@@ -224,19 +225,19 @@ listados; el commit final que agrega esta fila no puede listarse a sí mismo
 
 ### 6.2 Estado por fase / bloque
 
-| Fase / Bloque | Estado | Commits | Resumen |
-|---|---|---|---|
-| **Fase 0 — Bloque A** Cimientos | ✅ completa | 22 | Estructura del repo, settings por entorno, `BaseModel` (UUID + timestamps), `core/money.py` con `Decimal` y `User` con login por email. |
-| **Fase 0 — Bloque B** Docker/Postgres | ✅ completa | 4 | `Dockerfile`, `docker-compose.yml` con PostgreSQL 16, Redis y web; puertos publicados solo en localhost; los tests corren contra Postgres real. |
-| **Fase 0 — Bloque C** TDD core+identity | ✅ completa | 7 | Primer ciclo rojo→verde: tests de `core.money`, `core.models` y del `User`; configuración de pytest para usar los settings de test. |
-| **Fase 0 — Bloque D** Calidad | ✅ completa | 9 | `ruff` + `ruff-format`, `.importlinter` con contratos entre apps, hooks de `pre-commit`, `Makefile` y CI con `makemigrations --check` y `--cov-fail-under=80`. |
-| **Fase 1A — identity** | ✅ completa | 9 | `User` sin `username`, `Profile`, `KYCVerification` con una sola pendiente por usuario, JWT con rotación y blacklist, throttles por scope, `exception_handler` con el formato de AGENTS §8 y resolución de KYC desde el admin. |
-| **Fase 1B — ledger** | ✅ completa | 9 | `Account` / `LedgerTransaction` / `LedgerEntry`, saldo desnormalizado, triggers de doble entrada e inmutabilidad, idempotencia por `(usuario, clave)`, depósitos simulados, reversos solo staff, API y acción de reverso en el admin. |
-| **Bloque 3 — offers + matching** | ✅ completa | 6 | `Offer` con TNA anual en `%`, amortización francesa en `core/money.py`, búsqueda por rango de montos, comparación de ofertas (cuota, interés, costo total) y API del marketplace. |
-| **Bloque 4 — loans** | ✅ completa | 6 | `Loan` / `OfferTermsSnapshot` / `Installment`, aceptación atómica con snapshot inmutable, pago de cuotas en orden, marcado de vencidos, máquina de estados y API con aislamiento por partes. |
-| **Bloque 5 — investments (plazo fijo)** | ✅ completa | 7 | `InvestmentProduct` (solo staff) y `Position` de plazo fijo, apertura atómica contra la cuenta `system`, liquidación idempotente con interés simple y API de productos y posiciones. |
-| **Fase 2 — budgets / reports / notifications** | ❌ no empezada | — | Modelos ya definidos en AGENTS §7; `reports` es solo lectura y `notifications` necesita Celery. |
-| **Fase 3 — payments (proveedor real)** | ❌ no empezada | — | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
+| Fase / Bloque | Estado | Resumen |
+|---|---|---|
+| **Fase 0 — Bloque A** Cimientos | ✅ completa | Estructura del repo, settings por entorno, `BaseModel` (UUID + timestamps), `core/money.py` con `Decimal` y `User` con login por email. |
+| **Fase 0 — Bloque B** Docker/Postgres | ✅ completa | `Dockerfile`, `docker-compose.yml` con PostgreSQL 16, Redis y web; puertos publicados solo en localhost; los tests corren contra Postgres real. |
+| **Fase 0 — Bloque C** TDD core+identity | ✅ completa | Primer ciclo rojo→verde: tests de `core.money`, `core.models` y del `User`; configuración de pytest para usar los settings de test. |
+| **Fase 0 — Bloque D** Calidad | ✅ completa | `ruff` + `ruff-format`, `.importlinter` con contratos entre apps, hooks de `pre-commit`, `Makefile` y CI con `makemigrations --check` y `--cov-fail-under=80`. |
+| **Fase 1A — identity** | ✅ completa | `User` sin `username`, `Profile`, `KYCVerification` con una sola pendiente por usuario, JWT con rotación y blacklist, throttles por scope, `exception_handler` con el formato de AGENTS §8 y resolución de KYC desde el admin. |
+| **Fase 1B — ledger** | ✅ completa | `Account` / `LedgerTransaction` / `LedgerEntry`, saldo desnormalizado, triggers de doble entrada e inmutabilidad, idempotencia por `(usuario, clave)`, depósitos simulados, reversos solo staff, API y acción de reverso en el admin. |
+| **Bloque 3 — offers + matching** | ✅ completa | `Offer` con TNA anual en `%`, amortización francesa en `core/money.py`, búsqueda por rango de montos, comparación de ofertas (cuota, interés, costo total) y API del marketplace. |
+| **Bloque 4 — loans** | ✅ completa | `Loan` / `OfferTermsSnapshot` / `Installment`, aceptación atómica con snapshot inmutable, pago de cuotas en orden, marcado de vencidos, máquina de estados y API con aislamiento por partes. |
+| **Bloque 5 — investments (plazo fijo)** | ✅ completa | `InvestmentProduct` (solo staff) y `Position` de plazo fijo, apertura atómica contra la cuenta `system`, liquidación idempotente con interés simple y API de productos y posiciones. |
+| **Bloque 6 — budgets / reports / notifications** | ❌ no empezada | Modelos ya definidos en AGENTS §7; `reports` es solo lectura y `notifications` necesita Celery. |
+| **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 
 ### 6.3 Estado verificado ahora (2026-10-21)
 
@@ -502,14 +503,16 @@ Orden real de lo que falta, de mayor a menor prioridad.
    - **Warning** (colisión de enum `status`): el mismo nombre de campo `status` se usa en varios choice sets y se resolvió como `StatusF63Enum` y `Status36cEnum`. Solución: `ENUM_NAME_OVERRIDES` en `SPECTACULAR_SETTINGS`.
    - **Warnings** (operationId duplicados): `kyc_retrieve`, `ledger_transactions_retrieve`, `loans_retrieve`, `offers_retrieve` e `investments_positions_retrieve` colisionan entre la ruta de lista y la de detalle (se resuelven con sufijos numéricos). Solución: `operation_id` explícito en el `extend_schema` de cada vista.
    - **Meta**: `spectacular --validate --fail-on-warn` con **0 errores y 0 warnings**. Agregar ese comando a la CI.
-2. **Fase 2 — `budgets`, `reports`, `notifications`** (nadie empezó). Los modelos ya están definidos en AGENTS §7; `reports` es solo lectura y `notifications` usa Celery (hoy `config/celery.py` no existe).
-3. **Fase 3 — `payments` con proveedor real** (al final, a propósito). Hoy los depósitos y retiros son **simulados** y están apagados en producción por el system check `ledger.E001`: `ledger.withdraw` es alcanzable por HTTP pero **siempre devuelve 400** en producción (ver §9 y el diagnóstico del bloque 5).
+2. **Bloque 6 — `budgets`, `reports`, `notifications`** (nadie empezó). Los modelos ya están definidos en AGENTS §7; `reports` es solo lectura y `notifications` usa Celery (hoy `config/celery.py` no existe).
+3. **Bloque 7 — `payments` con proveedor real** (al final, a propósito). Hoy los depósitos y retiros son **simulados** y están apagados en producción por el system check `ledger.E001`: `ledger.withdraw` es alcanzable por HTTP pero **siempre devuelve 400** en producción (ver §9 y el diagnóstico del bloque 5).
 4. **Cerrar la brecha de `config/celery.py` y el worker de Celery**: AGENTS §4 los lista y §14 exige que `docker compose up` levante el worker; hoy no existe ninguno de los dos.
-5. **Crear `docker-compose.prod.yml`**: está en el árbol exigido por AGENTS §4 y no existe.
-6. **Documentación**: `docs/architecture.md` y `docs/adr/` están vacíos; AGENTS §13 pide un ADR por decisión de arquitectura importante (empezar por: saldo desnormalizado, contrato diferido de doble entrada y el orden `offers+matching → loans → investments → payments`).
-7. **Endurecer `IsKycApproved`**: existe y está testeado, pero **ninguna vista lo usa**; debería aplicarse a los POST que mueven dinero cuando exista el proveedor real.
-8. **Cobertura de vistas por debajo de 100%**: `loans/views.py` 94%, `matching/views.py` 97%, `investments/views.py` 95%. No es un bloqueo (los umbrales de AGENTS §10 son 90% en `ledger`/`budgets` y 80% general), pero conviene cerrarlas.
-9. **Agregar `budgets` al umbral de cobertura del 90%** cuando exista la app.
+5. **Programar las tareas periódicas con Celery beat**: hoy `mark_overdue_loans` y `settle_investments` son management commands que hay que correr a mano. Con `config/celery.py` + `celery beat` hay que registrar ambos como tareas periódicas (`mark_overdue_loans` diario para marcar cuotas vencidas y préstamos en mora, `settle_investments` diario para liquidar las posiciones de plazo fijo que vencieron) y que corran en el worker en vez de depender de que alguien se acuerde.
+6. **Crear `docker-compose.prod.yml`**: está en el árbol exigido por AGENTS §4 y no existe.
+7. **Producción**: hoy no hay nada desplegable. Falta el endpoint **`/health/`** (chequeo de estado), la integración con **Sentry** para errores, los **backups automáticos diarios** de PostgreSQL con prueba periódica de restauración, **HTTPS** obligatorio (`SECURE_SSL_REDIRECT`, cookies seguras, HSTS) y la configuración de **CORS** explícita para el front (`CORS_ALLOWED_ORIGINS`, sin `*`).
+8. **Documentación**: `docs/architecture.md` y `docs/adr/` están vacíos; AGENTS §13 pide un ADR por decisión de arquitectura importante (empezar por: saldo desnormalizado, contrato diferido de doble entrada y el orden `offers+matching → loans → investments → payments`).
+9. **Aplicar `IsKycApproved` en las vistas que mueven dinero.** Aclaración importante: `IsKycApproved` es una **capa extra de defense in depth**, no la única barrera. Los `services` ya exigen KYC aprobado por sí mismos (`identity.selectors.is_kyc_approved(user_id)`), así que el requisito de AGENTS §9.9 está garantizado aunque la vista no use la permission. Lo que falta es el mensaje y el `403` temprano y explícito en la capa HTTP, que hoy llega como error de dominio. La permission ya existe y está testeada; simplemente ninguna vista la usa.
+10. **Cobertura de vistas por debajo de 100%**: `loans/views.py` 94%, `matching/views.py` 97%, `investments/views.py` 95%. No es un bloqueo (los umbrales de AGENTS §10 son 90% en `ledger`/`budgets` y 80% general), pero conviene cerrarlas.
+11. **Agregar `budgets` al umbral de cobertura del 90%** cuando exista la app.
 
 ### 11.1 Decisiones abiertas con el cliente
 
@@ -520,11 +523,12 @@ parte concreta del trabajo.
 
 | # | Decisión abierta | Qué hay que definir | Qué bloquea |
 |---|---|---|---|
-| O1 | **Proveedor de pagos** | Cuál es el proveedor (PSP, banco, pasarela), qué operaciones soporta (depósito, retiro, transferencia), si hay API de webhooks firmados, comisiones, tiempos de liquidación y si el saldo del ledger se replica contra la cuenta del proveedor | Toda la app `payments` (Fase 3) y el camino de depósitos/retiros, hoy simulados |
+| O1 | **Proveedor de pagos** | Cuál es el proveedor (PSP, banco, pasarela), qué operaciones soporta (depósito, retiro, transferencia), si hay API de webhooks firmados, comisiones, tiempos de liquidación y si el saldo del ledger se replica contra la cuenta del proveedor | Toda la app `payments` (Bloque 7) y el camino de depósitos/retiros, hoy simulados |
 | O2 | **Marco regulatorio de la custodia** | Si Presto es una **plataforma de inversión** o un **agente de custodia**; qué entidad regulada respalda los saldos; si los fondos van a una cuenta segregada en un banco o a una cuenta del proveedor; requisitos de capital mínimo, seguro de depósitos y reporte de saldos | El modelo de cuentas `custody` / `system` y si Presto puede llamar "custodia" a lo que hace hoy |
 | O3 | **Presto asume el rendimiento de los plazos fijos** | Si la tasa que se muestra está garantizada por Presto o si el rendimiento depende del instrumento que respalda la posición; qué pasa si el rendimiento real es menor que el prometido; si hay un fondo de garantía o un spread de riesgo; quién asume la diferencia | El modelo de `Position` e `InvestmentProduct` (hoy el interés es un `Decimal` fijo calculado al abrir) y el marketing del producto |
-| O4 | **Regla de "gastado" en presupuestos** | Si "gastado" se calcula contra los **movimientos del ledger** (todo lo que sale de la billetera, incluidos pagos de cuotas e inversiones) o solo contra **gastos categorizados**; cómo se categoriza un movimiento sin categoría; qué pasa con las transferencias entre cuentas propias | Toda la app `budgets` (Fase 2) y el significado de `Budget` y `Goal` |
-| O5 | **CFT / prevención de lavado** | Umbrales de Reporte de Operaciones Sospechosas (ROS), identificación del beneficiario final, screening contra listas de sanciones, reglas de monitoreo de patrones (velocidad, montos, estructuración), documentación de la operatoria, plazos de conservación y responsable asignado | El alcance de `identity` (más allá del KYC actual) y de `payments`; también define auditoría y retención de datos |
+| O4 | **Regla de "gastado" en presupuestos** | Si "gastado" se calcula contra los **movimientos del ledger** (todo lo que sale de la billetera, incluidos pagos de cuotas e inversiones) o solo contra **gastos categorizados**; cómo se categoriza un movimiento sin categoría; qué pasa con las transferencias entre cuentas propias | Toda la app `budgets` (Bloque 6) y el significado de `Budget` y `Goal` |
+| O5 | **PLA/FT (prevención de lavado)** | Umbrales de Reporte de Operaciones Sospechosas (ROS), identificación del beneficiario final, screening contra listas de sanciones, reglas de monitoreo de patrones (velocidad, montos, estructuración), documentación de la operatoria, plazos de conservación y responsable asignado | El alcance de `identity` (más allá del KYC actual) y de `payments`; también define auditoría y retención de datos |
+| O6 | **CFT (costo financiero total)** | Si el cliente quiere el costo financiero total —capital + interés— **en la comparación de ofertas** (hoy `matching.compare_offers` ya devuelve cuota, interés total y costo total: la pregunta es de exposición y de etiquetado, no de cálculo), y si ese CFT debe compararse contra el costo de otras alternativas del usuario (crédito, plazo fijo, efectivo) | La presentación de `POST /api/v1/matching/comparisons/` y los reportes; el cálculo ya existe en `core/money.py` (`french_total_cost`) |
 
 **Cómo se cierran estas decisiones:** cada respuesta se registra en AGENTS.md §17
 y, si cambia la arquitectura, en un ADR de `docs/adr/`. Hasta entonces el código
@@ -566,3 +570,4 @@ dinero sin KYC aprobado.
 |---|---|
 | 2026-10-21 | Documento creado: estado real del repo (63 commits), estado verificado de los checks, decisiones D1-D18, problemas P1-P14, endpoints reales extraídos del `URLConf`, comandos de ejecución validados y orden de los próximos pasos. **Nota**: `HANDOFF.md` **no existía** en el repo (ni en el árbol de trabajo, ni en el historial de git de ninguna rama, ni en el filesystem): se creó desde cero siguiendo la estructura de secciones indicada. |
 | 2026-10-21 | Ajustes pedidos por el cliente: §6.2 ahora es un resumen de 1-2 líneas por bloque (sin el detalle de archivos por commit); §4 pasó a "Requisitos, entorno local e invariantes del dinero" con los tres invariantes del ledger (saldo no negativo solo en `user_wallet`, `idempotency_key` única por `(usuario, clave)`, suma de saldos por moneda = 0) y §9 los referencia; §11.1 nueva con las decisiones abiertas con el cliente. |
+| 2026-10-21 | Tercer ajuste pedido por el cliente: §6.2 sin la columna de commits; §11.1 con O5 renombrado a PLA/FT y O6 nuevo sobre CFT (costo financiero total) en la comparación de ofertas; §11 renombra Fase 2 → Bloque 6 y Fase 3 → Bloque 7, suma el ítem de programar `mark_overdue_loans` y `settle_investments` con Celery beat, el ítem de Producción (/health/, Sentry, backups, HTTPS, CORS) y aclara que `IsKycApproved` es una capa extra porque los services ya exigen KYC. |
