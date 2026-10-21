@@ -23,8 +23,10 @@ reversos y saldo nunca negativo en las billeteras de usuario.
 
 **Estado de la hoja de ruta:** Fase 0 (Cimientos) **completa**. Fase 1 **completa**
 (1A identity + 1B ledger). Bloques 3 (offers+matching), 4 (loans) y 5
-(investments) **completos**. Faltan el **Bloque 6**
-(budgets/reports/notifications) y el **Bloque 7** (payments con proveedor real).
+(investments) **completos**. El **Bloque 6** (budgets/reports/notifications) está
+**en curso**: la infraestructura de Celery (worker, beat y tasks periódicas) ya
+está; las tres apps todavía no. Falta el **Bloque 7** (payments con proveedor
+real).
 
 ## 2. Stack y versiones
 
@@ -37,7 +39,7 @@ reversos y saldo nunca negativo en las billeteras de usuario.
 | Documentación | `drf-spectacular` | 0.30.0 |
 | Base de datos | PostgreSQL | 16 (contenedor `db`) |
 | Cache/broker | Redis | 7-alpine (contenedor `redis`) |
-| Tareas async | Celery | 5.3+ (instalado, **aún sin usar**: no hay `config/celery.py`) |
+| Tareas async | Celery | 5.6.3 (en uso: `config/celery.py`, worker y beat en el compose) |
 | Tests | `pytest` + `pytest-django` + `pytest-cov` + `factory_boy` | pytest 9.1.1 / pytest-django 4.14.0 / pytest-cov 7.1.0 / factory_boy 3.3.3 |
 | Lint / formato | `ruff` (E, F, I, B, UP; línea 100; comillas simples) | — |
 | Límites entre apps | `import-linter` | 2.15 (11 contratos activos) |
@@ -82,6 +84,7 @@ Base de datos: una sola, PostgreSQL 16, un solo despliegue (monolito modular).
 │       └── tests/
 └── config/
     ├── settings/                 # base, local, test, production
+    ├── celery.py                 # app de Celery + beat schedule diario
     ├── urls.py                   # /api/v1/ + /api/schema/ + /api/docs/ + /admin/
     ├── wsgi.py, asgi.py
 ```
@@ -152,12 +155,17 @@ vienen de AGENTS.md §6 y están garantizadas en código y en la base de datos.
 
 ### 6.1 Commits (log real y completo, `git log --oneline`)
 
-Log completo del repo. Los 4 commits de este mismo `HANDOFF.md` están
+Log completo del repo. Los 5 commits de este mismo `HANDOFF.md` están
 listados; el commit final que agrega esta fila no puede listarse a sí mismo
-(tras el push, `git log --oneline | wc -l` da **67**).
+(tras el push, `git log --oneline | wc -l` da **73**).
 
 | Commit | Asunto |
 |---|---|
+| `7fe012f` | test(loans,investments): cover the management commands and their celery tasks |
+| `393b422` | chore(infra): run the celery worker and beat in docker compose |
+| `c1bb3e7` | feat(investments): celery task to settle matured positions |
+| `9f4edd0` | feat(loans): celery task to mark overdue loans |
+| `2133337` | feat(core): celery configuration with redis broker and daily beat schedule |
 | `c4be917` | docs: refine handoff |
 | `ed9e602` | docs: list the handoff commits in the section 6 log table |
 | `57b1cf4` | docs: refine handoff sections per client review |
@@ -238,24 +246,26 @@ listados; el commit final que agrega esta fila no puede listarse a sí mismo
 | **Bloque 3 — offers + matching** | ✅ completa | `Offer` con TNA anual en `%`, amortización francesa en `core/money.py`, búsqueda por rango de montos, comparación de ofertas (cuota, interés, costo total) y API del marketplace. |
 | **Bloque 4 — loans** | ✅ completa | `Loan` / `OfferTermsSnapshot` / `Installment`, aceptación atómica con snapshot inmutable, pago de cuotas en orden, marcado de vencidos, máquina de estados y API con aislamiento por partes. |
 | **Bloque 5 — investments (plazo fijo)** | ✅ completa | `InvestmentProduct` (solo staff) y `Position` de plazo fijo, apertura atómica contra la cuenta `system`, liquidación idempotente con interés simple y API de productos y posiciones. |
-| **Bloque 6 — budgets / reports / notifications** | ❌ no empezada | Modelos ya definidos en AGENTS §7; `reports` es solo lectura y `notifications` necesita Celery. |
+| **Bloque 6 — budgets / reports / notifications** | 🚧 en curso | La **infraestructura de Celery** ya está: `config/celery.py`, worker y beat en el compose, tasks `mark_overdue_loans` y `settle_investments` (ADR 0001). Las tres apps en sí siguen sin empezar; `budgets` está bloqueada por la decisión O4. |
 | **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 
 ### 6.3 Estado verificado ahora (2026-10-21)
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web pytest -v` | **374 passed** |
-| Cobertura total | `docker compose run --rm web pytest --cov=apps` | **99%** (68 statements sin cubrir de 5092) |
-| Cobertura por app | idem | `identity` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `investments/services.py` 99% |
+| Tests | `docker compose run --rm web pytest -v` | **407 passed** |
+| Cobertura total | `docker compose run --rm web pytest --cov=apps` | **98.6%** (70 statements sin cubrir de 5130) |
+| Cobertura por app | idem | `identity` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `investments/services.py` 99% · `loans/tasks.py` 100% · `investments/tasks.py` 100% |
 | Lint | `docker compose run --rm web ruff check .` | All checks passed |
-| Formato | `docker compose run --rm web ruff format --check .` | 140 files already formatted |
+| Formato | `docker compose run --rm web ruff format --check .` | 150 files already formatted |
 | Límites entre apps | `docker compose run --rm web lint-imports` | **11 kept, 0 broken** |
 | Migraciones | `docker compose run --rm web python manage.py makemigrations --check --dry-run` | No changes detected |
 | System checks | `docker compose run --rm web python manage.py check` | System check identified no issues |
 | Pre-commit (host) | `python -m pre_commit run --all-files` | ruff / ruff-format / import-linter: Passed |
 | OpenAPI | `docker compose run --rm web python manage.py spectacular --validate --fail-on-warn --file schema.yml` | **PASA: 0 errores, 0 warnings** |
-| Estado del repo | `git status` | limpio; `main` **1 commit adelante** de `origin/main` (el de este documento, sin push) |
+| Tareas Celery registradas | `docker compose run --rm web celery -A config list bindings` | `apps.loans.tasks.mark_overdue_loans`, `apps.investments.tasks.settle_investments` |
+| Worker y beat | `docker compose up -d` + `docker compose logs worker beat` | worker conectado a Redis; beat con las 2 tareas diarias (00:05 y 00:15 UTC) |
+| Estado del repo | `git status` | limpio; `main` al día con `origin/main` |
 
 **Pendiente de la Fase 0:** nada. La Fase 0 quedó cerrada (bloques A, B, C y D) con
 `pytest`, `ruff`, `lint-imports` y `makemigrations --check` en verde.
@@ -332,11 +342,11 @@ Solo las decisiones **nuevas** de los bloques 1A → 5. Las de AGENTS.md §17
   entrada para exigir verificación. `apps/identity/permissions.py::IsKycApproved`
   replica la regla a nivel HTTP.
 - **Sin implementar todavía**: `payments` (proveedor real), `budgets`,
-  `reports`, `notifications`, `config/celery.py` y el worker de Celery, el
-  `docker-compose.prod.yml` que pide AGENTS §4, y `docs/adr/`.
+  `reports`, `notifications`, el `docker-compose.prod.yml` que pide AGENTS §4, y
+  el envío del esquema OpenAPI al frontend.
 - **Sin verificar**: no se ejecutó nunca un despliegue real, ni
-  `docker-compose.prod.yml` (no existe), ni el worker de Celery, ni el flujo
-  contra un proveedor de pagos real.
+  `docker-compose.prod.yml` (no existe), ni el flujo contra un proveedor de
+  pagos real.
 
 ---
 
@@ -412,6 +422,27 @@ docker compose run --rm web python manage.py spectacular --validate --fail-on-wa
 docker compose run --rm web python manage.py mark_overdue_loans   # cuotas vencidas -> overdue
 docker compose run --rm web python manage.py settle_investments    # posiciones vencidas -> matured
 ```
+
+### Celery (worker, beat y tasks)
+
+```sh
+make worker        # celery -A config worker -l info (en primer plano)
+make beat          # celery -A config beat -l info
+make celery-tasks  # lista las tasks registradas
+docker compose up -d && docker compose ps    # db, redis, web, worker, beat
+docker compose logs -f worker
+docker compose logs -f beat
+```
+
+Tareas registradas y horario (beat, UTC):
+
+| Task | Cuándo |
+|---|---|
+| `apps.loans.tasks.mark_overdue_loans` | todos los días a las 00:05 |
+| `apps.investments.tasks.settle_investments` | todos los días a las 00:15 |
+
+En los tests las tasks corren en el proceso (`CELERY_TASK_ALWAYS_EAGER`), así
+que la suite no necesita Redis.
 
 ### Otros
 
@@ -503,10 +534,10 @@ Orden real de lo que falta, de mayor a menor prioridad.
    - `ENUM_NAME_OVERRIDES` en `SPECTACULAR_SETTINGS`: `LoanStatusEnum` y `PositionStatusEnum` reemplazan los nombres colisionados `Status36cEnum` / `StatusF63Enum`.
    - `operation_id` explícito para las 5 pares lista/detalle (`kyc_list`/`kyc_retrieve`, `ledger_transactions_list`/`ledger_transactions_retrieve`, `loans_list`/`loans_retrieve`, `offers_list`/`offers_retrieve`, `investments_positions_list`/`investments_positions_retrieve`).
    - Cobertura de regresión en `apps/core/tests/test_openapi.py`.
-2. **Bloque 6 — `budgets`, `reports`, `notifications`** (nadie empezó). Los modelos ya están definidos en AGENTS §7; `reports` es solo lectura y `notifications` usa Celery (hoy `config/celery.py` no existe).
+2. **Bloque 6 — `budgets`, `reports`, `notifications`** (infraestructura lista, apps sin empezar). Los modelos de `budgets` ya están definidos en AGENTS §7; `reports` es solo lectura y `notifications` ya puede usar Celery (`config/celery.py`, worker y beat). **`budgets` sigue bloqueada por la decisión O4** (§11.1).
 3. **Bloque 7 — `payments` con proveedor real** (al final, a propósito). Hoy los depósitos y retiros son **simulados** y están apagados en producción por el system check `ledger.E001`: `ledger.withdraw` es alcanzable por HTTP pero **siempre devuelve 400** en producción (ver §9 y el diagnóstico del bloque 5).
-4. **Cerrar la brecha de `config/celery.py` y el worker de Celery**: AGENTS §4 los lista y §14 exige que `docker compose up` levante el worker; hoy no existe ninguno de los dos.
-5. **Programar las tareas periódicas con Celery beat**: hoy `mark_overdue_loans` y `settle_investments` son management commands que hay que correr a mano. Con `config/celery.py` + `celery beat` hay que registrar ambos como tareas periódicas (`mark_overdue_loans` diario para marcar cuotas vencidas y préstamos en mora, `settle_investments` diario para liquidar las posiciones de plazo fijo que vencieron) y que corran en el worker en vez de depender de que alguien se acuerde.
+4. ✅ **Cerrar la brecha de `config/celery.py` y el worker de Celery**: resuelto. `config/celery.py` existe, el compose levanta `worker` y `beat`, y `make worker` / `make beat` los levantan en primer plano (ADR 0001).
+5. ✅ **Programar las tareas periódicas con Celery beat**: resuelto. `mark_overdue_loans` (00:05 UTC) y `settle_investments` (00:15 UTC) están en el `beat_schedule` de `config/celery.py` y corren desde el worker. Los management commands quedan como vía manual y comparten el service con las tasks.
 6. **Crear `docker-compose.prod.yml`**: está en el árbol exigido por AGENTS §4 y no existe.
 7. **Producción**: hoy no hay nada desplegable. Falta el endpoint **`/health/`** (chequeo de estado), la integración con **Sentry** para errores, los **backups automáticos diarios** de PostgreSQL con prueba periódica de restauración, **HTTPS** obligatorio (`SECURE_SSL_REDIRECT`, cookies seguras, HSTS) y la configuración de **CORS** explícita para el front (`CORS_ALLOWED_ORIGINS`, sin `*`).
 8. **Documentación**: `docs/architecture.md` y `docs/adr/` están vacíos; AGENTS §13 pide un ADR por decisión de arquitectura importante (empezar por: saldo desnormalizado, contrato diferido de doble entrada y el orden `offers+matching → loans → investments → payments`).
@@ -547,6 +578,11 @@ dinero sin KYC aprobado.
 | `python manage.py mark_overdue_loans` | Marca las cuotas vencidas (`overdue`) y sus préstamos (`defaulted`) |
 | `python manage.py settle_investments` | Liquida las posiciones de inversión vencidas (capital + interés) |
 
+Los dos commands siguen siendo la vía manual: comparten el `service` con las
+tasks de Celery (`apps.loans.tasks.mark_overdue_loans` y
+`apps.investments.tasks.settle_investments`), que corren solas una vez por día
+desde el beat (00:05 y 00:15 UTC).
+
 ### Datos de prueba
 
 - No hay fixtures JSON: todo se arma con `factory_boy` en
@@ -572,3 +608,4 @@ dinero sin KYC aprobado.
 | 2026-10-21 | Ajustes pedidos por el cliente: §6.2 ahora es un resumen de 1-2 líneas por bloque (sin el detalle de archivos por commit); §4 pasó a "Requisitos, entorno local e invariantes del dinero" con los tres invariantes del ledger (saldo no negativo solo en `user_wallet`, `idempotency_key` única por `(usuario, clave)`, suma de saldos por moneda = 0) y §9 los referencia; §11.1 nueva con las decisiones abiertas con el cliente. |
 | 2026-10-21 | Tercer ajuste pedido por el cliente: §6.2 sin la columna de commits; §11.1 con O5 renombrado a PLA/FT y O6 nuevo sobre CFT (costo financiero total) en la comparación de ofertas; §11 renombra Fase 2 → Bloque 6 y Fase 3 → Bloque 7, suma el ítem de programar `mark_overdue_loans` y `settle_investments` con Celery beat, el ítem de Producción (/health/, Sentry, backups, HTTPS, CORS) y aclara que `IsKycApproved` es una capa extra porque los services ya exigen KYC. |
 | 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). §6.1, §6.3, §8 (P13), §10 y §11 (ítem 1) actualizados. |
+| 2026-10-21 | **Infraestructura de Celery (primer cambio del Bloque 6)**: `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario con `mark_overdue_loans` (00:05) y `settle_investments` (00:15), servicios `worker` y `beat` en el compose con volumen persistente para el scheduler, tasks en `apps/loans/tasks.py` y `apps/investments/tasks.py` que delegan en los services existentes (los management commands no se modifican), y tests de tasks y de commands (407 tests). Decisiones y consecuencias en `docs/adr/0001-celery-redis-cola-y-scheduler.md`. `AGENTS.md` **no** se modificó (pendiente de aprobación del desarrollador). |

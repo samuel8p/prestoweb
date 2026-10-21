@@ -8,10 +8,10 @@ Stack: Django 5.x + DRF + PostgreSQL 16 + JWT (simplejwt) + Celery/Redis.
 ## Estructura
 
 ```
-config/            # settings por entorno, urls, wsgi/asgi
+config/            # settings por entorno, urls, wsgi/asgi, celery
 apps/core/         # utilidades transversales (BaseModel, money, excepciones, paginación)
 apps/identity/     # usuarios, auth JWT, perfil, KYC
-apps/ledger/       # libro mayor de doble entrada (próxima fase)
+apps/ledger/       # libro mayor de doble entrada
 ```
 
 Las reglas del proyecto viven en [AGENTS.md](AGENTS.md): es la fuente de verdad.
@@ -23,14 +23,19 @@ Las reglas del proyecto viven en [AGENTS.md](AGENTS.md): es la fuente de verdad.
 ## Comandos
 
 ```sh
-make up             # levanta db, redis y web (runserver)
+make up             # levanta db, redis, web, worker y beat
 make down           # detiene los servicios
 make test           # pytest con cobertura
 make lint           # ruff check + ruff format --check + import-linter
 make migrate        # aplica migraciones
 make makemigrations # genera migraciones faltantes
 make shell          # shell de Django
+make worker         # celery -A config worker (en primer plano)
+make beat           # celery -A config beat (en primer plano)
 ```
+
+Tareas periódicas (beat, UTC): `mark_overdue_loans` a las 00:05 y
+`settle_investments` a las 00:15.
 
 ## API
 
