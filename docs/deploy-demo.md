@@ -177,6 +177,32 @@ curl -s http://127.0.0.1:8000/api/v1/meta/     # {"mode": "production", "simulat
 docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f worker
 ```
 
+### 6.6 Recursos: workers del web y del worker
+
+Las dos concurrencias se ajustan **por entorno**, sin tocar el compose:
+
+| Variable | Qué controla | Default |
+|---|---|---|
+| `GUNICORN_WORKERS` | procesos de gunicorn (el web) | 3 |
+| `CELERY_WORKER_CONCURRENCY` | procesos del worker de Celery | 2 |
+
+Valores recomendados según la RAM de la VM (el `beat` corre **una sola**
+instancia, no se escala):
+
+| VM | RAM | `GUNICORN_WORKERS` | `CELERY_WORKER_CONCURRENCY` |
+|---|---|---|---|
+| 1 OCPU | 6 GB | **2** | **2** |
+| 2 OCPU | 12 GB | **4** | **4** |
+
+Los procesos de gunicorn son los que más RAM consumen (cada uno es un proceso
+de Django con su copia de la aplicación); los del worker de Celery son tareas
+de E/S (emails y avisos) y aguantan más concurrencia sin memoria.
+
+> No hay límites de memoria configurados a propósito: los límites duros
+> (`mem_limit`, `deploy.resources`) matan el proceso cuando se pasan, y en una VM
+> de 6 GB es preferible que el sistema avise antes de que el OOM killer mate un
+> proceso a mitad de una operación de dinero.
+
 ## 7. Compatibilidad arm64 (Oracle Cloud Ampere)
 
 Las VM de Oracle Cloud en Linux son **aarch64** (ARM), no x86. Todo el stack se

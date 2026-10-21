@@ -103,3 +103,38 @@ def test_the_ci_runs_the_deploy_check_with_the_production_settings():
 
     assert 'check --deploy' in workflow
     assert 'config.settings.production' in workflow
+
+
+def command_text(service) -> str:
+    """Devuelve el comando de un servicio del compose como texto."""
+    command = service['command']
+    if isinstance(command, list):
+        return ' '.join(command)
+    return command
+
+
+def test_the_production_concurrency_is_configurable_with_a_low_default(prod_compose):
+    """Los workers de gunicorn y la concurrencia de Celery se configuran por entorno.
+
+    La VM de Oracle Cloud tiene entre 1 y 2 OCPU: el número de procesos tiene
+    que poder ajustarse sin tocar el compose, y el default tiene que ser
+    bajo para no ahogar una VM chica.
+    """
+    web_command = command_text(prod_compose['services']['web'])
+    worker_command = command_text(prod_compose['services']['worker'])
+
+    assert 'GUNICORN_WORKERS' in web_command
+    assert 'CELERY_WORKER_CONCURRENCY' in worker_command
+    assert '--concurrency' in worker_command
+
+
+def test_the_production_defaults_are_low(prod_compose):
+    """Los defaults de concurrencia son bajos (1-3) para una VM chica."""
+    web_command = command_text(prod_compose['services']['web'])
+    worker_command = command_text(prod_compose['services']['worker'])
+
+    gunicorn_default = web_command.split('GUNICORN_WORKERS:-')[1].split('}')[0]
+    celery_default = worker_command.split('CELERY_WORKER_CONCURRENCY:-')[1].split('}')[0]
+
+    assert 1 <= int(gunicorn_default) <= 3
+    assert 1 <= int(celery_default) <= 3

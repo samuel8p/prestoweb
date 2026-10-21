@@ -96,7 +96,7 @@ services:
     user: presto
     command: >
       bash -c "export PYTHONPATH=/app &&
-               celery -A config worker -l info"
+               celery -A config worker -l info --concurrency ${CELERY_WORKER_CONCURRENCY:-2}"
     depends_on:
       db:
         condition: service_healthy
