@@ -2,12 +2,22 @@
 
 La app es **solo lectura**: no tiene modelos ni escrituras. Acá viven la
 validación de los parámetros de cada reporte y las agregaciones.
+
+Los importes son siempre de `services.py` o `selectors.py` de las apps dueñas
+(AGENTS §5.2): esta app nunca importa los modelos de otra app, así que las
+filas se describen con tipos propios.
 """
 
-from collections.abc import Mapping
+import uuid
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from typing import TypedDict
 
+from django.db.models import QuerySet
+
+from apps.ledger import selectors as ledger_selectors
 from apps.reports.exceptions import InvalidReportParameters
 
 # Monedas del proyecto (AGENTS §6: un reporte es de una sola moneda, nunca se
@@ -16,6 +26,21 @@ CURRENCIES = ('ARS', 'USD')
 
 # Rango máximo de un reporte, en meses calendario.
 MAX_RANGE_MONTHS = 12
+
+# Dirección de un débito en el ledger (constante de otra app: no se importa).
+DEBIT = 'debit'
+
+
+class MovementRow(TypedDict):
+    """Fila del reporte de movimientos."""
+
+    id: uuid.UUID
+    type: str
+    amount: Decimal
+    currency: str
+    occurred_at: datetime
+    description: str
+    is_reversed: bool
 
 
 @dataclass(frozen=True)
@@ -94,6 +119,71 @@ def parse_period(params: Mapping[str, str], today: date | None = None) -> Report
             f'El rango no puede superar los {MAX_RANGE_MONTHS} meses calendario.'
         )
     return ReportPeriod(start_date=start, end_date=end)
+
+
+def list_movements_for_report(
+    user_id: uuid.UUID,
+    currency: str,
+    period: ReportPeriod,
+) -> QuerySet:
+    """Lista los movimientos del usuario en el rango y la moneda del reporte.
+
+    Args:
+        user_id: identificador del usuario.
+        currency: moneda del reporte.
+        period: rango de fechas del reporte.
+
+    Returns:
+        QuerySet con los movimientos, del más nuevo al más viejo.
+    """
+    return ledger_selectors.list_transactions_in_period(
+        user_id=user_id,
+        currency=currency,
+        start=period.start_datetime,
+        end=period.end_datetime,
+    )
+
+
+def build_movement_rows(transactions: Iterable) -> list[MovementRow]:
+    """Arma las filas del reporte de movimientos.
+
+    El importe es el total del movimiento (la suma de los débitos) y
+    `is_reversed` dice si el movimiento fue revertido por un staff.
+
+    Args:
+        transactions: movimientos a describir.
+
+    Returns:
+        Lista de filas del reporte.
+    """
+    transactions = list(transactions)
+    details = ledger_selectors.list_movement_details(
+        transaction_ids=[transaction.id for transaction in transactions]
+    )
+    rows = []
+    for transaction in transactions:
+        detail = details.get(transaction.id)
+        if detail is None:
+            continue
+        legs = detail['legs']
+        if not legs:
+            continue
+        amount = sum(
+            (leg['amount'] for leg in legs if leg['direction'] == DEBIT),
+            Decimal('0.00'),
+        )
+        rows.append(
+            MovementRow(
+                id=transaction.id,
+                type=transaction.type,
+                amount=amount,
+                currency=legs[0]['currency'],
+                occurred_at=transaction.occurred_at,
+                description=transaction.description,
+                is_reversed=detail['is_reversed'],
+            )
+        )
+    return rows
 
 
 def _parse_date(raw: str | None, name: str) -> date | None:

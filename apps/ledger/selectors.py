@@ -1,6 +1,7 @@
 """Selectores de lectura de la app ledger (interfaz pública)."""
 
 import uuid
+from datetime import datetime
 from decimal import Decimal
 
 from django.db.models import Exists, OuterRef, Q, QuerySet
@@ -83,6 +84,38 @@ def list_transactions_for_user(user_id: uuid.UUID) -> QuerySet[LedgerTransaction
     return (
         LedgerTransaction.objects.filter(
             Q(created_by_user_id=user_id) | Q(entries__account__user_id=user_id)
+        )
+        .distinct()
+        .prefetch_related('entries__account')
+        .order_by('-occurred_at', '-id')
+    )
+
+
+def list_transactions_in_period(
+    user_id: uuid.UUID,
+    currency: str,
+    start: datetime,
+    end: datetime,
+) -> QuerySet[LedgerTransaction]:
+    """Lista los movimientos del usuario en un rango de fechas y una moneda.
+
+    Los movimientos son inmutables: el rango se filtra por `occurred_at`.
+
+    Args:
+        user_id: identificador del usuario.
+        currency: código ISO de la moneda del movimiento.
+        start: inicio del rango (inclusive).
+        end: fin del rango (inclusive).
+
+    Returns:
+        QuerySet con los movimientos del usuario, del más nuevo al más viejo.
+    """
+    return (
+        LedgerTransaction.objects.filter(
+            Q(created_by_user_id=user_id) | Q(entries__account__user_id=user_id),
+            entries__currency=currency,
+            occurred_at__gte=start,
+            occurred_at__lte=end,
         )
         .distinct()
         .prefetch_related('entries__account')
