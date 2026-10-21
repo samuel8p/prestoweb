@@ -178,3 +178,97 @@ def test_expire_own_offer_returns_200(client):
 
     assert response.status_code == 200
     assert response.data['status'] == 'expired'
+
+
+def test_expire_already_expired_offer_returns_400(client):
+    """Expirar una oferta que ya está expirada devuelve 400."""
+    user = create_approved_user()
+    offer = OfferFactory(lender_user_id=user.id, status='expired')
+    authenticate(client, user)
+
+    response = client.patch(
+        f'/api/v1/offers/{offer.id}/',
+        {'status': 'expired'},
+        format='json',
+    )
+
+    assert response.status_code == 400
+
+
+def test_expire_other_lender_offer_returns_404(client):
+    """No se puede expirar la oferta de otro prestamista."""
+    user = create_approved_user()
+    other = create_approved_user(email='expirar-ajeno@example.com')
+    offer = OfferFactory(lender_user_id=other.id)
+    authenticate(client, user)
+
+    response = client.patch(
+        f'/api/v1/offers/{offer.id}/',
+        {'status': 'expired'},
+        format='json',
+    )
+
+    assert response.status_code == 404
+
+
+def test_patch_expired_offer_returns_400(client):
+    """Una oferta expirada no se puede modificar."""
+    user = create_approved_user()
+    offer = OfferFactory(lender_user_id=user.id, status='expired')
+    authenticate(client, user)
+
+    response = client.patch(
+        f'/api/v1/offers/{offer.id}/',
+        {'amount': '8000.00'},
+        format='json',
+    )
+
+    assert response.status_code == 400
+
+
+def test_patch_offer_with_invalid_amount_returns_400(client):
+    """Actualizar con un monto no positivo devuelve 400."""
+    user = create_approved_user()
+    offer = OfferFactory(lender_user_id=user.id)
+    authenticate(client, user)
+
+    response = client.patch(
+        f'/api/v1/offers/{offer.id}/',
+        {'amount': '0.00'},
+        format='json',
+    )
+
+    assert response.status_code == 400
+
+
+def test_patch_offer_without_kyc_returns_403(client):
+    """Sin KYC aprobada no se puede modificar una oferta."""
+    from apps.identity.services import register_user
+
+    user = register_user(email='patch-sin-kyc@example.com', password='TestPass123!')
+    offer = OfferFactory(lender_user_id=user.id)
+    authenticate(client, user)
+
+    response = client.patch(
+        f'/api/v1/offers/{offer.id}/',
+        {'amount': '8000.00'},
+        format='json',
+    )
+
+    assert response.status_code == 403
+
+
+def test_patch_unknown_offer_returns_404(client):
+    """Una oferta inexistente devuelve 404."""
+    import uuid
+
+    user = create_approved_user()
+    authenticate(client, user)
+
+    response = client.patch(
+        f'/api/v1/offers/{uuid.uuid4()}/',
+        {'amount': '8000.00'},
+        format='json',
+    )
+
+    assert response.status_code == 404
