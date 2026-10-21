@@ -366,7 +366,7 @@ def test_settle_matured_positions_ignores_positions_not_matured():
 def test_settle_registers_an_interest_movement():
     """El interés se liquida con un movimiento de tipo interest."""
     from apps.investments.services import open_position, settle_matured_positions
-    from apps.ledger.models import LedgerTransaction
+    from apps.ledger.selectors import list_transactions_for_user
 
     user = create_approved_user()
     product = InvestmentProductFactory(
@@ -384,10 +384,11 @@ def test_settle_registers_an_interest_movement():
 
     settle_matured_positions(today=date(2030, 1, 1))
 
-    movements = LedgerTransaction.objects.filter(
-        created_by_user_id=user.id,
-        type=LedgerTransaction.Type.INTEREST,
-    )
-    assert movements.count() == 1
-    credits = movements.first().entries.filter(direction='credit')
+    movements = [
+        transaction
+        for transaction in list_transactions_for_user(user_id=user.id)
+        if transaction.type == 'interest'
+    ]
+    assert len(movements) == 1
+    credits = movements[0].entries.filter(direction='credit')
     assert sum(entry.amount for entry in credits) == Decimal('49.32')
