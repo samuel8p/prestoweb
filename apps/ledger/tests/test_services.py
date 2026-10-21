@@ -379,6 +379,67 @@ def test_balance_matches_entries_invariant():
         assert account.balance == credits - debits
 
 
+def test_custody_balance_is_the_negative_sum_of_user_wallets():
+    """En cada moneda, la custodia es exactamente la suma negativa de las billeteras."""
+    from apps.ledger.models import Account
+    from apps.ledger.services import create_user_wallet, deposit, transfer, withdraw
+
+    first = create_approved_user()
+    second = create_approved_user(email='invariante@example.com')
+    deposit(
+        user_id=first.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('100.00'),
+        idempotency_key='inv-c-dep-1',
+    )
+    deposit(
+        user_id=second.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('250.00'),
+        idempotency_key='inv-c-dep-2',
+    )
+    deposit(
+        user_id=first.id,
+        currency=Account.Currency.USD,
+        amount=Decimal('80.00'),
+        idempotency_key='inv-c-dep-3',
+    )
+    withdraw(
+        user_id=second.id,
+        currency=Account.Currency.ARS,
+        amount=Decimal('50.00'),
+        idempotency_key='inv-c-ret',
+    )
+    source = Account.objects.get(
+        user_id=first.id,
+        kind=Account.Kind.USER_WALLET,
+        currency=Account.Currency.ARS,
+    )
+    destination = create_user_wallet(user_id=second.id, currency=Account.Currency.ARS)
+    transfer(
+        user_id=first.id,
+        source_account_id=source.id,
+        destination_account_id=destination.id,
+        amount=Decimal('30.00'),
+        idempotency_key='inv-c-tra',
+    )
+
+    for currency in (Account.Currency.ARS, Account.Currency.USD):
+        wallets_total = sum(
+            Account.objects.filter(
+                kind=Account.Kind.USER_WALLET,
+                currency=currency,
+            ).values_list('balance', flat=True),
+            Decimal('0.00'),
+        )
+        custody = Account.objects.filter(
+            kind=Account.Kind.CUSTODY,
+            currency=currency,
+        ).first()
+        custody_balance = custody.balance if custody else Decimal('0.00')
+        assert custody_balance == -wallets_total
+
+
 def test_reverse_creates_compensating_transaction():
     """El reverso crea una transacción compensatoria con los importes invertidos."""
     from apps.ledger.models import Account
