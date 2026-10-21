@@ -45,6 +45,7 @@ make makemigrations # genera migraciones faltantes
 make shell          # shell de Django
 make worker         # celery -A config worker (en primer plano)
 make beat           # celery -A config beat (en primer plano)
+make audit          # pip-audit: vulnerabilidades conocidas de las dependencias
 ```
 
 Sin `make`, los equivalentes:

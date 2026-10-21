@@ -52,7 +52,8 @@ jobs:
             "gunicorn>=22.0.0" \
             "celery>=5.3.0" \
             "redis>=5.0.0" \
-            "dj-database-url>=2.2.0"
+            "dj-database-url>=2.2.0" \
+            "pip-audit>=2.7"
 
       - name: Run ruff check
         run: ruff check .
@@ -65,6 +66,9 @@ jobs:
 
       - name: Validate OpenAPI schema
         run: python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml
+
+      - name: Audit the dependencies for known vulnerabilities
+        run: pip-audit .
 
   migrations:
     name: Check Migrations

@@ -1,4 +1,4 @@
-.PHONY: up down test lint migrate shell makemigrations worker beat celery-tasks
+.PHONY: up down test lint migrate shell makemigrations worker beat celery-tasks audit
 
 up:
 	docker compose up --build -d
@@ -41,3 +41,6 @@ beat:
 
 celery-tasks:
 	docker compose run --rm web celery -A config list bindings
+
+audit:
+	docker compose run --rm web pip-audit .

@@ -76,3 +76,18 @@ def test_the_development_example_documents_the_demo_switches():
 
     assert 'DEMO_MODE=' in example
     assert 'LEDGER_SIMULATED_DEPOSITS_ENABLED=' in example
+
+
+def test_the_dependencies_are_audited_in_the_ci():
+    """La CI audita las dependencias conocidas de las librerías.
+
+    `pip-audit` tiene que estar declarado como dependencia de desarrollo y
+    la CI tiene que ejecutarlo: sin la puerta, una vulnerabilidad conocida
+    entra sin que nadie lo note.
+    """
+    pyproject = (ROOT / 'pyproject.toml').read_text(encoding='utf-8')
+    workflow = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
+
+    assert 'pip-audit' in pyproject
+    assert 'pip-audit' in workflow
+    assert 'pip_audit' in workflow or 'pip-audit ' in workflow
