@@ -1,0 +1,13 @@
+# Caddyfile del proxy inverso de Presto.
+#
+# El dominio viene de la variable DOMAIN (ver .env.prod.example). Caddy pide
+# el certificado TLS solo y reenvía las peticiones al servicio `web`, que queda
+# en la red interna del compose (no publica puertos).
+#
+# Caddy agrega X-Forwarded-Proto y X-Forwarded-Host, que la aplicación usa
+# para saber que la petición llegó por HTTPS (SECURE_PROXY_SSL_HEADER).
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:8000
+}

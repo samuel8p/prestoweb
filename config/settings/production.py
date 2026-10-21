@@ -14,7 +14,7 @@ DJANGO_ENV = 'production'
 # The only exception is the demo mode, where DEMO_MODE=true enables them on
 # purpose and the check lets them pass.
 LEDGER_SIMULATED_DEPOSITS_ENABLED = DEMO_MODE or (
-    os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False') == 'True'
+    os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False').strip().lower() == 'true'
 )
 
 # Security: enforce HTTPS settings (will be set by reverse proxy)

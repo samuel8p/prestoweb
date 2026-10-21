@@ -48,7 +48,7 @@ def test_demo_mode_is_disabled_by_default():
 
 def test_demo_mode_turns_on_the_simulated_deposits():
     """Con DEMO_MODE=true los depósitos y retiros simulados quedan habilitados."""
-    settings = read_settings(DEMO_MODE='True')
+    settings = read_settings(DEMO_MODE='true')
 
     assert settings['DEMO_MODE'] is True
     assert settings['LEDGER_SIMULATED_DEPOSITS_ENABLED'] is True

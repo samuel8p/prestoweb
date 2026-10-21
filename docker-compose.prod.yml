@@ -1,17 +1,23 @@
 # Entorno de producción de Presto.
 #
 # Este archivo NO tiene ningún secreto: todo lo sensible llega por variables de
-# entorno (archivo `.env.prod` o el orquestador). Los valores con `${VAR:-}`
-# son solo defaults no sensibles.
+# entorno (archivo `.env.prod` o el orquestador). Los valores con `${VAR:-}` son
+# solo defaults no sensibles.
+#
+# Modo demo: con DEMO_MODE=true la aplicación corre como demostración (el dinero
+# es simulado y el backend de email es el de consola). Sin DEMO_MODE, el dinero
+# simulado queda bloqueado por el system check ledger.E001.
 #
 # Antes de levantar:
 #   1. crear un `.env.prod` con POSTGRES_PASSWORD, DJANGO_SECRET_KEY,
-#      DJANGO_ALLOWED_HOSTS (y los opcionales CORS_ALLOWED_ORIGINS, SENTRY_DSN)
+#      DJANGO_ALLOWED_HOSTS (y los opcionales DOMAIN, CORS_ALLOWED_ORIGINS)
 #   2. `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`
 #
-# El proxy inverso (Nginx o Caddy) debe terminar TLS y apuntar a
-# 127.0.0.1:8000. `beat` corre **una sola instancia**: escalar el worker sí
-# está permitido, el scheduler no.
+# El proxy inverso con TLS automático es opcional: vive bajo el perfil `proxy`
+# (Caddy). Con el perfil activo es el único que publica puertos 80/443 y `web`
+# queda solo en la red interna del compose. Sin el perfil, la plataforma debe
+# llegar al contenedor de `web` por la red (si su plataforma exige un puerto
+# publicado, agregá `ports: ["127.0.0.1:8000:8000"]` al servicio `web`).
 
 services:
   db:
@@ -58,11 +64,11 @@ services:
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-}
       DJANGO_ENV: production
-      LEDGER_SIMULATED_DEPOSITS_ENABLED: "False"
+      DEMO_MODE: ${DEMO_MODE:-false}
+      LEDGER_SIMULATED_DEPOSITS_ENABLED: ${LEDGER_SIMULATED_DEPOSITS_ENABLED:-false}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
-    ports:
-      - "127.0.0.1:8000:8000"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
     healthcheck:
       test:
         - CMD
@@ -92,9 +98,11 @@ services:
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-}
       DJANGO_ENV: production
-      LEDGER_SIMULATED_DEPOSITS_ENABLED: "False"
+      DEMO_MODE: ${DEMO_MODE:-false}
+      LEDGER_SIMULATED_DEPOSITS_ENABLED: ${LEDGER_SIMULATED_DEPOSITS_ENABLED:-false}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
 
   beat:
     build: .
@@ -114,12 +122,33 @@ services:
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-}
       DJANGO_ENV: production
-      LEDGER_SIMULATED_DEPOSITS_ENABLED: "False"
+      DEMO_MODE: ${DEMO_MODE:-false}
+      LEDGER_SIMULATED_DEPOSITS_ENABLED: ${LEDGER_SIMULATED_DEPOSITS_ENABLED:-false}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
     volumes:
       - celerybeat:/var/celerybeat
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["proxy"]
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
 
 volumes:
   pg_data:
   celerybeat:
+  caddy_data:
+  caddy_config:

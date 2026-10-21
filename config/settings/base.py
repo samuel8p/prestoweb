@@ -175,7 +175,7 @@ EMAIL_BACKEND = os.getenv(
 EMAIL_PORT = int(os.getenv('EMAIL_PORT') or 587)
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').strip().lower() == 'true'
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@presto.local')
 
 # Celery (AGENTS §3 y §4): tareas asíncronas y periódicas con Redis como broker.
@@ -198,11 +198,11 @@ CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 # Demo mode: with DEMO_MODE=true the stack behaves like a demo (the simulated
 # deposits are enabled and the ledger system check allows them). Without it,
 # the simulated deposits are only for local/test environments.
-DEMO_MODE = os.getenv('DEMO_MODE', 'False') == 'True'
+DEMO_MODE = os.getenv('DEMO_MODE', 'False').strip().lower() == 'true'
 
 # Ledger: simulated deposits are only for local/test environments
 LEDGER_SIMULATED_DEPOSITS_ENABLED = DEMO_MODE or (
-    os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False') == 'True'
+    os.getenv('LEDGER_SIMULATED_DEPOSITS_ENABLED', 'False').strip().lower() == 'true'
 )
 
 # Static files (CSS, JavaScript, Images)
