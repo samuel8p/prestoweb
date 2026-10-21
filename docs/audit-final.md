@@ -17,11 +17,11 @@
 |---|---|---|---|
 | Crítico | 0 | 0 | 0 |
 | Alto | 2 | 2 | 0 |
-| Medio | 8 | 8 | 0 |
-| Bajo | 6 | 1 | 5 |
+| Medio | 9 | 9 | 0 |
+| Bajo | 8 | 3 | 5 |
 
-Categorías con hallazgos: **seguridad** (5), **tests** (5), **docs** (4),
-**dinero** (1), **bug** (1), **incompleto** (3).
+Categorías con hallazgos: **seguridad** (5), **tests** (6), **docs** (5),
+**dinero** (1), **bug** (2), **incompleto** (3).
 
 Lo que salió bien y no hay que tocar: no hay `float` en el código de dinero,
 no hay redondeo fuera de `core/money.py`, no hay ForeignKey entre apps de
@@ -143,6 +143,18 @@ invariante de saldos.
   de `budgets`).
 - **Corrección:** actualizarlos al cerrar el bloque.
 
+#### M-9 · bug · El health check de producción siempre fallaba
+
+- **Dónde:** `docker-compose.prod.yml` (el `healthcheck` del servicio `web`).
+- **Qué pasa hoy:** el chequeo pedía `http://127.0.0.1:8000/health/` sin header
+  `Host`, y Django responde **400** cuando el `Host` no está en `ALLOWED_HOSTS`
+  (en producción es `presto.example.com`). El contenedor de producción quedaba
+  `unhealthy` para siempre, aunque la aplicación funcionara.
+- **Cómo se encontró:** en el arranque real del stack de producción (FASE 2,
+  cierre), no con una lectura del código.
+- **Corrección:** el chequeo manda el primer host permitido. Con el stack de
+  producción levantado, el contenedor queda `healthy`.
+
 ### 1.4 Bajos
 
 #### B-1 · docs · El esquema OpenAPI no tiene ejemplos
@@ -199,6 +211,26 @@ invariante de saldos.
   probada con hilos, como sí están las del ledger, loans e investments.
 - **Corrección:** agregar el test de concurrencia.
 
+#### B-7 · bug · Faltaban los `__init__.py` de tres paquetes
+
+- **Dónde:** `apps/`, `apps/core/` y `apps/identity/` (AGENTS §4 pide un
+  `__init__.py` en cada app ✓).
+- **Qué pasa hoy:** sin el marcador, pytest importaba `apps/core/tests` como el
+  paquete de nivel superior `tests` y cualquier otro paquete llamado `tests`
+  (el de la suite end-to-end) no se podía collecting. Con `apps/` sin
+  `__init__.py` además, `apps` era un *namespace package* implícito.
+- **Corrección:** agregar los tres archivos.
+
+#### B-8 · bug · Los linters escribían su cache en el directorio del proyecto
+
+- **Dónde:** `ruff` (`.ruff_cache/`) e `import-linter` (su cache) escriben en
+  el directorio del proyecto.
+- **Qué pasa hoy:** con el usuario sin privilegios de la imagen (M-3) y el
+  código montado como volumen del host, esas escrituras fallan con
+  `Permission denied` y `make lint` deja de funcionar dentro del contenedor.
+- **Corrección:** la imagen apunta la cache de ruff a `/tmp` y el target
+  `make lint` le pasa a import-linter un directorio de cache escribible.
+
 ### 1.5 Lo que está bien (y no hay que tocar)
 
 - **Sin `float`** en el código de dinero (AGENTS §6.1) ✓.
@@ -249,7 +281,10 @@ invariante de saldos.
 | M-6 | `docs/architecture.md` | docs(architecture) |
 | M-7 | tres ADRs pendientes | docs(adr) |
 | M-8 | HANDOFF desactualizado | docs(handoff) |
+| M-9 | health check de producción | fix(deploy) |
 | B-6 | test de concurrencia de budgets | test(budgets) |
+| B-7 | `__init__.py` que faltaban | fix(structure) |
+| B-8 | cache de los linters | fix(infra) |
 
 Además, por pedido explícito:
 
