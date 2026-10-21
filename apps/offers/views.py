@@ -30,6 +30,7 @@ class OfferListCreateView(APIView):
     @extend_schema(
         responses={200: OfferSerializer},
         summary='Listar las ofertas propias',
+        operation_id='offers_list',
     )
     def get(self, request):
         """Lista las ofertas publicadas por el usuario autenticado."""
@@ -72,6 +73,7 @@ class OfferDetailView(APIView):
     @extend_schema(
         responses={200: OfferSerializer},
         summary='Ver una oferta propia',
+        operation_id='offers_retrieve',
     )
     def get(self, request, offer_id):
         """Devuelve la oferta del prestamista autenticado."""

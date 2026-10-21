@@ -169,6 +169,7 @@ class TransactionListCreateView(APIView):
     @extend_schema(
         responses={200: LedgerTransactionSerializer},
         summary='Listar los movimientos del usuario',
+        operation_id='ledger_transactions_list',
     )
     def get(self, request):
         """Lista los movimientos creados por el usuario autenticado."""
@@ -210,6 +211,7 @@ class TransactionDetailView(APIView):
     @extend_schema(
         responses={200: LedgerTransactionSerializer},
         summary='Ver un movimiento propio',
+        operation_id='ledger_transactions_retrieve',
     )
     def get(self, request, transaction_id):
         """Devuelve el movimiento indicado si pertenece al usuario."""

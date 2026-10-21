@@ -56,6 +56,7 @@ class PositionListCreateView(APIView):
     @extend_schema(
         responses={200: PositionSerializer},
         summary='Listar las posiciones propias',
+        operation_id='investments_positions_list',
     )
     def get(self, request):
         """Lista las posiciones de inversión del usuario."""
@@ -108,6 +109,7 @@ class PositionDetailView(APIView):
     @extend_schema(
         responses={200: PositionDetailSerializer},
         summary='Ver una posición de inversión propia',
+        operation_id='investments_positions_retrieve',
     )
     def get(self, request, position_id):
         """Devuelve la posición del usuario con el detalle del producto."""

@@ -152,12 +152,14 @@ vienen de AGENTS.md §6 y están garantizadas en código y en la base de datos.
 
 ### 6.1 Commits (log real y completo, `git log --oneline`)
 
-Log completo del repo. Los 2 commits de este mismo `HANDOFF.md` están
+Log completo del repo. Los 4 commits de este mismo `HANDOFF.md` están
 listados; el commit final que agrega esta fila no puede listarse a sí mismo
-(tras el push, `git log --oneline | wc -l` da **65**).
+(tras el push, `git log --oneline | wc -l` da **67**).
 
 | Commit | Asunto |
 |---|---|
+| `c4be917` | docs: refine handoff |
+| `ed9e602` | docs: list the handoff commits in the section 6 log table |
 | `57b1cf4` | docs: refine handoff sections per client review |
 | `cffd42e` | docs: add handoff document with current repo state |
 | `867d1fa` | chore: ignore generated openapi schema files |
@@ -252,7 +254,7 @@ listados; el commit final que agrega esta fila no puede listarse a sí mismo
 | Migraciones | `docker compose run --rm web python manage.py makemigrations --check --dry-run` | No changes detected |
 | System checks | `docker compose run --rm web python manage.py check` | System check identified no issues |
 | Pre-commit (host) | `python -m pre_commit run --all-files` | ruff / ruff-format / import-linter: Passed |
-| OpenAPI | `docker compose run --rm web python manage.py spectacular --validate --fail-on-warn --file schema.yml` | **FALLA: 1 error, 7 warnings** (ver §11) |
+| OpenAPI | `docker compose run --rm web python manage.py spectacular --validate --fail-on-warn --file schema.yml` | **PASA: 0 errores, 0 warnings** |
 | Estado del repo | `git status` | limpio; `main` **1 commit adelante** de `origin/main` (el de este documento, sin push) |
 
 **Pendiente de la Fase 0:** nada. La Fase 0 quedó cerrada (bloques A, B, C y D) con
@@ -304,7 +306,7 @@ Solo las decisiones **nuevas** de los bloques 1A → 5. Las de AGENTS.md §17
 | P10 | La migración que cambia `id` de `BigAutoField` a `UUIDField` fallaba con `cannot cast type bigint to uuid` | Base de datos de desarrollo con datos: se recreó la base y se regeneró la migración inicial con el modelo ya corregido |
 | P11 | `makemigrations` generaba una migración `0002_alter_user_id` que no se podía aplicar | Se aplicó el modelo definitivo antes de generar la migración, y la migración inicial quedó con el `UUIDField` |
 | P12 | Los tests de `loans` e `investments` violaban el contrato de `import-linter` importando `ledger.models` / `offers.models` | Se reemplazaron por los selectores y servicios públicos (`ledger.selectors.get_user_wallet`, `get_balance_breakdown`, `list_transactions_for_user`) y por literales de estado |
-| P13 | `spectacular` genera el esquema con 1 error y 7 warnings | **Pendiente**: ver §11. No bloquea los tests pero sí el check de `--fail-on-warn` |
+| P13 | `spectacular` genera el esquema con 1 error y 7 warnings | **Resuelto** (ver §11, ítem 1): 0 errores y 0 warnings. La CI valida el esquema con `--validate --fail-on-warn` |
 | P14 | `pytest.raises(Exception)` disparaba el linter `B017` | Se reemplazó por la excepción concreta (`InsufficientFunds`) |
 
 ---
@@ -401,8 +403,8 @@ docker compose run --rm web python manage.py check
 docker compose run --rm web python manage.py spectacular --validate --fail-on-warn --file schema.yml
 ```
 
-> **Hoy este comando FALLA** (1 error, 7 warnings). Ver §11, primer pendiente.
-> Sin `--validate` el esquema se genera igual (`schema.yml`), pero con los mismos avisos.
+> Este comando **PASA**: 0 errores y 0 warnings. Es el mismo que corre la CI.
+> La CI lo ejecuta en el job *quality* y falla si aparece cualquier warning.
 
 ### Management commands
 
@@ -496,13 +498,11 @@ requieren autenticación JWT salvo `auth/register`, `auth/login` y
 
 Orden real de lo que falta, de mayor a menor prioridad.
 
-1. **Corregir el esquema OpenAPI.** Hoy
-   `python manage.py spectacular --validate --fail-on-warn --file schema.yml`
-   falla con **1 error y 7 warnings**:
-   - **Error**: `apps/loans/views.py:99 [InstallmentPayView]: unable to guess serializer` — la vista no declara `serializer_class`, así que **no aparece en el esquema**. Solución: agregarle un `serializer_class` (o `get_serializer_class`) a `InstallmentPayView`.
-   - **Warning** (colisión de enum `status`): el mismo nombre de campo `status` se usa en varios choice sets y se resolvió como `StatusF63Enum` y `Status36cEnum`. Solución: `ENUM_NAME_OVERRIDES` en `SPECTACULAR_SETTINGS`.
-   - **Warnings** (operationId duplicados): `kyc_retrieve`, `ledger_transactions_retrieve`, `loans_retrieve`, `offers_retrieve` e `investments_positions_retrieve` colisionan entre la ruta de lista y la de detalle (se resuelven con sufijos numéricos). Solución: `operation_id` explícito en el `extend_schema` de cada vista.
-   - **Meta**: `spectacular --validate --fail-on-warn` con **0 errores y 0 warnings**. Agregar ese comando a la CI.
+1. **Esquema OpenAPI.** ✅ **Resuelto** (commit `fix(openapi): generate a clean OpenAPI schema`): `python manage.py spectacular --validate --fail-on-warn --file schema.yml` corre con **0 errores y 0 warnings** y la CI lo valida (job *quality*). Se hizo:
+   - `InstallmentPayView` declara `serializer_class = InstallmentSerializer` y `extend_schema(request=None)` (la vista no lee un body).
+   - `ENUM_NAME_OVERRIDES` en `SPECTACULAR_SETTINGS`: `LoanStatusEnum` y `PositionStatusEnum` reemplazan los nombres colisionados `Status36cEnum` / `StatusF63Enum`.
+   - `operation_id` explícito para las 5 pares lista/detalle (`kyc_list`/`kyc_retrieve`, `ledger_transactions_list`/`ledger_transactions_retrieve`, `loans_list`/`loans_retrieve`, `offers_list`/`offers_retrieve`, `investments_positions_list`/`investments_positions_retrieve`).
+   - Cobertura de regresión en `apps/core/tests/test_openapi.py`.
 2. **Bloque 6 — `budgets`, `reports`, `notifications`** (nadie empezó). Los modelos ya están definidos en AGENTS §7; `reports` es solo lectura y `notifications` usa Celery (hoy `config/celery.py` no existe).
 3. **Bloque 7 — `payments` con proveedor real** (al final, a propósito). Hoy los depósitos y retiros son **simulados** y están apagados en producción por el system check `ledger.E001`: `ledger.withdraw` es alcanzable por HTTP pero **siempre devuelve 400** en producción (ver §9 y el diagnóstico del bloque 5).
 4. **Cerrar la brecha de `config/celery.py` y el worker de Celery**: AGENTS §4 los lista y §14 exige que `docker compose up` levante el worker; hoy no existe ninguno de los dos.
@@ -571,3 +571,4 @@ dinero sin KYC aprobado.
 | 2026-10-21 | Documento creado: estado real del repo (63 commits), estado verificado de los checks, decisiones D1-D18, problemas P1-P14, endpoints reales extraídos del `URLConf`, comandos de ejecución validados y orden de los próximos pasos. **Nota**: `HANDOFF.md` **no existía** en el repo (ni en el árbol de trabajo, ni en el historial de git de ninguna rama, ni en el filesystem): se creó desde cero siguiendo la estructura de secciones indicada. |
 | 2026-10-21 | Ajustes pedidos por el cliente: §6.2 ahora es un resumen de 1-2 líneas por bloque (sin el detalle de archivos por commit); §4 pasó a "Requisitos, entorno local e invariantes del dinero" con los tres invariantes del ledger (saldo no negativo solo en `user_wallet`, `idempotency_key` única por `(usuario, clave)`, suma de saldos por moneda = 0) y §9 los referencia; §11.1 nueva con las decisiones abiertas con el cliente. |
 | 2026-10-21 | Tercer ajuste pedido por el cliente: §6.2 sin la columna de commits; §11.1 con O5 renombrado a PLA/FT y O6 nuevo sobre CFT (costo financiero total) en la comparación de ofertas; §11 renombra Fase 2 → Bloque 6 y Fase 3 → Bloque 7, suma el ítem de programar `mark_overdue_loans` y `settle_investments` con Celery beat, el ítem de Producción (/health/, Sentry, backups, HTTPS, CORS) y aclara que `IsKycApproved` es una capa extra porque los services ya exigen KYC. |
+| 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). §6.1, §6.3, §8 (P13), §10 y §11 (ítem 1) actualizados. |

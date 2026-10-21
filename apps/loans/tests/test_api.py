@@ -374,3 +374,11 @@ def test_pay_installment_of_lender_returns_403(client):
     response = client.post(f'/api/v1/loans/{loan.id}/installments/1/pay/')
 
     assert response.status_code == 403
+
+
+def test_installment_pay_view_declares_its_serializer():
+    """La vista de pago de cuotas declara su serializer (lo necesita el esquema OpenAPI)."""
+    from apps.loans.serializers import InstallmentSerializer
+    from apps.loans.views import InstallmentPayView
+
+    assert InstallmentPayView.serializer_class is InstallmentSerializer

@@ -63,6 +63,9 @@ jobs:
       - name: Run import-linter
         run: import-linter
 
+      - name: Validate OpenAPI schema
+        run: python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml
+
   migrations:
     name: Check Migrations
     runs-on: ubuntu-latest

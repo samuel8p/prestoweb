@@ -137,6 +137,7 @@ class KycView(APIView):
     @extend_schema(
         responses={200: KYCVerificationSerializer},
         summary='Ver el estado KYC propio',
+        operation_id='kyc_list',
     )
     def get(self, request):
         """Devuelve la verificación KYC vigente del usuario, o null si no tiene."""
@@ -175,6 +176,7 @@ class KycDetailView(APIView):
     @extend_schema(
         responses={200: KYCVerificationSerializer},
         summary='Ver una verificación KYC propia',
+        operation_id='kyc_retrieve',
     )
     def get(self, request, verification_id):
         """Devuelve la verificación KYC indicada si pertenece al usuario."""

@@ -92,6 +92,12 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'SCHEMA_PATH_PREFIX': '/api/v1',
+    # Nombres explícitos para los choice sets de `status` que colisionaban entre
+    # componentes (el de los préstamos y el de las posiciones de inversión).
+    'ENUM_NAME_OVERRIDES': {
+        'LoanStatusEnum': 'apps.loans.models.Loan.Status',
+        'PositionStatusEnum': 'apps.investments.models.Position.Status',
+    },
 }
 
 MIDDLEWARE = [

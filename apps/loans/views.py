@@ -40,6 +40,7 @@ class LoanListCreateView(APIView):
     @extend_schema(
         responses={200: LoanSerializer},
         summary='Listar los préstamos propios',
+        operation_id='loans_list',
     )
     def get(self, request):
         """Lista los préstamos del usuario como prestatario o prestamista."""
@@ -87,6 +88,7 @@ class LoanDetailView(APIView):
     @extend_schema(
         responses={200: LoanDetailSerializer},
         summary='Ver un préstamo propio con snapshot y cuotas',
+        operation_id='loans_retrieve',
     )
     def get(self, request, loan_id):
         """Devuelve el préstamo con su snapshot y sus cuotas."""
@@ -100,8 +102,10 @@ class InstallmentPayView(APIView):
     """Pago de una cuota del préstamo."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = InstallmentSerializer
 
     @extend_schema(
+        request=None,
         responses={200: InstallmentSerializer},
         summary='Pagar una cuota del préstamo',
     )
