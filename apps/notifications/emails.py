@@ -24,6 +24,8 @@ def build_email(notification: Notification) -> tuple[str, str]:
         return _installment_overdue_email(notification)
     if notification.event_type == Notification.EventType.INVESTMENT_SETTLED:
         return _investment_settled_email(notification)
+    if notification.event_type == Notification.EventType.BUDGET_ALERT:
+        return _budget_alert_email(notification)
     return SUBJECT_FALLBACK, 'Tenés un aviso nuevo en Presto.\n'
 
 
@@ -77,3 +79,30 @@ def _investment_settled_email(notification: Notification) -> tuple[str, str]:
         'Podés ver tus posiciones desde Presto.\n'
     )
     return 'Presto: tu inversión se liquidó', body
+
+
+def _budget_alert_email(notification: Notification) -> tuple[str, str]:
+    """Email de la alerta de presupuesto."""
+    from datetime import UTC, datetime
+
+    from apps.budgets.selectors import find_budget_by_alert_reference, get_budget_status
+
+    now = datetime.now(UTC)
+    budget = find_budget_by_alert_reference(
+        user_id=notification.user_id,
+        reference_id=notification.reference_id,
+        year=now.year,
+        month=now.month,
+    )
+    if budget is None:
+        return SUBJECT_FALLBACK, 'Alcanzaste el umbral de un presupuesto en Presto.\n'
+    status = get_budget_status(budget=budget, year=now.year, month=now.month)
+    body = (
+        'Hola,\n\n'
+        f'Alcanzaste el {budget.alert_threshold}% del presupuesto de '
+        f'{budget.category.name}.\n'
+        f'Llevás gastados {status["spent_amount"]} {budget.currency} de un límite de '
+        f'{status["limit_amount"]} {budget.currency}.\n\n'
+        'Podés ver el detalle de tus presupuestos desde Presto.\n'
+    )
+    return 'Presto: alcanzaste el umbral de un presupuesto', body

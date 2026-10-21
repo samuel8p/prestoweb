@@ -16,6 +16,9 @@ from apps.core.money import round_two
 from apps.ledger import selectors as ledger_selectors
 from apps.loans import selectors as loans_selectors
 
+# Namespace para derivar el identificador de la alerta de un presupuesto.
+ALERT_NAMESPACE = uuid.UUID('9f1c1f4e-6a2b-5c8d-9e3f-2b7a4d6c1e05')
+
 
 def list_categories_for_user(user_id: uuid.UUID) -> QuerySet[Category]:
     """Lista las categorías de gasto del usuario.
@@ -287,6 +290,47 @@ def list_spending_movements(
             }
         )
     return rows
+
+
+def budget_alert_reference(budget_id: uuid.UUID, year: int, month: int) -> uuid.UUID:
+    """Devuelve el identificador de la alerta de un presupuesto en un mes.
+
+    Es determinista: el mismo presupuesto en el mismo mes siempre da el mismo
+    identificador, y por eso la alerta sale **una sola vez** por presupuesto y
+    mes (la unicidad del aviso).
+
+    Args:
+        budget_id: identificador del presupuesto.
+        year: año del período.
+        month: mes del período.
+
+    Returns:
+        El identificador de la alerta.
+    """
+    return uuid.uuid5(ALERT_NAMESPACE, f'{budget_id}-{year}-{month}')
+
+
+def find_budget_by_alert_reference(
+    user_id: uuid.UUID,
+    reference_id: uuid.UUID,
+    year: int,
+    month: int,
+) -> Budget | None:
+    """Devuelve el presupuesto al que corresponde un identificador de alerta.
+
+    Args:
+        user_id: identificador del usuario.
+        reference_id: identificador de la alerta.
+        year: año del período.
+        month: mes del período.
+
+    Returns:
+        El Budget del usuario o None.
+    """
+    for budget in list_budgets_for_user(user_id=user_id):
+        if budget_alert_reference(budget_id=budget.id, year=year, month=month) == reference_id:
+            return budget
+    return None
 
 
 def get_budget_status(budget: Budget, year: int, month: int) -> dict:

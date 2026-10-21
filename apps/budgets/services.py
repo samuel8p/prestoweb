@@ -1,10 +1,12 @@
 """Servicios de escritura de la app budgets (interfaz pública)."""
 
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
 
+from apps.budgets import selectors, signals
 from apps.budgets.exceptions import (
     AlreadyCategorized,
     CategoryNotFound,
@@ -158,10 +160,41 @@ def categorize_movement(
         raise NotAnExpense('Ese movimiento no cuenta como gasto.')
     try:
         with transaction.atomic():
-            return Expense.objects.create(
+            expense = Expense.objects.create(
                 user_id=user_id,
                 category=category,
                 ledger_transaction_id=ledger_transaction_id,
             )
     except IntegrityError:
         raise AlreadyCategorized('Ese movimiento ya está categorizado.') from None
+    _alert_budgets(user_id=user_id, category_id=category.id)
+    return expense
+
+
+def _alert_budgets(user_id: uuid.UUID, category_id: uuid.UUID) -> None:
+    """Emite la señal de alerta de los presupuestos de la categoría que cruzaron el umbral.
+
+    La señal lleva un identificador derivado del presupuesto y del mes, así que
+    el mismo presupuesto avisa **una sola vez por mes** (lo resuelve la
+    unicidad del aviso).
+
+    Args:
+        user_id: identificador del usuario.
+        category_id: categoría del gasto recién categorizado.
+    """
+    now = datetime.now(UTC)
+    for budget in selectors.list_budgets_for_user(user_id=user_id):
+        if budget.category_id != category_id:
+            continue
+        status = selectors.get_budget_status(budget=budget, year=now.year, month=now.month)
+        if not status['alert_triggered']:
+            continue
+        signals.budget_alert.send(
+            sender=None,
+            user_id=user_id,
+            reference_id=selectors.budget_alert_reference(
+                budget_id=budget.id,
+                year=now.year,
+                month=now.month,
+            ),
+        )
