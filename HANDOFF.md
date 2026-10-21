@@ -26,8 +26,9 @@ reversos y saldo nunca negativo en las billeteras de usuario.
 **Hoja de ruta:** Fase 0 (Cimientos) **completa**. Fase 1 **completa** (1A identity
 + 1B ledger). Bloques 3 (offers+matching), 4 (loans) y 5 (investments) **completos**.
 El **Bloque 6** (budgets/reports/notifications) está **en curso**: la
-infraestructura de Celery (worker, beat y tasks periódicas) ya está; las tres apps
-todavía no. Falta el **Bloque 7** (payments con proveedor real).
+infraestructura de Celery (worker, beat y tasks periódicas) y la app **`budgets`**
+(gastos categorizados y presupuestos mensuales) ya están; `reports` y
+`notifications` todavía no. Falta el **Bloque 7** (payments con proveedor real).
 
 **Decisiones de negocio ya confirmadas por el cliente:** la regla de "gastado" de
 los presupuestos (O4) está resuelta y esperando implementación (§11.2). Las
@@ -88,9 +89,11 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 │   │   ├── management/commands/  #   mark_overdue_loans
 │   │   ├── tasks.py              #   task Celery mark_overdue_loans
 │   │   └── tests/
-│   └── investments/              # InvestmentProduct, Position (plazo fijo)
-│       ├── management/commands/  #   settle_investments
-│       ├── tasks.py              #   task Celery settle_investments
+│   ├── investments/              # InvestmentProduct, Position (plazo fijo)
+│   │   ├── management/commands/  #   settle_investments
+│   │   ├── tasks.py              #   task Celery settle_investments
+│   │   └── tests/
+│   └── budgets/                  # Category, Budget, Expense (gastos categorizados)
 │       └── tests/
 ├── config/
 │   ├── settings/                 # base, local, test, production
@@ -99,11 +102,12 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 │   ├── wsgi.py, asgi.py
 └── docs/
     └── adr/
-        └── 0001-celery-redis-cola-y-scheduler.md   # primer ADR del repo
+        ├── 0001-celery-redis-cola-y-scheduler.md
+        └── 0002-budgets-derivacion-del-gasto.md
 ```
 
 Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
-`investments`. **No existen** (aún): `budgets`, `reports`, `notifications`,
+`investments`, `budgets`. **No existen** (aún): `reports`, `notifications`,
 `payments`. `docs/architecture.md` **tampoco existe**.
 
 ## 4. Entorno local e invariantes del dinero
@@ -177,12 +181,19 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 ### 6.1 Commits (log real y completo, `git log --oneline`)
 
-Los 5 commits anteriores de este mismo `HANDOFF.md` están listados; este commit
+Los 6 commits anteriores de este mismo `HANDOFF.md` están listados; este commit
 no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**74**).
+**82**).
 
 | Commit | Asunto |
-|---|---|
+|---|---|---|
+| `92f2e1a` | chore(budgets): import-linter contracts, coverage gate and ADR |
+| `9125429` | feat(budgets): budgets api |
+| `9f1a546` | feat(budgets): monthly spending per category and currency |
+| `91b3858` | feat(budgets): categorize ledger movements as personal expenses |
+| `e18b0a7` | feat(budgets): budgets app with categories and monthly budgets |
+| `82793c2` | feat(loans): link loan movements to the ledger and expose the breakdown |
+| `29f9b96` | feat(ledger): movement detail selector with legs and reversal state |
 | `b3cbf8b` | docs: register the celery infrastructure decision |
 | `7fe012f` | test(loans,investments): cover the management commands and their celery tasks |
 | `393b422` | chore(infra): run the celery worker and beat in docker compose |
@@ -271,8 +282,8 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Bloque 4 — loans** | ✅ completa | `Loan` / `OfferTermsSnapshot` / `Installment`, aceptación atómica con snapshot inmutable, pago de cuotas en orden, marcado de vencidos, máquina de estados y API con aislamiento por partes. |
 | **Bloque 5 — investments (plazo fijo)** | ✅ completa | `InvestmentProduct` (solo staff) y `Position` de plazo fijo, apertura atómica contra la cuenta `system`, liquidación idempotente con interés simple y API de productos y posiciones. |
 | **Bloque 6a — infraestructura Celery** | ✅ completa | `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario, servicios `worker` y `beat` en el compose, tasks `mark_overdue_loans` (00:05 UTC) y `settle_investments` (00:15 UTC). ADR 0001. |
-| **Bloque 6b — `budgets`** | ❌ no empezada | App inexistente. La decisión O4 ya está resuelta (§11.2): falta escribir el código. |
-| **Bloque 6c — `reports`** | ❌ no empezada | Solo lectura; sin modelos ni endpoints especificados (ver §11.3). |
+| **Bloque 6b — `budgets`** | ✅ completa | `Category`, `Budget` y `Expense`; gastos categorizados sobre movimientos del ledger (el importe se deriva, no se guarda), presupuestos mensuales por categoría y moneda, API y contratos de import-linter. ADR 0002. |
+| **Bloque 6c — `reports`** | ❌ no empezada | Solo lectura; sin modelos ni endpoints especificados (ver §11.4). |
 | **Bloque 6d — `notifications`** | ❌ no empezada | Ya tiene la cola y el worker; falta el modelo, los disparadores, las tareas de email y la configuración de email. |
 | **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 
@@ -302,18 +313,24 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 - **`investments`**: productos de plazo fijo (solo staff vía admin), apertura
   atómica contra la cuenta `system`, liquidación idempotente con interés simple,
   API de productos y posiciones.
+- **`budgets`**: `Category` (etiqueta de gasto del usuario), `Budget` (límite
+  mensual de una categoría en una moneda, con umbral de alerta en porcentaje) y
+  `Expense` (movimiento del ledger atribuido a una categoría). El **importe no se
+  guarda**: se deriva del ledger al leer. API de categorías, presupuestos, estado
+  y gastos.
 - **Celery**: app, worker, beat, dos tasks periódicas y su cobertura de tests.
 
 ### 6.4 Estado verificado (2026-10-21, comandos del §10)
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web pytest -q` | **407 passed** |
-| Cobertura total | `... pytest --cov=apps --cov-report=term` | **99,07%** (50 statements sin cubrir de 5404) |
+| Tests | `docker compose run --rm web pytest -q` | **491 passed** |
+| Cobertura total | `... pytest --cov=apps --cov-report=term` | **98,85%** (77 statements sin cubrir de 6689) |
+| Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **100%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Cobertura por módulo | idem | `identity/*` 100% · `ledger/services.py` 93% · `ledger/views.py` 100% · `ledger/selectors.py` 100% · `offers/views.py` 100% · `offers/permissions.py` 100% · `loans/services.py` 99% · `loans/tasks.py` 100% · `investments/services.py` 99% · `investments/tasks.py` 100% · `matching/views.py` 97% |
 | Lint | `ruff check .` | All checks passed |
 | Formato | `ruff format --check .` | 151 files already formatted |
-| Límites entre apps | `lint-imports` | **11 kept, 0 broken** |
+| Límites entre apps | `lint-imports` | **16 kept, 0 broken** |
 | Migraciones | `makemigrations --check --dry-run` | No changes detected |
 | System checks | `manage.py check` | System check identified no issues |
 | OpenAPI | `spectacular --validate --fail-on-warn --file schema.yml` | **PASA: 0 errores, 0 warnings** (lo mismo que corre la CI) |
@@ -321,6 +338,8 @@ no puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | Worker | `docker compose logs worker` | `transport: redis://redis:6379/0`, `results: disabled://`, 2 tasks registradas, `ready.` |
 | Beat | `celery -A config inspect conf` | `mark_overdue_loans_diario` → crontab `5 0 * * *`; `settle_investments_diario` → `15 0 * * *` |
 | End-to-end | `celery -A config call apps.loans.tasks.mark_overdue_loans` | task `received` y `succeeded` en el worker |
+| Migraciones de budgets | `manage.py migrate` | `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_...` aplicadas |
+| Endpoints de budgets (runtime) | `curl` contra el `web` local | crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401 |
 | Estado del repo | `git status` | limpio; `main` al día con `origin/main` |
 
 **Logs de evidencia** (fuera del repo, en `A:\Samuel\`): `tdd_6.log` (ciclos
@@ -360,6 +379,11 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D22 | Beat diario en **UTC** (`00:05` y `00:15`), con `crontab` en `config/celery.py` | `TIME_ZONE` del proyecto es UTC; el schedule se referencia por **nombre de task**, así que `config/celery.py` no importa apps de dominio |
 | D23 | Estado del scheduler en un **volumen Docker** (`celerybeat:/var/celerybeat`) | Evita el archivo dentro del working tree (ensuciaría `git status`) sin agregar `django-celery-beat` |
 | D24 | `CELERY_TASK_ALWAYS_EAGER = True` en `config/settings/test.py` | La suite no debe depender de Redis: los tests siguen corriendo contra PostgreSQL real |
+| D25 | El gasto **no guarda importe**: `Expense` guarda usuario, categoría y `ledger_transaction_id`, y el monto se **deriva del ledger al leer** | El ledger es la fuente de verdad (decisión O4): la app no puede guardar una copia que contradiga al ledger. ADR 0002 |
+| D26 | `Budget.category` es una **ForeignKey dentro de la misma app** (columna `category_id`) | AGENTS §5.2 solo prohíbe las FK *entre apps*; el "(UUID, sin FK)" de AGENTS §7 respondía a que el modelo de categorías no existía. ADR 0002 |
+| D27 | `Installment.ledger_transaction_id` y `Loan.ledger_transaction_id` guardan el movimiento del pago y del desembolso, y `loans.selectors` expone el desglose en primitivos | Es la única forma limpia de aplicar el tratamiento interés/capital sin parsear claves de idempotencia ni compartir modelos entre apps |
+| D28 | Las reglas de gasto están en una **función pura** (`_classify_movement`) y se derivan en **lote** | Permite probar las reglas defensivas (transferencia entre cuentas propias) sin construir movimientos imposibles, y evita el N+1 al calcular un presupuesto |
+| D29 | Los conflictos (categoría o presupuesto duplicado, movimiento ya categorizado) usan `APIException` con `status_code = 409` | Sigue el patrón del ledger (`IdempotencyKeyConflict`) y el `exception_handler` devuelve el código propio en los status no genéricos |
 
 ## 8. Problemas y resoluciones
 
@@ -381,6 +405,10 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | P14 | `pytest.raises(Exception)` disparaba el linter `B017` | Se reemplazó por la excepción concreta (`InsufficientFunds`) |
 | P15 | El test de equivalencia command↔task de `settle_investments` falló con `assert 0 == 1` | El command liquida **todas** las posiciones vencidas, no solo una: el test estaba mal, no el código. Se corrigió el test para aislar cada camino (crear el dato del command, correrlo, recién entonces crear el dato de la task) |
 | P16 | El hook de `import-linter` de `pre-commit` falla en el host con `Executable 'lint-imports' not found` | El hook usa `language: system` y en este host `lint-imports.exe` vive en `C:\Users\samue\AppData\Roaming\Python\Python315\Scripts`, que **no está en el PATH**. Antes de commitear: `export PATH="/c/Users/samue/AppData/Roaming/Python/Python315/Scripts:$PATH"`. No es un problema del repo |
+| P18 | El test del filtro de período falló con `IntegrityError: ledger_ledgertransaction rows are immutable: UPDATE is not allowed` | El ledger es inmutable (trigger de PostgreSQL): **no se puede mover la fecha de un movimiento**. El test se reformuló para comparar el mismo movimiento en su mes y en otro período, sin tocar el ledger |
+| P19 | `pytest.raises(Exception)` en un test de budgets disparaba el linter `B017` | Se reemplazó por la excepción concreta (`NotAnExpense`) |
+| P20 | El primer test de `test_spending.py` usaba un usuario ficticio (UUID sin `User`) y fallaba con `KYCNotCompleted` | El ledger exige KYC para mover saldo: la app budgets tiene su propio `create_approved_user()` en `apps/budgets/tests/factories.py`, como las otras apps |
+| P21 | Al escribir este documento, una palabra quedó corrupta (caracteres CJK en §11.2) | Se detectó escaneando los caracteres fuera del alfabeto esperado y se corrigió |
 | P17 | En el entorno local los depósitos y retiros simulados están **deshabilitados** | `docker-compose.yml` **no** define `LEDGER_SIMULATED_DEPOSITS_ENABLED` y `base.py` la default a `False` → el endpoint de movimientos devuelve 400 en local (salvo que el `.env` la encienda). En `config/settings/test.py` sí está en `True`. **Desalineación preexistente, no resuelta** |
 
 ## 9. Notas y glosario
@@ -404,7 +432,12 @@ cambio de rationale) ya están registradas allí y no se repiten.
   para `kind = user_wallet`. Por eso **hoy es imposible** una transferencia entre
   cuentas propias del mismo usuario (sería la misma cuenta, o currencies
   distintas → `CurrencyMismatch`).
-- **Sin implementar todavía**: `budgets`, `reports`, `notifications`, `payments`
+- **Gasto categorizado**: un movimiento del ledger atribuido a una categoría
+  del usuario. Lo que se guarda es la clasificación, **no el importe**: el
+  monto se deriva del ledger al leer (`budgets.selectors`).
+- **Presupuesto mensual**: límite de gasto de una categoría en una moneda. El
+  mes es el calendario en UTC y nunca se suman ARS y USD.
+- **Sin implementar todavía**: `reports`, `notifications`, `payments`
   (proveedor real), `docker-compose.prod.yml` (exigido por AGENTS §4),
   `docs/architecture.md` y el envío del esquema OpenAPI al frontend.
 - **Sin verificar**: no se ejecutó nunca un despliegue real, ni
@@ -525,6 +558,7 @@ docker compose run --rm web lint-imports
 docker compose run --rm web python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml
 docker compose run --rm web python manage.py makemigrations --check --dry-run
 docker compose run --rm web pytest -v --cov=apps --cov-report=term-missing --cov-fail-under=80
+docker compose run --rm web pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90
 ```
 
 ## Endpoints disponibles
@@ -592,14 +626,13 @@ requieren autenticación JWT salvo `auth/register`, `auth/login` y
 
 Orden real de lo que falta, de mayor a menor prioridad.
 
-1. **Bloque 6b — app `budgets` (gastos categorizados + presupuestos mensuales).**
-   Es la tarea recomendada: la decisión O4 ya está resuelta (§11.2) y el andamiaje
-   (Celery, ledger, usuarios) está listo. **Contexto técnico para retomarla** en
-   §11.3.
-2. **Bloque 6c — app `reports`** (solo lectura) y **6d — `notifications`** (emails
-   vía Celery). Para `reports` y `notifications` **faltan especificaciones**
-   (modelos, endpoints, disparadores): hay que cerrarlas con el cliente antes de
-   codear (§11.4).
+1. **Bloque 6c — app `reports`** (solo lectura) y **6d — `notifications`** (emails
+   vía Celery). Es la tarea recomendada: el andamiaje (Celery, ledger, usuarios y
+   `budgets`) está listo. Para `reports` y `notifications` **faltan
+   especificaciones** (modelos, endpoints, disparadores): hay que cerrarlas con
+   el cliente antes de codear (§11.4).
+2. **`Goal`** (AGENTS §7): no se implementó porque no estaba en el alcance de
+   `budgets`; queda pendiente de pedido explícito.
 3. **Bloque 7 — `payments` con proveedor real** (al final, a propósito). Hoy los
    depósitos y retiros son **simulados** y están apagados en producción por el
    system check `ledger.E001`: `ledger.withdraw` es alcanzable por HTTP pero
@@ -664,10 +697,14 @@ Criterio firmado:
 10. `AGENTS.md` **no se modifica** sin autorización explícita.
 11. `reports` y `notifications` **no** se implementan en esa tarea.
 
-Estas decisiones **están escritas pero NO implementadas ni probadas**: la app
-`budgets` no existe, no hay tests y no hay migraciones. La implementación se设计了 en §11.3.
+Estas decisiones **están escritas, implementadas y probadas**: la app `budgets` existe
+(modelos, servicios, selectores, API y tests). La implementación se detalla en §11.3
+y en el ADR 0002.
 
-### 11.3 Contexto técnico para implementar `budgets` (análisis ya verificado en el código)
+### 11.3 Cómo quedó implementada la app `budgets` (referencia para mantenerla)
+
+La decisión O4 (§11.2) ya está implementada. Esto es lo que quedó, para que
+cualquiera que retome el bloque sepa qué hay y por qué:
 
 **Lo que existe y hay que usar**
 
@@ -715,48 +752,39 @@ Estas decisiones **están escritas pero NO implementadas ni probadas**: la app
 - Cada presupuesto se evalúa en **una sola moneda** y contra los gastos de esa
   misma moneda: nunca se mezclan ARS y USD.
 
-**Decisiones de implementación que hay que tomar (o consultar)**
+**Decisiones de implementación que se tomaron**
 
-1. **Dónde vive el importe.** Para no duplicar datos del ledger, la opción más
-   fiel es que el registro de gasto guarde **solo la categorización** (usuario,
-   categoría, id del movimiento) y que el presupuesto **derive** el importe del
-   ledger al leer (con una consulta batch para no hacer N+1). La alternativa es
-   guardar el importe **derivado** al categorizar (snapshot). La primera cumple
-   literal el "no duplicar movimientos"; la segunda simplifica las consultas.
-2. **Enlace movimiento ↔ cuota de préstamo.** Para aplicar el tratamiento
-   interés/capital hace falta **guardar el id de la transacción del pago** en
-   `Installment` (y el del desembolso en `Loan`) y exponer en
-   `loans.selectors` una función que devuelva el desglose (primitivos, nunca
-   modelos de otra app) a partir del id del movimiento.
-3. **Lectura del movimiento.** El `budgets` necesita leer las patas del movimiento
-   (débito en la billetera del usuario y la cuenta de contrapartida) → hace falta
-   un selector nuevo en `ledger.selectors` que devuelva eso (el `budgets` no puede
-   importar `ledger.models`).
-4. **Reversos.** AGENTS §6 dice que un error se corrige con un movimiento
-   compensatorio: si el movimiento categorizado fue revertido, el gasto no debería
-   contar. Hay que decidir e implementar ese filtro (hoy no hay selector para
-   saber si una transacción fue revertida).
-5. **Categoría sin modelo.** AGENTS §7 dice `Budget.category_id` "(UUID, sin FK)"
-   porque el modelo de categorías no existía; con las categorías implementadas
-   puede ser una FK **dentro de la misma app** (como
-   `investments.Position.product`), que AGENTS §5.2 permite. Ojo: AGENTS.md §7
-   describe el modelo con `UUIDField` y **no se puede modificar sin
-   autorización**.
-6. **Gastos manuales.** La decisión del cliente dice "vinculado a los movimientos
-   del ledger **cuando corresponda**": si se admiten gastos sin movimiento (efectivo),
-   hay que definir su impacto en el presupuesto; la lectura más segura es que
-   **todo gasto provenga de un movimiento**.
-7. **Presupuesto mensual.** `Budget.period = 'monthly'`: el cálculo es el mes
-   calendario en UTC (`TIME_ZONE`), y `alert_threshold` es el **porcentaje** del
-   límite a partir del cual se avisa (AGENTS §7 no define el rango ni el
-   comportamiento exacto: 0-100 a definir).
-8. **`Goal`** (AGENTS §7) **no** fue pedido en la tarea: puede quedar fuera o
-   implementarse junto.
+1. **Dónde vive el importe.** El gasto guarda **solo la categorización**
+   (usuario, categoría e id del movimiento) y el presupuesto **deriva** el
+   importe del ledger al leer, con una consulta por lote (sin N+1). Así no hay
+   una copia de los importes que pueda contradecir al ledger.
+2. **Enlace movimiento ↔ cuota de préstamo.** `Installment.ledger_transaction_id`
+   y `Loan.ledger_transaction_id` guardan el movimiento del pago y del
+   desembolso; `loans.selectors.list_loan_movement_breakdowns` devuelve el
+   desglose en primitivos (tipo, capital, interés, moneda) y
+   `get_loan_movement_breakdown` la versión de un movimiento.
+3. **Lectura del movimiento.** `ledger.selectors.list_movement_details` expone
+   las patas (cuenta, kind, usuario, dirección, importe, moneda) y si el
+   movimiento fue revertido, en un lote; `get_movement_detail` resuelve uno.
+   `budgets` nunca importa `ledger.models`.
+4. **Reversos.** Un movimiento revertido no cuenta: el selector lo marca con
+   `is_reversed` y el cálculo lo excluye (probado con un movimiento categorizado y
+   después revertido por staff).
+5. **Categoría.** `Budget.category` es una FK **dentro de la misma app**
+   (columna `category_id`), como `investments.Position.product`. AGENTS §5.2 lo
+   permite y AGENTS §7 **no se modificó** (su §17 exige autorización).
+6. **Gastos manuales.** No hay: todo gasto proviene de un movimiento del ledger.
+7. **Presupuesto mensual.** `Budget.period = 'monthly'`, mes calendario en UTC
+   (`TIME_ZONE`) y `alert_threshold` es un porcentaje entre 0 y 100 con
+   `CheckConstraint` en la base; el importe que dispara la alerta se calcula con
+   `core.money.round_two`.
+8. **`Goal`** (AGENTS §7) quedó **fuera**: no estaba en el alcance pedido.
 
-**Contratos de `import-linter` a agregar** (el CI los corre, si el chequeo falla
-el cambio no se acepta): `budgets` solo puede usar de `ledger`, `loans` e
-`identity` sus `services.py`/`selectors.py`; y `ledger`, `loans` e `identity` no
-pueden importar `budgets`.
+**Contratos de `import-linter` agregados** (el CI los corre y si el chequeo
+falla el cambio no se acepta): `budgets-only-services-and-selectors` (budgets
+llega a `ledger`, `loans`, `identity` y `offers` solo por sus `services.py` y
+`selectors.py`) más `ledger-no-budgets`, `loans-no-budgets`,
+`identity-no-budgets` y `offers-no-budgets`.
 
 **Cobertura**: AGENTS §10 exige **90%** en `budgets/services.py` y hay que sumar
 ese umbral a la CI.
@@ -837,6 +865,10 @@ de Celery, que corren solas una vez por día desde el beat.
 9. **Actualizá `HANDOFF.md`** al cerrar cada bloque, con los resultados reales.
 10. **Preguntá antes de tocar** los management commands, el schema del ledger o
     los contratos de `import-linter`: son parte del contrato del dominio.
+11. **En `budgets`, el importe del gasto no se guarda.** Se deriva del ledger al
+    leer (`budgets.selectors.analyze_movement_spending`). Si hay que cambiar una
+    regla de gasto, se cambia la función pura `_classify_movement` y sus tests, no
+    se agrega un campo con el importe.
 
 ---
 
@@ -850,4 +882,5 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Esquema OpenAPI arreglado**: `spectacular --validate --fail-on-warn` pasa con **0 errores y 0 warnings** y se agregó a la CI (job *quality*). `InstallmentPayView` declara `serializer_class` (+ `request=None` porque no lee body), `ENUM_NAME_OVERRIDES` nombra `LoanStatusEnum` y `PositionStatusEnum`, y las 5 pares lista/detalle tienen `operation_id` explícito. Regresión cubierta en `apps/core/tests/test_openapi.py` (380 tests). |
 | 2026-10-21 | **Infraestructura de Celery (primer cambio del Bloque 6)**: `config/celery.py` (broker Redis, sin result backend persistente, UTC), beat diario con `mark_overdue_loans` (00:05) y `settle_investments` (00:15), servicios `worker` y `beat` en el compose con volumen persistente para el scheduler, tasks en `apps/loans/tasks.py` y `apps/investments/tasks.py` que delegan en los services existentes (los management commands no se modifican), y tests de tasks y de commands (407 tests). Decisiones y consecuencias en `docs/adr/0001-celery-redis-cola-y-scheduler.md`. `AGENTS.md` **no** se modificó (pendiente de aprobación del desarrollador). |
 | 2026-10-21 | **O4 resuelta por el cliente** (criterio completo en §11.2). La app `budgets` **no** se implementó: el trabajo se detuvo en el análisis del código. Se deja el análisis verificado y las decisiones de implementación pendientes en §11.3 para retomar. |
+| 2026-10-21 | **Bloque 6b implementado: app `budgets`** en 7 commits: `29f9b96` selector de patas y reversión en el ledger, `82793c2` `ledger_transaction_id` en `Installment`/`Loan` + selector de desglose, `e18b0a7` app con `Category` y `Budget`, `91b3858` service de categorización, `9f1a546` cálculo del gasto acumulado por categoría y moneda, `9125429` API y OpenAPI sin warnings, `92f2e1a` contratos de import-linter, umbral de cobertura del 90% en la CI y ADR 0002. **491 tests pasan**, cobertura total 98,85% y `budgets/services.py` al 100%. Migraciones: `budgets.0001_initial`, `budgets.0002_expense` y `loans.0002_installment_ledger_transaction_id_and_more`. Los endpoints quedaron verificados en runtime real contra el `web` local (crear categoría 201, listar 200 paginado, crear presupuesto 201, duplicado 409, sin token 401). |
 | 2026-10-21 | **Reescritura del documento** para traspaso a Claude: §2 con el stack real (Celery 5.6.3 en uso), §3 con el árbol real (celery.py, tasks.py, ADR 0001), §5 con las reglas de API/seguridad/testing, §6.3 con los módulos verificados, §6.4 con la tabla de verificaciones comprobadas hoy (407 tests, 99,07% de cobertura, 11 contratos, 5 servicios Up), §7 con D19-D24 (Celery), §8 con P15-P17, §9 corregido (una billetera por moneda; depósitos simulados apagados en local), §10 con los comandos reales (`docker compose ps` muestra 5 servicios), §11 con el bloque 6b como tarea recomendada y §11.3 con el contexto técnico de `budgets`, §11.4 con los huecos de especificación de `reports`/`notifications`, **§13 nueva con las reglas para Claude** y §14 el registro. Se eliminaron datos obsoletos (conteo de commits, "374 passed", "3 servicios Up", `docs/adr/` vacío) sin perder decisiones vigentes. |
