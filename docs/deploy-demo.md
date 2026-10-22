@@ -239,7 +239,277 @@ ARM.
 > La VM arma `linux/arm64` de forma nativa ✓: el `docker compose up --build` de
 > producción no necesita `--platform` ni QEMU ✗.
 
-## 8. Caveats conocidos del modo demo
+## 8. Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel
+
+Despliegue completo en una VM de Oracle Cloud con Ubuntu 24.04 **aarch64**, un
+subdominio de DuckDNS y el front en Vercel. Todo lo de este capítulo está
+verificado contra el stack de producción (ver §7 para la compatibilidad ARM).
+
+> La VM tiene que ser **ARM (Ampere A1)**: el stack es multi-arch ✓ y funciona
+> igual en x86 ✗ (no hace falta nada especial en ninguno de los dos casos ✓).
+
+### 8.1 Preparar la VM
+
+```sh
+# 1. Sistema actualizado
+sudo apt update && sudo apt -y upgrade
+
+# 2. Docker y el plugin de Compose (la forma oficial para Ubuntu)
+sudo apt -y install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt -y install docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+
+# 3. El usuario del servicio en el grupo de Docker (si no, tenés que usar sudo)
+sudo usermod -aG docker $USER && newgrp docker
+docker version && docker compose version
+```
+
+> Con la VM de 1 GB de RAM, agregá **swap** (si no, el build de la imagen se
+> queda sin memoria):
+>
+> ```sh
+> sudo fallocate -l 2G /swapfile
+> sudo chmod 600 /swapfile
+> sudo mkswap /swapfile
+> sudo swapon /swapfile
+> echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+> ```
+>
+> Con 6 GB o 12 GB el swap no hace falta ✗.
+
+### 8.2 Firewall: abrir 80 y 443 en la VM
+
+Las imágenes de Ubuntu de Oracle Cloud traen **reglas de iptables que bloquean
+el tráfico de entrada**, aunque la *Security List* de la VCN esté abierta. Por eso el
+puerto 80/443 hay que abrirlo **dentro de la VM** además de en el panel:
+
+```sh
+# Ver las reglas actuales
+sudo iptables -L INPUT -n -v --line-numbers
+
+# Abrir 80 y 443 (y 22, que suele estar permitido)
+sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Persistir las reglas (sin esto, se pierden al reiniciar)
+sudo apt -y install iptables-persistent
+sudo netfilter-persistent save
+```
+
+En una VM de 1 GB, además, hay que levantar los límites de conexiones:
+
+```sh
+sudo sysctl -w net.netfilter.nf_conntrack_max=65536
+echo 'net.netfilter.nf_conntrack_max=65536' | sudo tee -a /etc/sysctl.conf
+```
+
+En el **panel de Oracle** además hay que confirmar la *Security List* de la VCN
+con los puertos **TCP 80 y 443** (y **22** para el SSH) ✓.
+
+### 8.3 DuckDNS: el subdominio
+
+1. Creá una cuenta en [duckdns.org](https://www.duckdns.org) y anotá el token.
+2. Apuntá el subdominio a la IP pública de la VM:
+
+```sh
+curl -s "https://www.duckdns.org/update?domains=presto-demo&token=TOKEN&ip=IP_PUBLICA"
+```
+
+3. Actualizá el DNS desde la VM (o desde el cron del cliente) cada vez que
+   cambie la IP. Es lo más simple dejar que DuckDNS apunte a la IP y, si la
+   cambia, volver a correr el `curl` ✗ (si la IP es estática ✗ → una sola vez ✓).
+
+El valor de `DOMAIN` en el `.env.prod` es **el subdominio completo** (sin
+`https://` ni puerto), que es lo que Caddy usa para pedir el certificado TLS:
+
+```sh
+DOMAIN=presto-demo.duckdns.org
+```
+
+Con el perfil `proxy` Caddy pide el certificado Let's Encrypt de ese dominio y
+es el único servicio que publica 80/443 ✓.
+
+### 8.4 Clonar y configurar
+
+```sh
+git clone https://github.com/samuel8p/prestoweb.git
+cd prestoweb
+
+cp .env.prod.example .env.prod
+nano .env.prod
+```
+
+Lo mínimo que hay que completar:
+
+```sh
+DJANGO_SECRET_KEY=<una clave de 50 caracteres o más: openssl rand -base64 48>
+DJANGO_ALLOWED_HOSTS=presto-demo.duckdns.org
+POSTGRES_PASSWORD=<una contraseña fuerte>
+DOMAIN=presto-demo.duckdns.org
+# Modo demo: dinero simulado y avisos por consola
+DEMO_MODE=true
+LEDGER_SIMULATED_DEPOSITS_ENABLED=true
+# CORS: el front en Vercel (separados por comas si hay más de uno)
+CORS_ALLOWED_ORIGINS=https://presto-front.vercel.app
+# Recursos (6 GB -> 2 y 2; 12 GB -> 4 y 4)
+GUNICORN_WORKERS=2
+CELERY_WORKER_CONCURRENCY=2
+```
+
+> `DJANGO_SECRET_KEY` se genera una vez y **no se cambia** después: cambiarla
+> invalida los tokens JWT y la blacklist. Para rotarla:
+> `openssl rand -base64 48` y se reinicia el stack ✓.
+
+### 8.5 Levantar
+
+```sh
+# Con el proxy (Caddy + TLS) y los backups diarios
+docker compose -f docker-compose.prod.yml --env-file .env.prod \
+  --profile proxy --profile backup up -d --build
+
+docker compose -f docker-compose.prod.yml --env-file .env.prod ps
+```
+
+El servicio `web` aplica las migraciones solo al arrancar ✓.
+
+### 8.6 Superusuario y datos de prueba
+
+```sh
+# Superusuario para el admin (/admin/)
+docker compose -f docker-compose.prod.yml --env-file .env.prod \
+  exec web python manage.py createsuperuser
+
+# Los management commands que existen (no hay comando de seed: el KYC y los
+# productos de inversión los carga staff desde el admin)
+docker compose -f docker-compose.prod.yml --env-file .env.prod \
+  exec web python manage.py mark_overdue_loans
+docker compose -f docker-compose.prod.yml --env-file .env.prod \
+  exec web python manage.py settle_investments
+```
+
+Para tener **datos de prueba** en la demo hay que Approbar el KYC de un usuario
+y crear un producto de inversión: los dos se hacen desde el admin (el KYC en
+`/admin/identity/kycverification/` y los productos en
+`/admin/investments/investmentproduct/`) ✗ porque ambos están restringidos a
+**staff** por diseño ✓ (§7 del modo demo).
+
+Alternativa, desde el shell de Django (para una demo de punta a punta):
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod \
+  exec web python manage.py shell -c "
+import uuid
+from decimal import Decimal
+from apps.identity.services import register_user, submit_kyc, resolve_kyc
+from apps.investments.models import InvestmentProduct
+user = register_user(email='demo@presto.local', password='PrestoTest123!')
+v = submit_kyc(user=user, documents={})
+resolve_kyc(verification_id=v.id, status='approved', resolved_by_user_id=uuid.uuid4())
+InvestmentProduct.objects.get_or_create(
+    type='fixed_term', currency='ARS', term_days=30,
+    defaults={'annual_rate_tna': Decimal('12.00'), 'min_amount': Decimal('1000.00'), 'status': 'active'})
+print('demo lista')"
+```
+
+### 8.7 Verificar
+
+```sh
+# 1. El servicio responde (desde la VM, por el proxy)
+curl -s https://presto-demo.duckdns.org/health/
+# {"status": "ok"}
+
+curl -s https://presto-demo.duckdns.org/api/v1/meta/
+# {"mode":"demo","simulated_money":true}
+
+# 2. Un depósito simulado (con el token de un usuario con KYC aprobado)
+curl -s -X POST https://presto-demo.duckdns.org/api/v1/ledger/transactions/ \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Idempotency-Key: primer-deposito" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"deposit","currency":"ARS","amount":"1000.00"}'
+
+# 3. El preflight CORS desde el origen del front
+curl -i -X OPTIONS https://presto-demo.duckdns.org/api/v1/ledger/transactions/ \
+  -H "Origin: https://presto-front.vercel.app" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: authorization,content-type" | head -20
+# access-control-allow-origin: https://presto-front.vercel.app
+```
+
+Si el preflight no devuelve el header, revisá `CORS_ALLOWED_ORIGINS` en el
+`.env.prod` (tiene que ser **exactamente** la URL del front ✓) y que el
+servidor de la VM haya leído el archivo:
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec web \
+  python -c "from django.conf import settings; print(settings.CORS_ALLOWED_ORIGINS)"
+```
+
+### 8.8 Actualizar la aplicación
+
+```sh
+cd prestoweb
+git pull
+docker compose -f docker-compose.prod.yml --env-file .env.prod \
+  --profile proxy --profile backup up -d --build
+```
+
+El `up -d --build` recrea lo que cambió ✓ y el `web` aplica las migraciones
+pendientes al arrancar ✓. Para ver qué pasó:
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f web
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f worker
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f caddy
+```
+
+En el modo demo los avisos de las notificaciones salen en los logs del
+`worker` ✓:
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f worker | grep -A 10 "Subject:"
+```
+
+### 8.9 Backups y restauración
+
+El servicio `backup` (perfil `backup`) hace un `pg_dump` comprimido por día y
+conserva los últimos `BACKUP_KEEP` (14 por defecto ✓):
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec backup ls -la /backups
+```
+
+Para **restaurar** un backup (pará la app antes ✗ → el ledger es inmutable y
+una restauración con la app corriendo puede dejar movimientos a medias ✗):
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod stop web worker beat
+
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec backup \
+  bash -c "gunzip -c /backups/presto-AAAAMMDD-HHMMSS.sql.gz | psql -U presto -d presto"
+
+docker compose -f docker-compose.prod.yml --env-file .env.prod start web worker beat
+```
+
+Y una comprobación rápida de que la base quedó entera:
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec db \
+  psql -U presto -d presto -c 'select count(*) from ledger_ledgertransaction'
+```
+
+> El dump es de tipo *plain* con `--no-owner` ✓: se restauran las tablas y los
+> datos ✓, pero no los permisos (`GRANT`) ✗ → revisalos si hacés falta ✓.
+
+## 9. Caveats conocidos del modo demo
 
 - **El KYC se resuelve desde el admin**: para crear ofertas, aceptar préstamos o
   abrir inversiones, el usuario tiene que tener el KYC aprobado. Se aprueba en
@@ -252,7 +522,7 @@ ARM.
 - El `ledger` es **inmutable**: los movimientos no se editan, se revierten con
   un movimiento compensatorio (acción de admin, solo staff).
 
-## 9. Comandos de verificación
+## 10. Comandos de verificación
 
 ```sh
 docker compose run --rm web python -m pytest -q          # suite completa

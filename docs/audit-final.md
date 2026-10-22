@@ -338,7 +338,7 @@ abiertos ✗.
 | D-5 | **Contratos de import-linter** | Ningún cambio propuesto: los 28 contratos cubren el estado actual | No tocar | ⬜ Sin cambios |
 | D-6 | **Avisos fallidos** | Si un envío falla, ¿se reintenta? ¿con qué backoff? ¿y se agrupan varios avisos en un mismo email? | Reintentar con backoff exponencial (3 intentos) y **no** agrupar: un aviso por email es más simple de auditar. Es una decisión de producto | ⬜ Abierto |
 | D-7 | **Negocio** | `payments` (O1: proveedor), custodia (O2), rendimiento de plazos fijos (O3), PLA/FT (O5) y CFT (O6) | Depende del cliente: sin O1 no se puede empezar el Bloque 7 | ⬜ Abierto |
-| D-8 | **CORS real** | Instalar `django-cors-headers` o resolver el CORS en el proxy inverso | Resolverlo en el proxy: menos dependencias y el front igual necesita el dominio configurado | ⬜ Abierto |
+| D-8 | **CORS real** | Instalar `django-cors-headers` o resolver el CORS en el proxy inverso | Resolverlo en el proxy: menos dependencias y el front igual necesita el dominio configurado | ✅ **Resuelto** (2026-10-21): `django-cors-headers` es dependencia de producción, el middleware responde el preflight, `CORS_ALLOWED_ORIGINS` viene del entorno (sin `*`, vacío = ninguno) y no se permiten credenciales (la autenticación va en `Authorization`) |
 | D-9 | **Fijar imágenes a digest** | Fijar `postgres`, `redis` y `caddy` a un digest o a un parche exacto | Fijar a digest: el tag mayor deja entrar parches de seguridad sin control | ⬜ Abierto |
 
 Además, el desarrollador autorizó el **`check --deploy` en la CI** (B-5): la CI

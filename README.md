@@ -133,4 +133,7 @@ cp .env.prod.example .env.prod   # completá los secretos
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 
-La guía de despliegue está en [docs/deploy-demo.md](docs/deploy-demo.md).
+La guía de despliegue está en [docs/deploy-demo.md](docs/deploy-demo.md): incluye
+el paso a paso para **Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel**, la
+compatibilidad ARM, los valores de concurrencia recomendados según la RAM y el
+procedimiento de restauración de backups.
