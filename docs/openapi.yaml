@@ -1,0 +1,2426 @@
+openapi: 3.0.3
+info:
+  title: Presto API
+  version: 1.0.0
+  description: API de finanzas e inversiones con marketplace de préstamos.
+paths:
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Valida las credenciales y devuelve access y refresh tokens.
+      summary: Iniciar sesión y obtener tokens JWT
+      tags:
+        - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+        - jwtAuth: []
+        - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: Devuelve los datos del usuario autenticado y su perfil.
+      summary: Ver el propio perfil
+      tags:
+        - auth
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_me_partial_update
+      description: Actualiza los datos del perfil del usuario autenticado.
+      summary: Actualizar el propio perfil
+      tags:
+        - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeUpdate'
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: Registra un usuario nuevo y devuelve sus datos.
+      summary: Registrar un usuario
+      tags:
+        - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+        - jwtAuth: []
+        - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: auth_token_refresh_create
+      description: Rota el refresh token, blacklista el anterior y devuelve los nuevos
+        tokens.
+      summary: Renovar el access token rotando el refresh token
+      tags:
+        - auth
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/v1/budgets/:
+    get:
+      operationId: budgets_list
+      description: Lista los presupuestos del usuario.
+      summary: Listar los presupuestos propios
+      tags:
+        - budgets
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+          description: ''
+    post:
+      operationId: budgets_create
+      description: Crea el presupuesto mensual de una categoría y moneda.
+      summary: Crear un presupuesto mensual
+      tags:
+        - budgets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBudget'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateBudget'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateBudget'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+          description: ''
+  /api/v1/budgets/{budget_id}/:
+    get:
+      operationId: budgets_retrieve
+      description: Devuelve el presupuesto del usuario.
+      summary: Ver un presupuesto propio
+      parameters:
+        - in: path
+          name: budget_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - budgets
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+          description: ''
+  /api/v1/budgets/{budget_id}/status/:
+    get:
+      operationId: budgets_status
+      description: Devuelve el gastado, el límite y la alerta del presupuesto.
+      summary: Ver el estado del presupuesto
+      parameters:
+        - in: path
+          name: budget_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - budgets
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetStatus'
+          description: ''
+  /api/v1/budgets/categories/:
+    get:
+      operationId: budgets_categories_list
+      description: Lista las categorías de gasto del usuario.
+      summary: Listar las categorías propias
+      tags:
+        - budgets
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    post:
+      operationId: budgets_categories_create
+      description: Crea una categoría de gasto para el usuario.
+      summary: Crear una categoría de gasto
+      tags:
+        - budgets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategory'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateCategory'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateCategory'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/budgets/categories/{category_id}/:
+    get:
+      operationId: budgets_categories_retrieve
+      description: Devuelve la categoría del usuario.
+      summary: Ver una categoría propia
+      parameters:
+        - in: path
+          name: category_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - budgets
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/budgets/expenses/:
+    get:
+      operationId: budgets_expenses_list
+      description: Lista los gastos categorizados del usuario.
+      summary: Listar los gastos propios
+      tags:
+        - budgets
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+          description: ''
+    post:
+      operationId: budgets_expenses_create
+      description: Categoriza un movimiento del ledger como gasto del usuario.
+      summary: Categorizar un movimiento como gasto
+      tags:
+        - budgets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpense'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateExpense'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateExpense'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+          description: ''
+  /api/v1/investments/positions/:
+    get:
+      operationId: investments_positions_list
+      description: Lista las posiciones de inversión del usuario.
+      summary: Listar las posiciones propias
+      tags:
+        - investments
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+          description: ''
+    post:
+      operationId: investments_positions_create
+      description: Abre una posición de inversión a plazo fijo.
+      summary: Abrir una inversión a plazo fijo
+      tags:
+        - investments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenPosition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OpenPosition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OpenPosition'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+          description: ''
+  /api/v1/investments/positions/{position_id}/:
+    get:
+      operationId: investments_positions_retrieve
+      description: Devuelve la posición del usuario con el detalle del producto.
+      summary: Ver una posición de inversión propia
+      parameters:
+        - in: path
+          name: position_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - investments
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionDetail'
+          description: ''
+  /api/v1/investments/products/:
+    get:
+      operationId: investments_products_retrieve
+      description: Lista los productos de inversión disponibles.
+      summary: Listar los productos de inversión activos
+      tags:
+        - investments
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestmentProduct'
+          description: ''
+  /api/v1/kyc/:
+    get:
+      operationId: kyc_list
+      description: Devuelve la verificación KYC vigente del usuario, o null si no
+        tiene.
+      summary: Ver el estado KYC propio
+      tags:
+        - kyc
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCVerification'
+          description: ''
+    post:
+      operationId: kyc_create
+      description: Crea una solicitud de verificación KYC en estado pending.
+      summary: Solicitar la verificación KYC
+      tags:
+        - kyc
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KYCRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KYCRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KYCRequest'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCVerification'
+          description: ''
+  /api/v1/kyc/{verification_id}/:
+    get:
+      operationId: kyc_retrieve
+      description: Devuelve la verificación KYC indicada si pertenece al usuario.
+      summary: Ver una verificación KYC propia
+      parameters:
+        - in: path
+          name: verification_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - kyc
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCVerification'
+          description: ''
+  /api/v1/ledger/accounts/:
+    get:
+      operationId: ledger_accounts_retrieve
+      description: Lista las billeteras del usuario autenticado.
+      summary: Listar las cuentas del usuario
+      tags:
+        - ledger
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: ''
+    post:
+      operationId: ledger_accounts_create
+      description: Crea la billetera del usuario para la moneda indicada.
+      summary: Crear la billetera del usuario en una moneda
+      tags:
+        - ledger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateAccount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateAccount'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: ''
+  /api/v1/ledger/accounts/{account_id}/balance/:
+    get:
+      operationId: ledger_accounts_balance_retrieve
+      description: Devuelve el saldo de la cuenta del usuario autenticado.
+      summary: Ver el saldo de una cuenta propia
+      parameters:
+        - in: path
+          name: account_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - ledger
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+          description: ''
+  /api/v1/ledger/transactions/:
+    get:
+      operationId: ledger_transactions_list
+      description: Lista los movimientos creados por el usuario autenticado.
+      summary: Listar los movimientos del usuario
+      tags:
+        - ledger
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerTransaction'
+          description: ''
+    post:
+      operationId: ledger_transactions_create
+      description: Crea un depósito, retiro o transferencia con idempotencia.
+      summary: Crear un movimiento de dinero
+      tags:
+        - ledger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransaction'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateTransaction'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateTransaction'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerTransaction'
+          description: ''
+  /api/v1/ledger/transactions/{transaction_id}/:
+    get:
+      operationId: ledger_transactions_retrieve
+      description: Devuelve el movimiento indicado si pertenece al usuario.
+      summary: Ver un movimiento propio
+      parameters:
+        - in: path
+          name: transaction_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - ledger
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerTransaction'
+          description: ''
+  /api/v1/loans/:
+    get:
+      operationId: loans_list
+      description: Lista los préstamos del usuario como prestatario o prestamista.
+      summary: Listar los préstamos propios
+      tags:
+        - loans
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+          description: ''
+    post:
+      operationId: loans_create
+      description: Acepta una oferta y devuelve el préstamo creado.
+      summary: Aceptar una oferta y recibir el préstamo
+      tags:
+        - loans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptOffer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AcceptOffer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AcceptOffer'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+          description: ''
+  /api/v1/loans/{loan_id}/:
+    get:
+      operationId: loans_retrieve
+      description: Devuelve el préstamo con su snapshot y sus cuotas.
+      summary: Ver un préstamo propio con snapshot y cuotas
+      parameters:
+        - in: path
+          name: loan_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - loans
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanDetail'
+          description: ''
+  /api/v1/loans/{loan_id}/installments/{number}/pay/:
+    post:
+      operationId: loans_installments_pay_create
+      description: Paga la cuota indicada del préstamo.
+      summary: Pagar una cuota del préstamo
+      parameters:
+        - in: path
+          name: loan_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - in: path
+          name: number
+          schema:
+            type: integer
+          required: true
+      tags:
+        - loans
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Installment'
+          description: ''
+  /api/v1/matching/comparisons/:
+    post:
+      operationId: matching_comparisons_create
+      description: Compara las ofertas indicadas y devuelve sus números.
+      summary: Comparar ofertas
+      tags:
+        - matching
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompareOffers'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CompareOffers'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CompareOffers'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferComparison'
+          description: ''
+  /api/v1/matching/offers/:
+    get:
+      operationId: matching_offers_retrieve
+      description: Busca ofertas activas con los filtros de la query string.
+      summary: Buscar ofertas activas
+      parameters:
+        - in: query
+          name: amount_max
+          schema:
+            type: string
+            format: decimal
+            pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        - in: query
+          name: amount_min
+          schema:
+            type: string
+            format: decimal
+            pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        - in: query
+          name: currency
+          schema:
+            enum:
+              - ARS
+              - USD
+            type: string
+            minLength: 1
+          description: |-
+            * `ARS` - ARS
+            * `USD` - USD
+        - in: query
+          name: max_rate
+          schema:
+            type: string
+            format: decimal
+            pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        - in: query
+          name: ordering
+          schema:
+            enum:
+              - rate
+              - term
+              - amount
+            type: string
+            minLength: 1
+          description: |-
+            * `rate` - rate
+            * `term` - term
+            * `amount` - amount
+        - in: query
+          name: term_months
+          schema:
+            type: integer
+            minimum: 1
+      tags:
+        - matching
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferMatch'
+          description: ''
+  /api/v1/meta/:
+    get:
+      operationId: meta
+      description: Devuelve el modo de la aplicación y si el dinero es simulado.
+      summary: Ver el modo de la aplicación
+      tags:
+        - meta
+      security:
+        - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meta'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      description: Lista los avisos del usuario, del más nuevo al más viejo.
+      summary: Listar los avisos propios
+      tags:
+        - notifications
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/preferences/:
+    get:
+      operationId: notifications_preferences
+      description: Devuelve las preferencias del usuario con todos los eventos.
+      summary: Ver las preferencias de avisos
+      tags:
+        - notifications
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferenceList'
+          description: ''
+    put:
+      operationId: notifications_preferences_update
+      description: Guarda si el usuario quiere recibir un tipo de aviso.
+      summary: Activar o desactivar un tipo de aviso
+      tags:
+        - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NotificationPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NotificationPreference'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreference'
+          description: ''
+  /api/v1/offers/:
+    get:
+      operationId: offers_list
+      description: Lista las ofertas publicadas por el usuario autenticado.
+      summary: Listar las ofertas propias
+      tags:
+        - offers
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+          description: ''
+    post:
+      operationId: offers_create
+      description: Publica una oferta de préstamo. No reserva fondos.
+      summary: Publicar una oferta de préstamo
+      tags:
+        - offers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOffer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateOffer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateOffer'
+        required: true
+      security:
+        - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+          description: ''
+  /api/v1/offers/{offer_id}/:
+    get:
+      operationId: offers_retrieve
+      description: Devuelve la oferta del prestamista autenticado.
+      summary: Ver una oferta propia
+      parameters:
+        - in: path
+          name: offer_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - offers
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+          description: ''
+    patch:
+      operationId: offers_partial_update
+      description: Actualiza los datos de la oferta o la expira.
+      summary: Actualizar o expirar una oferta propia
+      parameters:
+        - in: path
+          name: offer_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      tags:
+        - offers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateOffer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateOffer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateOffer'
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+          description: ''
+  /api/v1/reports/investments/:
+    get:
+      operationId: reports_investments
+      description: Devuelve el resumen de las posiciones de inversión del usuario.
+      summary: Ver el resumen de inversiones
+      tags:
+        - reports
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestmentsReport'
+          description: ''
+  /api/v1/reports/loans/:
+    get:
+      operationId: reports_loans
+      description: Devuelve el resumen de los préstamos del usuario en la moneda pedida.
+      summary: Ver el resumen de préstamos
+      tags:
+        - reports
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoansReport'
+          description: ''
+  /api/v1/reports/movements/:
+    get:
+      operationId: reports_movements
+      description: Devuelve los movimientos del usuario en el rango y la moneda pedidos.
+      summary: Ver los movimientos del usuario en el período
+      tags:
+        - reports
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovementReportRow'
+          description: ''
+  /api/v1/reports/spending/:
+    get:
+      operationId: reports_spending
+      description: Devuelve el gasto acumulado por categoría en el rango y la moneda
+        pedidos.
+      summary: Ver el gasto por categoría del período
+      tags:
+        - reports
+      security:
+        - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpendingReport'
+          description: ''
+components:
+  schemas:
+    AcceptOffer:
+      type: object
+      description: Datos para aceptar una oferta.
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+      required:
+        - offer_id
+    Account:
+      type: object
+      description: Datos de una cuenta y su saldo.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyEnum'
+          readOnly: true
+        kind:
+          allOf:
+            - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - balance
+        - created_at
+        - currency
+        - id
+        - kind
+        - user_id
+    Balance:
+      type: object
+      description: Saldo de una cuenta.
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        currency:
+          type: string
+        balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+        - account_id
+        - balance
+        - currency
+    Budget:
+      type: object
+      description: Presupuesto mensual de una categoría.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        category:
+          allOf:
+            - $ref: '#/components/schemas/Category'
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/PeriodEnum'
+          readOnly: true
+        limit_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyEnum'
+          readOnly: true
+        alert_threshold:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - alert_threshold
+        - category
+        - created_at
+        - currency
+        - id
+        - limit_amount
+        - period
+    BudgetStatus:
+      type: object
+      description: Estado del presupuesto en un período.
+      properties:
+        budget_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        period:
+          type: string
+        currency:
+          type: string
+        year:
+          type: integer
+        month:
+          type: integer
+        limit_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        spent_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        remaining_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        threshold_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        alert_triggered:
+          type: boolean
+      required:
+        - alert_triggered
+        - budget_id
+        - category_id
+        - currency
+        - limit_amount
+        - month
+        - period
+        - remaining_amount
+        - spent_amount
+        - threshold_amount
+        - year
+    Category:
+      type: object
+      description: Categoría de gasto del usuario.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - created_at
+        - id
+        - name
+    CompareOffers:
+      type: object
+      description: Identificadores de las ofertas a comparar.
+      properties:
+        offer_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 2
+      required:
+        - offer_ids
+    CreateAccount:
+      type: object
+      description: Datos para crear la billetera del usuario en una moneda.
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+      required:
+        - currency
+    CreateBudget:
+      type: object
+      description: Datos para crear un presupuesto.
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        limit_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        alert_threshold:
+          type: integer
+          maximum: 100
+          minimum: 0
+      required:
+        - alert_threshold
+        - category_id
+        - currency
+        - limit_amount
+    CreateCategory:
+      type: object
+      description: Datos para crear una categoría de gasto.
+      properties:
+        name:
+          type: string
+          maxLength: 100
+      required:
+        - name
+    CreateExpense:
+      type: object
+      description: Datos para categorizar un movimiento del ledger como gasto.
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        ledger_transaction_id:
+          type: string
+          format: uuid
+      required:
+        - category_id
+        - ledger_transaction_id
+    CreateOffer:
+      type: object
+      description: Datos para publicar una oferta.
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        interest_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        term_months:
+          type: integer
+          minimum: 1
+        requirements:
+          type: string
+          maxLength: 2000
+      required:
+        - amount
+        - currency
+        - interest_rate
+        - term_months
+    CreateTransaction:
+      type: object
+      description: Datos para crear un movimiento de dinero.
+      properties:
+        type:
+          $ref: '#/components/schemas/CreateTransactionTypeEnum'
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        destination_account_id:
+          type: string
+          format: uuid
+          nullable: true
+        description:
+          type: string
+          maxLength: 255
+      required:
+        - amount
+        - currency
+        - type
+    CreateTransactionTypeEnum:
+      enum:
+        - deposit
+        - withdrawal
+        - transfer
+      type: string
+      description: |-
+        * `deposit` - deposit
+        * `withdrawal` - withdrawal
+        * `transfer` - transfer
+    CurrencyEnum:
+      enum:
+        - ARS
+        - USD
+      type: string
+      description: |-
+        * `ARS` - Peso argentino
+        * `USD` - Dólar
+    EventTypeEnum:
+      enum:
+        - installment_due_soon
+        - installment_overdue
+        - investment_settled
+        - budget_alert
+      type: string
+      description: |-
+        * `installment_due_soon` - Cuota por vencer
+        * `installment_overdue` - Cuota vencida
+        * `investment_settled` - Inversión liquidada
+        * `budget_alert` - Alerta de presupuesto
+    Expense:
+      type: object
+      description: 'Gasto personal: un movimiento del ledger con su categoría.'
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        category:
+          allOf:
+            - $ref: '#/components/schemas/Category'
+          readOnly: true
+        ledger_transaction_id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - category
+        - created_at
+        - id
+        - ledger_transaction_id
+    Installment:
+      type: object
+      description: Cuota de un préstamo.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        number:
+          type: integer
+          readOnly: true
+        due_date:
+          type: string
+          format: date
+          readOnly: true
+        principal_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        interest_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/InstallmentStatusEnum'
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+        - amount
+        - due_date
+        - id
+        - interest_amount
+        - number
+        - paid_at
+        - principal_amount
+        - status
+    InstallmentStatusEnum:
+      enum:
+        - pending
+        - paid
+        - overdue
+      type: string
+      description: |-
+        * `pending` - Pendiente
+        * `paid` - Pagada
+        * `overdue` - Vencida
+    InvestmentPosition:
+      type: object
+      description: Una posición de inversión dentro del reporte.
+      properties:
+        position_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        interest_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        status:
+          type: string
+        opened_at:
+          type: string
+          format: date-time
+        maturity_date:
+          type: string
+          format: date
+      required:
+        - amount
+        - interest_amount
+        - maturity_date
+        - opened_at
+        - position_id
+        - product_id
+        - status
+    InvestmentProduct:
+      type: object
+      description: Datos de un producto de inversión.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/InvestmentProductTypeEnum'
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyEnum'
+          readOnly: true
+        term_days:
+          type: integer
+          readOnly: true
+        annual_rate_tna:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          readOnly: true
+          description: TNA anual en porcentaje (ej. 12.00 = 12% TNA).
+        min_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/InvestmentProductStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - annual_rate_tna
+        - created_at
+        - currency
+        - id
+        - min_amount
+        - status
+        - term_days
+        - type
+    InvestmentProductStatusEnum:
+      enum:
+        - active
+        - matured
+        - cancelled
+      type: string
+      description: |-
+        * `active` - Activo
+        * `matured` - Vencido
+        * `cancelled` - Cancelado
+    InvestmentProductTypeEnum:
+      enum:
+        - fixed_term
+      type: string
+      description: '* `fixed_term` - Plazo fijo'
+    InvestmentsReport:
+      type: object
+      description: El reporte de inversiones.
+      properties:
+        currency:
+          type: string
+        total_invested:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        interest_expected:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        interest_earned:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvestmentPosition'
+      required:
+        - currency
+        - interest_earned
+        - interest_expected
+        - positions
+        - total_invested
+    KYCRequest:
+      type: object
+      description: Metadata de documentos para solicitar la verificación KYC.
+      properties:
+        documents: {}
+      required:
+        - documents
+    KYCVerification:
+      type: object
+      description: Estado de una verificación KYC.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/KYCVerificationStatusEnum'
+          readOnly: true
+        requested_at:
+          type: string
+          format: date-time
+          readOnly: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        resolved_by_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        documents:
+          readOnly: true
+      required:
+        - documents
+        - id
+        - requested_at
+        - resolved_at
+        - resolved_by_user_id
+        - status
+    KYCVerificationStatusEnum:
+      enum:
+        - pending
+        - approved
+        - rejected
+      type: string
+      description: |-
+        * `pending` - Pendiente
+        * `approved` - Aprobada
+        * `rejected` - Rechazada
+    KindEnum:
+      enum:
+        - user_wallet
+        - custody
+        - system
+      type: string
+      description: |-
+        * `user_wallet` - Billetera de usuario
+        * `custody` - Custodia
+        * `system` - Sistema
+    LedgerTransaction:
+      type: object
+      description: Datos de una transacción del libro mayor.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/LedgerTransactionTypeEnum'
+          readOnly: true
+        idempotency_key:
+          type: string
+          readOnly: true
+        created_by_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        destination_account_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        reverses:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - created_at
+        - created_by_user_id
+        - description
+        - destination_account_id
+        - id
+        - idempotency_key
+        - occurred_at
+        - reverses
+        - type
+    LedgerTransactionTypeEnum:
+      enum:
+        - deposit
+        - withdrawal
+        - transfer
+        - interest
+        - fee
+        - reversal
+      type: string
+      description: |-
+        * `deposit` - Depósito
+        * `withdrawal` - Retiro
+        * `transfer` - Transferencia
+        * `interest` - Interés
+        * `fee` - Comisión
+        * `reversal` - Reverso
+    Loan:
+      type: object
+      description: Datos de un préstamo.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        borrower_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        lender_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        offer_id:
+          type: string
+          format: uuid
+          readOnly: true
+        principal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyEnum'
+          readOnly: true
+        interest_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          readOnly: true
+          description: TNA anual en porcentaje (ej. 24.00 = 24% TNA).
+        term_months:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/LoanStatusEnum'
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - accepted_at
+        - borrower_user_id
+        - currency
+        - id
+        - interest_rate
+        - lender_user_id
+        - offer_id
+        - principal
+        - status
+        - term_months
+    LoanDetail:
+      type: object
+      description: Préstamo con su snapshot de términos y sus cuotas.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        borrower_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        lender_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        offer_id:
+          type: string
+          format: uuid
+          readOnly: true
+        principal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyEnum'
+          readOnly: true
+        interest_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          readOnly: true
+          description: TNA anual en porcentaje (ej. 24.00 = 24% TNA).
+        term_months:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/LoanStatusEnum'
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+        terms_snapshot:
+          allOf:
+            - $ref: '#/components/schemas/OfferTermsSnapshot'
+          readOnly: true
+        installments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installment'
+          readOnly: true
+      required:
+        - accepted_at
+        - borrower_user_id
+        - currency
+        - id
+        - installments
+        - interest_rate
+        - lender_user_id
+        - offer_id
+        - principal
+        - status
+        - term_months
+        - terms_snapshot
+    LoanStatusEnum:
+      enum:
+        - active
+        - paid
+        - defaulted
+      type: string
+      description: |-
+        * `active` - Activo
+        * `paid` - Pagado
+        * `defaulted` - En mora
+    LoansReport:
+      type: object
+      description: El reporte de préstamos.
+      properties:
+        currency:
+          type: string
+        as_borrower:
+          $ref: '#/components/schemas/LoansRoleSummary'
+        as_lender:
+          $ref: '#/components/schemas/LoansRoleSummary'
+      required:
+        - as_borrower
+        - as_lender
+        - currency
+    LoansRoleSummary:
+      type: object
+      description: El resumen de los préstamos del usuario en un rol.
+      properties:
+        active_loans:
+          type: integer
+        outstanding_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        interest_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        next_installments:
+          type: array
+          items:
+            $ref: '#/components/schemas/NextInstallment'
+      required:
+        - active_loans
+        - interest_amount
+        - next_installments
+        - outstanding_amount
+    Login:
+      type: object
+      description: Credenciales de acceso.
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+        - email
+        - password
+    LoginResponse:
+      type: object
+      description: Respuesta del login con tokens y datos del usuario.
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - access
+        - refresh
+        - user
+    Meta:
+      type: object
+      description: Información pública del modo en que corre la aplicación.
+      properties:
+        mode:
+          type: string
+        simulated_money:
+          type: boolean
+      required:
+        - mode
+        - simulated_money
+    MovementReportRow:
+      type: object
+      description: Un movimiento del ledger dentro del reporte.
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        currency:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        description:
+          type: string
+        is_reversed:
+          type: boolean
+      required:
+        - amount
+        - currency
+        - description
+        - id
+        - is_reversed
+        - occurred_at
+        - type
+    NextInstallment:
+      type: object
+      description: La próxima cuota a pagar de un préstamo.
+      properties:
+        loan_id:
+          type: string
+          format: uuid
+        number:
+          type: integer
+        due_date:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+        - amount
+        - due_date
+        - loan_id
+        - number
+    Notification:
+      type: object
+      description: Un aviso del usuario.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_type:
+          allOf:
+            - $ref: '#/components/schemas/EventTypeEnum'
+          readOnly: true
+        reference_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/NotificationStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        sent_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        error:
+          type: string
+          readOnly: true
+      required:
+        - created_at
+        - error
+        - event_type
+        - id
+        - reference_id
+        - sent_at
+        - status
+        - user_id
+    NotificationPreference:
+      type: object
+      description: La preferencia de un tipo de evento.
+      properties:
+        event_type:
+          $ref: '#/components/schemas/EventTypeEnum'
+        enabled:
+          type: boolean
+      required:
+        - enabled
+        - event_type
+    NotificationPreferenceList:
+      type: object
+      description: Las preferencias del usuario con todos los eventos.
+      properties:
+        preferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationPreference'
+      required:
+        - preferences
+    NotificationStatusEnum:
+      enum:
+        - pending
+        - sent
+        - failed
+      type: string
+      description: |-
+        * `pending` - Pendiente
+        * `sent` - Enviado
+        * `failed` - Fallido
+    Offer:
+      type: object
+      description: Datos de una oferta de préstamo.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        lender_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyEnum'
+          readOnly: true
+        interest_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          readOnly: true
+          description: TNA anual en porcentaje (ej. 24.00 = 24% TNA).
+        term_months:
+          type: integer
+          readOnly: true
+        requirements:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/OfferStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - amount
+        - created_at
+        - currency
+        - id
+        - interest_rate
+        - lender_user_id
+        - requirements
+        - status
+        - term_months
+    OfferComparison:
+      type: object
+      description: Oferta comparada con su cuota, interés total y costo total.
+      properties:
+        id:
+          type: string
+          format: uuid
+        lender_user_id:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        currency:
+          type: string
+        interest_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        term_months:
+          type: integer
+        requirements:
+          type: string
+        installment:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        total_interest:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        total_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+        - amount
+        - currency
+        - id
+        - installment
+        - interest_rate
+        - lender_user_id
+        - requirements
+        - term_months
+        - total_cost
+        - total_interest
+    OfferMatch:
+      type: object
+      description: Oferta que coincide con la búsqueda.
+      properties:
+        id:
+          type: string
+          format: uuid
+        lender_user_id:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        currency:
+          type: string
+        interest_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        term_months:
+          type: integer
+        requirements:
+          type: string
+      required:
+        - amount
+        - currency
+        - id
+        - interest_rate
+        - lender_user_id
+        - requirements
+        - term_months
+    OfferStatusEnum:
+      enum:
+        - active
+        - expired
+        - accepted
+      type: string
+      description: |-
+        * `active` - Activa
+        * `expired` - Expirada
+        * `accepted` - Aceptada
+    OfferTermsSnapshot:
+      type: object
+      description: Snapshot inmutable de los términos de la oferta aceptada.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+        accepted_by_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        snapshot_data:
+          readOnly: true
+        is_immutable:
+          type: boolean
+          readOnly: true
+      required:
+        - accepted_at
+        - accepted_by_user_id
+        - id
+        - is_immutable
+        - snapshot_data
+    OpenPosition:
+      type: object
+      description: Datos para abrir una posición de inversión.
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        currency:
+          type: string
+          maxLength: 3
+      required:
+        - amount
+        - product_id
+    PatchedMeUpdate:
+      type: object
+      description: Campos del perfil que el usuario puede actualizar sobre sí mismo.
+      properties:
+        phone_number:
+          type: string
+          maxLength: 32
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        country:
+          oneOf:
+            - type: string
+              pattern: ^[A-Z]{2}$
+              maxLength: 2
+            - type: string
+              maxLength: 0
+    PatchedUpdateOffer:
+      type: object
+      description: Datos que el prestamista puede modificar en su oferta.
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        interest_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        term_months:
+          type: integer
+          minimum: 1
+        requirements:
+          type: string
+          maxLength: 2000
+        status:
+          $ref: '#/components/schemas/UpdateOfferStatusEnum'
+    PeriodEnum:
+      enum:
+        - monthly
+      type: string
+      description: '* `monthly` - Mensual'
+    Position:
+      type: object
+      description: Datos de una posición de inversión.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        product:
+          type: string
+          format: uuid
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/PositionStatusEnum'
+          readOnly: true
+        opened_at:
+          type: string
+          format: date-time
+          readOnly: true
+        maturity_date:
+          type: string
+          format: date
+          readOnly: true
+        interest_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+      required:
+        - amount
+        - id
+        - interest_amount
+        - maturity_date
+        - opened_at
+        - product
+        - status
+    PositionDetail:
+      type: object
+      description: Posición de inversión con el detalle del producto.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        product:
+          type: string
+          format: uuid
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/PositionStatusEnum'
+          readOnly: true
+        opened_at:
+          type: string
+          format: date-time
+          readOnly: true
+        maturity_date:
+          type: string
+          format: date
+          readOnly: true
+        interest_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+        product_detail:
+          allOf:
+            - $ref: '#/components/schemas/InvestmentProduct'
+          readOnly: true
+      required:
+        - amount
+        - id
+        - interest_amount
+        - maturity_date
+        - opened_at
+        - product
+        - product_detail
+        - status
+    PositionStatusEnum:
+      enum:
+        - active
+        - matured
+      type: string
+      description: |-
+        * `active` - Activa
+        * `matured` - Vencida
+    Register:
+      type: object
+      description: Datos necesarios para registrar un usuario.
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+      required:
+        - email
+        - password
+    SpendingCategory:
+      type: object
+      description: El gasto acumulado de una categoría en el período.
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        category_name:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        movements:
+          type: integer
+      required:
+        - amount
+        - category_id
+        - category_name
+        - movements
+    SpendingReport:
+      type: object
+      description: El reporte de gasto por categoría.
+      properties:
+        currency:
+          type: string
+        from_date:
+          type: string
+        to_date:
+          type: string
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpendingCategory'
+      required:
+        - categories
+        - currency
+        - from_date
+        - to_date
+        - total
+    UpdateOfferStatusEnum:
+      enum:
+        - expired
+      type: string
+      description: '* `expired` - expired'
+    User:
+      type: object
+      description: Datos públicos de un usuario.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+        - email
+        - id
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

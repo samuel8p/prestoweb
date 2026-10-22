@@ -1,0 +1,46 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans:
+    'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Marca: azul profundo, legible sobre fondos claros y con buen contraste. */
+  --color-brand-50: oklch(0.97 0.014 254);
+  --color-brand-100: oklch(0.93 0.032 254);
+  --color-brand-200: oklch(0.87 0.05 254);
+  --color-brand-300: oklch(0.79 0.075 254);
+  --color-brand-400: oklch(0.68 0.115 254);
+  --color-brand-500: oklch(0.58 0.155 254);
+  --color-brand-600: oklch(0.5 0.17 254);
+  --color-brand-700: oklch(0.44 0.16 254);
+  --color-brand-800: oklch(0.38 0.13 254);
+  --color-brand-900: oklch(0.33 0.1 254);
+
+  --color-canvas: oklch(0.985 0.002 254);
+  --color-surface: oklch(1 0 0);
+  --color-line: oklch(0.92 0.005 254);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-slate-900);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Foco visible y consistente en toda la app (accesibilidad). */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+
+  /* Los números de dinero siempre alineados a la derecha. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
