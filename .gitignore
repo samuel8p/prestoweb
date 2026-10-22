@@ -32,6 +32,21 @@ celerybeat-schedule*
 staticfiles/
 static/
 
+# Logs
+*.log
+
+# Dumps y respaldos de la base
+*.sql
+*.sql.gz
+*.dump
+backups/
+
+# Claves y certificados
+*.key
+*.pem
+*.p12
+*.pfx
+
 # Docker
 .dockerignore
 
