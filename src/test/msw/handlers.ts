@@ -494,21 +494,31 @@ export const handlers: HttpHandler[] = [
     } satisfies InvestmentsReport),
   ),
 
-  http.get(`${API}/reports/movements/`, () =>
-    HttpResponse.json(
-      paginated<MovementReportRow>([
-        {
-          id: '44444444-4444-4444-8444-444444444444',
-          type: 'deposit',
-          amount: '1500.50',
-          currency: 'ARS',
-          occurred_at: '2026-10-20T12:00:00Z',
-          description: 'Depósito de prueba',
-          is_reversed: false,
-        },
-      ]),
-    ),
-  ),
+  http.get(`${API}/reports/movements/`, ({ request }) => {
+    const url = new URL(request.url)
+    const currency = url.searchParams.get('currency') === 'USD' ? 'USD' : 'ARS'
+    const rows: MovementReportRow[] = [
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        type: 'deposit',
+        amount: '1500.50',
+        currency: 'ARS',
+        occurred_at: '2026-10-20T12:00:00Z',
+        description: 'Depósito de prueba',
+        is_reversed: false,
+      },
+      {
+        id: '44444444-4444-4444-8444-444444444445',
+        type: 'withdrawal',
+        amount: '50.00',
+        currency: 'USD',
+        occurred_at: '2026-10-19T12:00:00Z',
+        description: 'Retiro de prueba',
+        is_reversed: true,
+      },
+    ]
+    return HttpResponse.json(paginated(rows.filter((row) => row.currency === currency)))
+  }),
 
   // --- notificaciones ---
   http.get(`${API}/notifications/`, () => HttpResponse.json(paginated(state.notifications))),

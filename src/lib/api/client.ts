@@ -29,19 +29,25 @@ export interface DownloadedFile {
 }
 
 function buildUrl(baseUrl: string, path: string, query?: Record<string, QueryValue>): string {
-  const base = `${baseUrl.replace(/\/+$/, '')}${path.startsWith('/') ? path : `/${path}`}`
-  if (!query) {
-    return base
-  }
-
   const params = new URLSearchParams()
-  for (const [key, value] of Object.entries(query)) {
+  for (const [key, value] of Object.entries(query ?? {})) {
     if (value === undefined || value === null || value === '') {
       continue
     }
     params.append(key, String(value))
   }
   const search = params.toString()
+
+  // Una URL absoluta (por ejemplo, la que devuelve `next` al paginar) se
+  // respeta tal cual: ya trae sus propios query params.
+  if (/^https?:\/\//i.test(path)) {
+    if (!search) {
+      return path
+    }
+    return `${path}${path.includes('?') ? '&' : '?'}${search}`
+  }
+
+  const base = `${baseUrl.replace(/\/+$/, '')}${path.startsWith('/') ? path : `/${path}`}`
   return search ? `${base}?${search}` : base
 }
 

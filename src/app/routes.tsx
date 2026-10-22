@@ -1,10 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppShell } from '../components/layout/AppShell'
+import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { ProfilePage } from '../features/auth/ProfilePage'
 import { RegisterPage } from '../features/auth/RegisterPage'
 import { RedirectIfAuthenticated, RequireAuth } from '../features/auth/guards'
+import { WalletsPage } from '../features/ledger/WalletsPage'
 import { PendingPage } from './PendingPage'
 
 /** Rutas de la aplicación. */
@@ -38,8 +40,8 @@ export function AppRoutes() {
           </RequireAuth>
         }
       >
-        <Route path="/panel" element={<PendingPage title="Panel" />} />
-        <Route path="/billetera" element={<PendingPage title="Billetera" />} />
+        <Route path="/panel" element={<DashboardPage />} />
+        <Route path="/billetera" element={<WalletsPage />} />
         <Route path="/ofertas" element={<PendingPage title="Ofertas" />} />
         <Route path="/prestamos" element={<PendingPage title="Préstamos" />} />
         <Route path="/inversiones" element={<PendingPage title="Inversiones" />} />
