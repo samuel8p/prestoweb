@@ -18,7 +18,7 @@ export function ErrorState({
       <p>{message}</p>
       {onRetry ? (
         <div className="mt-3">
-          <Button variant="secondary" size="sm" onClick={onRetry}>
+          <Button variant="secondary" size="sm" icon="refresh" onClick={onRetry}>
             Reintentar
           </Button>
         </div>
