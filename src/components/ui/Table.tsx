@@ -23,21 +23,27 @@ export function TableHead({ children }: { children: ReactNode }) {
 }
 
 export function TableBody({ children }: { children: ReactNode }) {
-  return <tbody className="divide-y divide-line">{children}</tbody>
+  return <tbody className="divide-y divide-line [&>tr]:animate-fade-up">{children}</tbody>
 }
 
 export function TableRow({
   children,
   className = '',
   onClick,
+  index,
 }: {
   children: ReactNode
   className?: string
   onClick?: () => void
+  /** Retardo de la entrada escalonada. */
+  index?: number
 }) {
   return (
     <tr
-      className={`transition-colors ${onClick ? 'cursor-pointer hover:bg-surface-muted' : ''} ${className}`}
+      className={`transition-colors duration-150 hover:bg-surface-muted ${
+        onClick ? 'cursor-pointer' : ''
+      } ${className}`}
+      style={index === undefined ? undefined : { animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
       {children}
     </tr>

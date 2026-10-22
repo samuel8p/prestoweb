@@ -116,7 +116,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader title="Mi perfil" description="Tus datos y el estado de tu cuenta." />
 
       {/* Datos de la cuenta */}
@@ -124,12 +124,12 @@ export function ProfilePage() {
         <CardHeader title="Datos de la cuenta" icon="user" />
         <dl className="grid gap-5 px-5 py-4 sm:grid-cols-2">
           <div>
-            <dt className="text-[13px] text-slate-500">Email</dt>
-            <dd className="mt-0.5 text-sm font-medium text-slate-900">{user?.email ?? '—'}</dd>
+            <dt className="label-caps text-ink-subtle">Email</dt>
+            <dd className="mt-0.5 text-sm font-medium text-ink">{user?.email ?? '—'}</dd>
           </div>
           <div>
-            <dt className="text-[13px] text-slate-500">Nombre</dt>
-            <dd className="mt-0.5 text-sm font-medium text-slate-900">
+            <dt className="label-caps text-ink-subtle">Nombre</dt>
+            <dd className="mt-0.5 text-sm font-medium text-ink">
               {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || '—'}
             </dd>
           </div>
@@ -197,7 +197,7 @@ export function ProfilePage() {
             </form>
           ) : null}
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-muted">
             Solo se envía la metadata del documento. La app no sube archivos ni guarda datos
             sensibles.
           </p>

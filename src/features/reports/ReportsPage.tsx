@@ -79,7 +79,7 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Reportes"
         description="Resúmenes de tu actividad, en una moneda y un rango de fechas."
@@ -99,7 +99,7 @@ export function ReportsPage() {
       <Card>
         <div className="flex flex-wrap items-end gap-5 px-5 py-4">
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-slate-700">Moneda</span>
+            <span className="text-[13px] font-medium text-ink">Moneda</span>
             <Segmented
               label="Moneda"
               value={currency}
@@ -109,7 +109,7 @@ export function ReportsPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-slate-700">Desde</span>
+            <span className="text-[13px] font-medium text-ink">Desde</span>
             <Input
               label="Desde"
               type="date"
@@ -122,7 +122,7 @@ export function ReportsPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-slate-700">Hasta</span>
+            <span className="text-[13px] font-medium text-ink">Hasta</span>
             <Input
               label="Hasta"
               type="date"
@@ -132,7 +132,7 @@ export function ReportsPage() {
             />
           </div>
 
-          <p className="ml-auto text-xs text-slate-500">
+          <p className="ml-auto text-xs text-ink-muted">
             El rango máximo es de 12 meses. Los reportes de préstamos e inversiones son del período
             actual.
           </p>
@@ -156,8 +156,8 @@ export function ReportsPage() {
             onClick={() => setTab(item.id)}
             className={`-mb-px border-b-2 px-3 py-2 text-[13px] font-medium transition-colors ${
               tab === item.id
-                ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-teal'
+                : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
             {item.label}
@@ -181,7 +181,7 @@ export function ReportsPage() {
           {!movements.isLoading &&
           !movements.isError &&
           (movements.data?.results.length ?? 0) === 0 ? (
-            <EmptyState title="No hay movimientos en el período" icon="swap" />
+            <EmptyState title="No hay movimientos en el período" />
           ) : null}
 
           {(movements.data?.results.length ?? 0) > 0 ? (
@@ -195,7 +195,7 @@ export function ReportsPage() {
               <TableBody>
                 {(movements.data?.results ?? []).map((movement) => (
                   <TableRow key={movement.id}>
-                    <TableCell className="font-medium text-slate-900">{movement.type}</TableCell>
+                    <TableCell className="font-medium text-ink">{movement.type}</TableCell>
                     <TableCell className="max-w-xs truncate">
                       {movement.description || '—'}
                     </TableCell>
@@ -205,7 +205,7 @@ export function ReportsPage() {
                         <MoneyAmount
                           value={movement.amount}
                           currency={movement.currency === 'USD' ? 'USD' : 'ARS'}
-                          className="font-semibold text-slate-900"
+                          className="font-semibold text-ink"
                         />
                         {movement.is_reversed ? (
                           <Badge tone="danger" dot>
@@ -242,7 +242,7 @@ export function ReportsPage() {
           {!spending.isLoading &&
           !spending.isError &&
           (spending.data?.categories.length ?? 0) === 0 ? (
-            <EmptyState title="No hay gastos categorizados en el período" icon="budget" />
+            <EmptyState title="No hay gastos categorizados en el período" />
           ) : null}
 
           {spending.data ? (
@@ -253,11 +253,11 @@ export function ReportsPage() {
 
           {spending.data ? (
             <div className="flex items-center justify-between border-t border-line px-5 py-3.5">
-              <p className="text-[13px] font-semibold text-slate-700">Total del período</p>
+              <p className="text-[13px] font-semibold text-ink">Total del período</p>
               <MoneyAmount
                 value={spending.data.total}
                 currency={currency}
-                className="text-base font-bold text-slate-900"
+                className="text-base font-bold text-ink"
               />
             </div>
           ) : null}
@@ -288,29 +288,29 @@ export function ReportsPage() {
               ).map(([title, summary]) => (
                 <dl key={title} className="grid grid-cols-2 gap-5 bg-surface p-5">
                   <div className="col-span-2">
-                    <dt className="text-[13px] font-semibold text-slate-900">{title}</dt>
+                    <dt className="text-[13px] font-semibold text-ink">{title}</dt>
                   </div>
                   <div>
-                    <dt className="text-xs text-slate-500">Préstamos activos</dt>
-                    <dd className="mt-0.5 text-lg font-semibold text-slate-900 tabular">
+                    <dt className="label-caps text-ink-subtle">Préstamos activos</dt>
+                    <dd className="mt-0.5 text-lg font-semibold text-ink tabular">
                       {summary.active_loans}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-slate-500">Próximas cuotas</dt>
-                    <dd className="mt-0.5 text-lg font-semibold text-slate-900 tabular">
+                    <dt className="label-caps text-ink-subtle">Próximas cuotas</dt>
+                    <dd className="mt-0.5 text-lg font-semibold text-ink tabular">
                       {summary.next_installments.length}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-slate-500">Pendiente</dt>
-                    <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                    <dt className="label-caps text-ink-subtle">Pendiente</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-ink tabular">
                       <MoneyAmount value={summary.outstanding_amount} currency={currency} />
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-slate-500">Interés</dt>
-                    <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                    <dt className="text-xs text-ink-muted">Interés</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-ink tabular">
                       <MoneyAmount value={summary.interest_amount} currency={currency} />
                     </dd>
                   </div>
@@ -338,20 +338,20 @@ export function ReportsPage() {
           {investments.data ? (
             <dl className="grid gap-px bg-line sm:grid-cols-3">
               <div className="bg-surface p-5">
-                <dt className="text-xs text-slate-500">Capital invertido</dt>
-                <dd className="mt-1 text-xl font-semibold text-slate-900 tabular">
+                <dt className="label-caps text-ink-subtle">Capital invertido</dt>
+                <dd className="mt-1 text-xl font-semibold text-ink tabular">
                   <MoneyAmount value={investments.data.total_invested} currency={currency} />
                 </dd>
               </div>
               <div className="bg-surface p-5">
-                <dt className="text-xs text-slate-500">Interés esperado</dt>
-                <dd className="mt-1 text-xl font-semibold text-slate-900 tabular">
+                <dt className="label-caps text-ink-subtle">Interés esperado</dt>
+                <dd className="mt-1 text-xl font-semibold text-ink tabular">
                   <MoneyAmount value={investments.data.interest_expected} currency={currency} />
                 </dd>
               </div>
               <div className="bg-surface p-5">
-                <dt className="text-xs text-slate-500">Interés ganado</dt>
-                <dd className="mt-1 text-xl font-semibold text-slate-900 tabular">
+                <dt className="label-caps text-ink-subtle">Interés ganado</dt>
+                <dd className="mt-1 text-xl font-semibold text-ink tabular">
                   <MoneyAmount value={investments.data.interest_earned} currency={currency} />
                 </dd>
               </div>

@@ -31,10 +31,10 @@ export function SpendingChart({ categories, currency }: SpendingChartProps) {
         return (
           <li key={category.category_id}>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate-1 text-[13px] font-medium text-slate-700">
+              <span className="truncate-1 text-[13px] font-medium text-ink">
                 {category.category_name}
               </span>
-              <span className="shrink-0 text-[13px] font-semibold text-slate-900 tabular">
+              <span className="shrink-0 text-[13px] font-semibold text-ink tabular">
                 <MoneyAmount value={category.amount} currency={currency} />
               </span>
             </div>
@@ -42,15 +42,15 @@ export function SpendingChart({ categories, currency }: SpendingChartProps) {
             <div
               role="img"
               aria-label={`${category.category_name}: ${formatMoney(category.amount, currency)}`}
-              className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-100"
+              className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-line"
             >
               <div
-                className="h-full rounded-full bg-brand-500"
+                className="bar-fill h-full rounded-full bg-teal"
                 style={{ width: `${Math.max(width, 2)}%` }}
               />
             </div>
 
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-ink-subtle">
               {category.movements} {category.movements === 1 ? 'movimiento' : 'movimientos'}
               {index === 0 ? ' · la categoría con más gasto' : ''}
             </p>

@@ -55,7 +55,7 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Avisos"
         description="Las novedades de tu cuenta y los correos que querés recibir."
@@ -82,7 +82,7 @@ export function NotificationsPage() {
           </div>
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {(preferences.data?.preferences ?? []).map((preference) => (
             <li
               key={preference.event_type}
@@ -91,11 +91,11 @@ export function NotificationsPage() {
               <div className="min-w-0 flex-1">
                 <label
                   htmlFor={`preference-${preference.event_type}`}
-                  className="block text-sm font-medium text-slate-900"
+                  className="block text-sm font-medium text-ink"
                 >
                   {EVENT_LABEL[preference.event_type] ?? preference.event_type}
                 </label>
-                <p className="mt-0.5 text-[13px] text-slate-500">
+                <p className="mt-0.5 text-[13px] text-ink-muted">
                   {EVENT_DESCRIPTION[preference.event_type]}
                 </p>
               </div>
@@ -110,7 +110,7 @@ export function NotificationsPage() {
               />
               <span
                 aria-hidden="true"
-                className="relative h-6 w-10 shrink-0 cursor-pointer rounded-full bg-slate-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-brand-600 peer-checked:after:translate-x-4 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-600"
+                className="relative h-6 w-10 shrink-0 cursor-pointer rounded-full bg-line transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-teal peer-checked:after:translate-x-4 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-600"
               />
             </li>
           ))}
@@ -136,21 +136,20 @@ export function NotificationsPage() {
           <EmptyState
             title="No tenés avisos"
             description="Acá vas a ver las cuotas por vencer, las vencidas y las liquidaciones."
-            icon="bell"
           />
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {items.map((notification) => (
             <li
               key={notification.id}
               className="flex flex-wrap items-start justify-between gap-3 px-5 py-3.5"
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-ink">
                   {EVENT_LABEL[notification.event_type] ?? notification.event_type}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-400 tabular">
+                <p className="mt-0.5 text-xs text-ink-subtle tabular">
                   {formatDateTime(notification.created_at)} · referencia{' '}
                   {notification.reference_id.slice(0, 8)}…
                 </p>
