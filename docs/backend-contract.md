@@ -173,7 +173,48 @@ Los cuatro reportes aceptan query params que **el esquema no declara**:
 Los importes del filtro van como **string decimal** (`"10000.00"`), no como
 número.
 
-## 8. Importes
+## 8. El alias y los avisos leídos
+
+### 8.a El alias público
+
+- `PUT /api/v1/identity/alias/` (propio) pone o cambia el alias:
+  - `400` (`validation_error`) si el formato no se cumple o el alias está
+    reservado;
+  - `409` (`alias_taken`) si otro usuario ya lo tiene.
+- El formato: **6 a 20 caracteres**, solo minúsculas, dígitos, `.`, `-` o `_`,
+  empezando y terminando con letra o dígito. Reservados: `admin`, `presto`,
+  `soporte`, `api`, `root`, `support` y compañía.
+- `GET /api/v1/identity/alias/` devuelve el alias propio o `null`; el perfil
+  (`GET /api/v1/auth/me/`) también lo trae (`alias`).
+- El alias es **único sin distinguir mayúsculas**.
+
+### 8.b La búsqueda por alias
+
+- `GET /api/v1/ledger/accounts/by-alias/{alias}/` (con token) devuelve:
+
+  ```json
+  {
+    "alias": "juan.perez",
+    "name": "Juan P.",
+    "wallets": [{ "currency": "ARS", "account_id": "…" }]
+  }
+  ```
+
+  **No** devuelve el email ni los saldos.
+- `404` si no hay nadie con ese alias.
+- Tiene un límite estricto (**5 por minuto**) y pide token: por el alias se
+  puede saber si alguien tiene cuenta.
+
+### 8.c Los avisos leídos
+
+- El listado de avisos trae `read_at` (`null` si no se leyó).
+- `POST /api/v1/notifications/{id}/read/` marca un aviso propio como leído
+  (idempotente; `404` si es de otro usuario).
+- `POST /api/v1/notifications/read-all/` marca todos los del usuario y
+  devuelve `{"count": n}` (0 la segunda vez).
+- `GET /api/v1/notifications/unread-count/` devuelve `{"count": n}`.
+
+## 9. Importes
 
 Todos los importes llegan como **string decimal** con dos decimales
 (`"1500.50"`), incluso los negativos. Nunca se convierten a `Number`: el
@@ -181,7 +222,7 @@ frontend los formatea y compara como strings (ver `src/lib/money`).
 
 ---
 
-## 9. Qué hay que corregir en el esquema
+## 10. Qué hay que corregir en el esquema
 
 Checklist exacto para que `docs/openapi.yaml` describa la API real. Cada punto
 está verificado contra la API corriendo. Los ejemplos de YAML son los que

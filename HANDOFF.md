@@ -216,10 +216,15 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 Los commits anteriores de este mismo `HANDOFF.md` están listados; este commit no
 puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**161**).
+**166**).
 
 | Commit | Asunto |
 |---|---|
+| `19e6cfe` | feat(notifications): mark the notices as read |
+| `6b00ba2` | feat(ledger): search a user by their alias |
+| `9576f5c` | feat(identity): add the public alias of a user |
+| `d15561a` | chore(quality): write the pagination name so both ruff versions agree |
+| `fe5c0a1` | docs: close the contract deviations of the frontend |
 | `eac2451` | fix(schema): declare the empty body of the kyc status |
 | `e5ce13e` | feat(investments): add the currency to the positions list |
 | `2a9cede` | feat(ledger): add the amount and the currency to the movements list |
@@ -404,6 +409,7 @@ puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Bloque 7 — despliegue en Northflank (plan gratuito)** | ✅ completa | La misma imagen sirve para el web y el worker (comando `web` / `worker` vía el entrypoint), conexión por URL a las bases administradas (parseo propio con la stdlib y `DB_SSLMODE`), beat embebido opcional (`CELERY_EMBED_BEAT`), migraciones al arrancar (`RUN_MIGRATIONS`), health check que responde antes de validar el `Host`, estáticos del admin con whitenoise y la guía `docs/deploy-northflank.md`. |
 | **Bloque 8 — el esquema OpenAPI describe la API real** | ✅ completa | El frontend mandó sus diferencias (`docs/backend-contract.md`) y el esquema quedó corregido: la paginación real de cada listado, el header `Idempotency-Key`, los parámetros y el CSV de los reportes, los errores de cada operación, el KYC nullable y la cabecera `X-Presto-Mode`. Un test de contrato llama a la API real y compara cada respuesta con lo declarado. Los huecos de **comportamiento** (el importe de los movimientos y la moneda de las posiciones) quedaron en `docs/audit-final.md` §5 |
 | **Bloque 9 — los dos listados con los datos que faltaban** | ✅ completa | El listado de movimientos del ledger suma el **importe** (la pata del usuario, con su signo ✓, ADR 0008 ✓) y la **moneda** ✓, y el listado de posiciones suma la **moneda** del producto ✓. Los dos cambios son **aditivos** (solo lectura ✓, no se saca ni se renombra nada ✓) y no hacen N+1 ✓ (hay tests que lo comprueban ✓). El esquema regenerado ✓ y el test de contrato cubre los campos nuevos ✓ |
+| **Bloque 10 — alias, búsqueda por alias y avisos leídos** | ✅ completa | El usuario tiene un **alias público** (único sin distinguir mayúsculas, con formato estricto y lista de reservados ✓), lo pone o cambia con `PUT /api/v1/identity/alias/` ✓ y se busca con `GET /api/v1/ledger/accounts/by-alias/{alias}/` ✓ (que devuelve solo el alias, un nombre reducido y las billeras por moneda, con throttle estricto anti-enumeración ✓). Los avisos tienen **`read_at`** ✓ con tres endpoints para marcarlos y contarlos ✓. Todo **aditivo** ✓. ADR 0009 ✓ |
 ### 6.3 Funcionalidades implementadas (por app)
 
 - **`core`**: `BaseModel` (UUID + timestamps), `money.py` (`round_two`, `money`,
@@ -571,6 +577,9 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D58 | El **esquema versionado** es `docs/openapi.yaml` | El front lo consume de ahí y un test comprueba que es el mismo que genera el código: si alguien cambia la API y no lo regenera, la build falla |
 | D59 | El **importe del movimiento** es el de la pata del usuario, con su signo | Un movimiento tiene varias patas: la que toca la billetera del usuario dice cuánto entró o salió. El listado muestra ese número (con signo ✓) porque es el saldo de la billetera ✓; el reporte de movimientos sigue mostrando el total del movimiento (sin signo ✓). Son dos números distintos y no se mezclan (ADR 0008 ✓) |
 | D60 | Los dos listados **suman campos de solo lectura** (importe, moneda) | Es aditivo y retrocompatible ✓: el front puede leerlos sin romper nada ✓ y el backend no renombra ni saca ningún campo ✓ |
+| D61 | El **alias** es un identificador público con formato estricto | 6 a 20 caracteres, minúsculas, dígitos, punto, guion o guion bajo, empezando y terminando con letra o dígito ✓, más una lista de reservados (admin, presto, soporte...) ✓. Es único **sin distinguir mayúsculas** (constraint funcional sobre `Lower(alias)` ✓) y la validación vive en el service, no en el serializer ✓ (ADR 0009 ✓) |
+| D62 | La **búsqueda por alias** devuelve lo mínimo y está limitada | Alias, nombre reducido y billeteras por moneda: **ni email ni saldos** ✓. Pide token y tiene un límite estricto (5/min ✓) porque por el alias se puede saber si alguien tiene cuenta ✓ |
+| D63 | Los **avisos leídos** son un `read_at` nullable | Marcar uno, marcar todos y contar los no leídos ✓. Es idempotente ✓ y **no toca** la unicidad de los avisos ni el envío ✓ |
 
 ## 8. Problemas y resoluciones
 
@@ -827,6 +836,28 @@ Sin `EMAIL_HOST` el backend de email es el de consola; definiéndolo pasa a ser
 SMTP. El detalle (incluido el despliegue en una plataforma con Docker Compose, el
 proxy opcional y los backups) está en `docs/deploy-demo.md`.
 
+### El alias y los avisos leídos
+
+```sh
+# Poner (o cambiar) el alias propio
+curl -s -X PUT http://127.0.0.1:8000/api/v1/identity/alias/ \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"alias": "juan.perez"}'
+
+# Buscar a alguien por su alias (alias, nombre reducido y billeteras)
+curl -s http://127.0.0.1:8000/api/v1/ledger/accounts/by-alias/juan.perez/ \
+  -H "Authorization: Bearer $TOKEN"
+
+# Marcar un aviso como leído y contar los que faltan
+curl -s -X POST http://127.0.0.1:8000/api/v1/notifications/{id}/read/ \
+  -H "Authorization: Bearer $TOKEN"
+curl -s http://127.0.0.1:8000/api/v1/notifications/unread-count/ \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+El formato del alias y las reglas de la búsqueda están en
+[ADR 0009](docs/adr/0009-alias-publico-del-usuario.md) ✓.
+
 ### El esquema OpenAPI
 
 ```sh
@@ -1041,7 +1072,10 @@ Orden real de lo que falta, de mayor a menor prioridad.
     dos listados ✓). Queda **confirmar con el front** el criterio del importe
     con signo del listado de movimientos ✓ (ADR 0008 ✓) y que la moneda de las
     posiciones alcanza ✓.
-13. **Northflank**: la guía está escrita y el entorno se simuló localmente ✓,
+13. **El alias**: falta decidir si el front lo muestra en el perfil, en el
+    comprobante de una transferencia o en las dos lugares ✓, y si hay que
+    recuperar un alias olvidado por correo ✓ (hoy no hay recuperación ✗).
+14. **Northflank**: la guía está escrita y el entorno se simuló localmente ✓,
     pero **no se pudo comprobar la consola de la plataforma** (el plan, los
     límites, los backups del add-on, el panel de logs): todo eso está marcado
     como "verificar en la UI" en `docs/deploy-northflank.md` ✓. Falta además
@@ -1284,3 +1318,4 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-22 | **Despliegue en Northflank (7 commits)**: `feat(core)` dejó el parseo de las URLs de conexión en la stdlib (`DATABASE_URL` y `REDIS_URL` con `DB_SSLMODE`, parseo propio y sin `dj-database-url`); `feat(deploy)` agregó el **entrypoint de la imagen** (roles `web` y `worker`, puerto `$PORT`, `RUN_MIGRATIONS`) y el **beat embebido** (`CELERY_EMBED_BEAT`, con la restricción de una sola réplica); `feat(core)` hizo que el **health check** se conteste antes de validar el `Host` (las plataformas lo llaman con la IP interna); `feat(core)` habilitó **whitenoise** para que el **admin cargue sus estilos** (antes 404, verificado con una petición real); `fix(deploy)` movió el archivo del schedule del beat al directorio que el contenedor puede escribir (lo encontró la simulación local); `chore`/`docs` actualizaron los recursos recomendados (1 y 1 para los planes gratuitos) y escribieron `docs/deploy-northflank.md`. **700 tests pasan**. Verificado con una simulación local del entorno (imagen única como web y como worker, base y redis de prueba, beat embebido): migraciones aplicadas, `/health/` 200 con el Host interno, el beat con el schedule del proyecto, el depósito simulado con la suma por moneda en 0.00 y el preflight CORS 200. **No verificado**: la consola de Northflank (el plan, los límites, los backups del add-on, los logs), marcado como "verificar en la UI" en la guía. |
 | 2026-10-22 | **El esquema OpenAPI describe la API real (6 commits)**: el frontend mandó sus diferencias (`docs/backend-contract.md`, versionado en `49054e8`) y el esquema se corrigió por grupos: la **paginación real** de cada listado (`{count, next, previous, results}` y `{next, previous, results}` por cursor, con `investments/products/` que antes se declaraba como array), el header **`Idempotency-Key`** obligatorio de las tres operaciones que mueven dinero, el **body del refresh**, los **parámetros y la respuesta CSV de los cuatro reportes**, los **errores de cada operación** (401, 403 `permission_denied` del KYC, 404, 409 y 400, con el formato de AGENTS §8), el **KYC nullable** y la cabecera **`X-Presto-Mode`**. Todo con hooks de drf-spectacular y serializers de documentación: **ningún endpoint cambió de comportamiento** ✓. La suite de contrato (`tests/test_openapi_contract.py`) llama a la API real y compara cada respuesta con lo declarado ✓, y un test comprueba que el `docs/openapi.yaml` versionado es el que genera el código ✓. Los tres huecos de **comportamiento** (el importe de los movimientos, la moneda de las posiciones y la respuesta vacía del KYC) quedaron en `docs/audit-final.md` §5 con la recomendación ✓. **755 tests pasan** |
 | 2026-10-22 | **Los dos listados con los datos que faltaban (3 commits)**: `feat(ledger)` agregó al listado de movimientos el **importe** (la pata de la billetera del usuario, con su signo: un crédito suma y un débito resta ✓) y la **moneda** ✓, y `feat(investments)` agregó al listado de posiciones la **moneda** del producto ✓. Los dos son **aditivos** (solo lectura ✓, sin quitar ni renombrar nada ✓), no tocan el schema, los triggers, la inmutabilidad ni la idempotencia del ledger ✓, y **no hacen N+1** ✓ (los movimientos usan los asientos que el listado ya precargaba ✓ y las posiciones el `select_related` del producto ✓; hay tests que comparan la cantidad de consultas ✓). El criterio del importe quedó documentado en el **ADR 0008** ✓. `fix(schema)` declaró en el esquema la respuesta **vacía** de `GET /api/v1/kyc/` (sin cambiar su comportamiento ✓). `docs/backend-contract.md` quedó actualizado para el front ✓ y `docs/audit-final.md` §5 marca D-10, D-11 y D-12 como resueltos ✓. **772 tests pasan** |
+| 2026-10-22 | **Alias, búsqueda por alias y avisos leídos (4 commits)**: `feat(identity)` agregó el **alias público** del usuario (campo nullable, único sin distinguir mayúsculas con un constraint funcional ✓, formato de 6 a 20 caracteres en minúsculas ✓ y lista de alias reservados ✓) con sus endpoints `GET/PUT /api/v1/identity/alias/` ✓ y el selector `get_user_id_by_alias` ✓. `feat(ledger)` agregó `GET /api/v1/ledger/accounts/by-alias/{alias}/` ✓, que devuelve **solo** el alias, un nombre reducido y las billeteras por moneda (ni email ni saldos ✓) y tiene un **throttle estricto** (5/min ✓) anti-enumeración ✓. `feat(notifications)` agregó el `read_at` nullable ✓ (con migración ✓) y los tres endpoints para marcar avisos como leídos y contarlos ✓ (idempotentes ✓, sin tocar la unicidad ni el envío ✓). `docs` agregó el **ADR 0009** ✓, actualizó el contrato del front ✓ y el HANDOFF ✓. Todos los cambios son **aditivos** ✓: no se alteró ningún endpoint existente ni el ledger (schema, triggers, inmutabilidad e idempotencia) ✓. Los contratos de import-linter siguen siendo **28** (no hizo falta agregar ninguno ✓: el ledger entra a identity por sus selectors ✓). **816 tests pasan** |

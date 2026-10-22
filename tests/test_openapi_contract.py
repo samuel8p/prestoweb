@@ -439,6 +439,16 @@ def schema_paths():
     return yaml.safe_load(SCHEMA_PATH.read_text(encoding='utf-8'))['paths']
 
 
+def resolve(schema: dict) -> dict:
+    """Resuelve un $ref del esquema y devuelve el componente."""
+    reference = schema.get('$ref', '')
+    if not reference:
+        return schema
+    name = reference.rsplit('/', 1)[-1]
+    components = yaml.safe_load(SCHEMA_PATH.read_text(encoding='utf-8'))['components']
+    return components['schemas'][name]
+
+
 def test_the_responses_declare_the_demo_mode_header(schema):
     """Las respuestas declaran la cabecera `X-Presto-Mode`.
 
@@ -451,3 +461,65 @@ def test_the_responses_declare_the_demo_mode_header(schema):
 
     assert 'X-Presto-Mode' in headers
     assert headers['X-Presto-Mode']['schema']['type'] == 'string'
+
+
+# --- El alias, la búsqueda por alias y los avisos leídos ---
+
+NEW_OPERATIONS = [
+    ('/api/v1/identity/alias/', 'get', ('401',)),
+    ('/api/v1/identity/alias/', 'put', ('400', '401', '409')),
+    ('/api/v1/ledger/accounts/by-alias/{alias}/', 'get', ('401', '404', '429')),
+    ('/api/v1/notifications/{notification_id}/read/', 'post', ('401', '404')),
+    ('/api/v1/notifications/read-all/', 'post', ('401',)),
+    ('/api/v1/notifications/unread-count/', 'get', ('401',)),
+]
+
+
+@pytest.mark.parametrize(
+    'path,method,statuses',
+    NEW_OPERATIONS,
+    ids=[f'{method} {path}' for path, method, _ in NEW_OPERATIONS],
+)
+def test_the_new_operations_declare_their_errors(schema, path, method, statuses):
+    """Los endpoints nuevos declaran los errores que pueden devolver."""
+    responses = schema['paths'][path][method]['responses']
+
+    for status in statuses:
+        assert status in responses, f'falta el {status} en {method} {path}'
+
+
+def test_the_alias_is_declared_and_works(api):
+    """El alias propio se declara y se puede poner."""
+    schema_ = schema_paths()['/api/v1/identity/alias/']
+
+    body = schema_['put']['requestBody']['content']['application/json']['schema']
+    assert 'alias' in resolve(body)['properties']
+
+    response = api.put('/api/v1/identity/alias/', {'alias': 'contrato.alias'}, format='json')
+
+    assert response.status_code == 200
+    assert response.json() == {'alias': 'contrato.alias'}
+
+
+def test_the_alias_lookup_is_declared_and_works(api):
+    """La búsqueda por alias se declara y devuelve lo mínimo."""
+    api.put('/api/v1/identity/alias/', {'alias': 'contrato.buscado'}, format='json')
+
+    response = api.get('/api/v1/ledger/accounts/by-alias/contrato.buscado/')
+
+    assert response.status_code in (200, 404)
+    if response.status_code == 200:
+        assert set(response.json().keys()) == {'alias', 'name', 'wallets'}
+        assert 'email' not in response.json()
+
+
+def test_the_unread_count_is_declared_and_works(api):
+    """El conteo de no leídos se declara y responde con el conteo."""
+    declared = schema_paths()['/api/v1/notifications/unread-count/']['get']
+    body = declared['responses']['200']['content']['application/json']['schema']
+    assert 'count' in resolve(body)['properties']
+
+    response = api.get('/api/v1/notifications/unread-count/')
+
+    assert response.status_code == 200
+    assert response.json() == {'count': 0}

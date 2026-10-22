@@ -206,3 +206,4 @@ fechas en ISO 8601 UTC. Los errores usan siempre el mismo formato:
 | [0006](adr/0006-doble-entrada-diferida.md) | La doble entrada se valida con un trigger diferido |
 | [0007](adr/0007-orden-de-las-apps.md) | El orden de las apps y por qué |
 | [0008](adr/0008-importe-del-movimiento-en-el-listado.md) | El importe del movimiento en el listado del ledger (la pata propia, con signo) |
+| [0009](adr/0009-alias-publico-del-usuario.md) | El alias público del usuario (formato, reservados, búsqueda mínima y anti-enumeración) |
