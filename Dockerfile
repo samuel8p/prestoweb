@@ -55,5 +55,6 @@ EXPOSE 8000
 #
 # El entrypoint permite que la misma imagen sirva para el web y para el worker
 # cambiando solo el comando: `web`, `worker` o cualquier otro comando.
+# El web escucha en el puerto de `PORT` (8000 por defecto).
 ENTRYPOINT ["sh", "/app/deploy/entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["web"]

@@ -161,6 +161,26 @@ def run_entrypoint(tmp_path, role, environment):
     return result.stdout.strip()
 
 
+def run_entrypoint_with_fakes(tmp_path, role, environment, fakes):
+    """Ejecuta el entrypoint con varios comandos falsos y devuelve su salida."""
+    fake_bin = tmp_path / 'bin'
+    fake_bin.mkdir()
+    for name in fakes:
+        fake = fake_bin / name
+        fake.write_text(f'#!/bin/sh\necho "{name} $@"\n', encoding='utf-8')
+        fake.chmod(0o755)
+
+    env = {**os.environ, 'PATH': f'{fake_bin}{os.pathsep}{os.environ["PATH"]}', **environment}
+    result = subprocess.run(
+        ['sh', str(ROOT / 'deploy/entrypoint.sh'), role],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
 def test_the_worker_starts_without_the_embedded_beat_by_default(tmp_path):
     """Sin `CELERY_EMBED_BEAT` el worker no lleva el beat embebido."""
     output = run_entrypoint(tmp_path, 'worker', {'CELERY_EMBED_BEAT': 'false'})
@@ -182,3 +202,42 @@ def test_the_embedded_beat_keeps_the_schedule_of_the_project(tmp_path):
 
     assert '-A' in output
     assert 'config' in output
+
+
+def test_the_web_role_runs_gunicorn_in_the_port_of_the_environment(tmp_path):
+    """El web escucha en el puerto de `PORT` (por defecto, el de siempre)."""
+    output = run_entrypoint_with_fakes(tmp_path, 'web', {'PORT': '9000'}, ['gunicorn', 'python'])
+
+    assert '--bind 0.0.0.0:9000' in output
+
+
+def test_the_web_role_uses_the_default_port(tmp_path):
+    """Sin `PORT` el web escucha en el 8000, como siempre."""
+    output = run_entrypoint_with_fakes(tmp_path, 'web', {}, ['gunicorn', 'python'])
+
+    assert '--bind 0.0.0.0:8000' in output
+
+
+def test_the_web_role_uses_the_workers_of_the_environment(tmp_path):
+    """Los workers de gunicorn salen de `GUNICORN_WORKERS`."""
+    output = run_entrypoint_with_fakes(
+        tmp_path, 'web', {'GUNICORN_WORKERS': '1'}, ['gunicorn', 'python']
+    )
+
+    assert '--workers 1' in output
+
+
+def test_the_web_role_does_not_apply_the_migrations_by_default(tmp_path):
+    """Sin `RUN_MIGRATIONS` el web no toca la base al arrancar."""
+    output = run_entrypoint_with_fakes(tmp_path, 'web', {}, ['gunicorn', 'python'])
+
+    assert 'migrate' not in output
+
+
+def test_the_web_role_applies_the_migrations_when_asked(tmp_path):
+    """Con `RUN_MIGRATIONS=true` el web aplica las migraciones al arrancar."""
+    output = run_entrypoint_with_fakes(
+        tmp_path, 'web', {'RUN_MIGRATIONS': 'true'}, ['gunicorn', 'python']
+    )
+
+    assert 'python manage.py migrate --noinput' in output
