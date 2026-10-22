@@ -38,7 +38,7 @@ export function WalletsPage() {
   const rows = movements.data?.pages.flatMap((page) => page.results) ?? []
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Billetera y movimientos"
         description="Depositá, retirá y transferí dinero entre billeteras."
@@ -53,7 +53,7 @@ export function WalletsPage() {
       <Card>
         <div className="flex flex-wrap items-end gap-4 px-5 py-4">
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-slate-700">Moneda</span>
+            <span className="text-[13px] font-medium text-ink">Moneda</span>
             <Segmented
               label="Moneda"
               value={currency}
@@ -63,7 +63,7 @@ export function WalletsPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-slate-700">Desde</span>
+            <span className="text-[13px] font-medium text-ink">Desde</span>
             <Input
               label="Desde"
               type="date"
@@ -76,7 +76,7 @@ export function WalletsPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-slate-700">Hasta</span>
+            <span className="text-[13px] font-medium text-ink">Hasta</span>
             <Input
               label="Hasta"
               type="date"
@@ -108,7 +108,6 @@ export function WalletsPage() {
           <EmptyState
             title={`Todavía no tenés una billetera en ${currency}`}
             description="Abrí una billetera para poder mover dinero en esa moneda."
-            icon="wallet"
             action={
               <Button size="sm" icon="plus" onClick={() => setWalletOpen(true)}>
                 Abrir billetera en {currency}

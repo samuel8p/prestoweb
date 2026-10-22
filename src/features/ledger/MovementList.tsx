@@ -44,14 +44,19 @@ export function MovementList({
   }
 
   if (movements.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} icon="swap" />
+    return <EmptyState title={emptyTitle} description={emptyDescription} />
   }
 
   return (
     <div>
       <ul className="divide-y divide-line">
-        {movements.map((movement) => (
-          <MovementRow key={movement.id} movement={movement} reversed={movement.is_reversed} />
+        {movements.map((movement, index) => (
+          <MovementRow
+            key={movement.id}
+            movement={movement}
+            reversed={movement.is_reversed}
+            index={index}
+          />
         ))}
       </ul>
 

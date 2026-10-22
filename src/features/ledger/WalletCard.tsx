@@ -20,16 +20,18 @@ export function WalletCard({ account, selected = false }: WalletCardProps) {
 
   return (
     <Card
-      className={`p-5 transition-colors ${selected ? 'border-brand-300 ring-1 ring-brand-100' : ''}`}
+      className={`p-5 transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-raised ${
+        selected ? 'border-teal/40 ring-1 ring-teal/20' : ''
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-            <Icon name="wallet" size={16} />
+          <span className="flex h-9 w-9 items-center justify-center rounded-[0.6rem] bg-teal-tint text-teal">
+            <Icon name="wallet" size={17} />
           </span>
           <div>
-            <p className="text-[13px] font-medium text-slate-700">Billetera {currency}</p>
-            <p className="text-[11px] text-slate-400 tabular">{account.id.slice(0, 8)}…</p>
+            <p className="text-[13px] font-semibold text-ink">Billetera {currency}</p>
+            <p className="text-[11px] text-ink-subtle tabular">{account.id.slice(0, 8)}…</p>
           </div>
         </div>
 
@@ -44,10 +46,10 @@ export function WalletCard({ account, selected = false }: WalletCardProps) {
         )}
       </div>
 
-      <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-900 tabular">
+      <p className="mt-4 text-[32px] font-bold leading-none tracking-tight text-ink tabular">
         <MoneyAmount value={account.balance} currency={currency} />
       </p>
-      <p className="mt-1 text-xs text-slate-500">Saldo disponible</p>
+      <p className="mt-1.5 label-caps text-ink-subtle">Saldo disponible</p>
     </Card>
   )
 }

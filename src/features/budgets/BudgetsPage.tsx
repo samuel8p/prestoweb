@@ -61,7 +61,7 @@ export function BudgetsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Presupuestos"
         description="Categorizá tus gastos y controlá cuánto gastás por categoría."
@@ -77,7 +77,7 @@ export function BudgetsPage() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-[13px] font-medium text-slate-700">Moneda</span>
+        <span className="text-[13px] font-medium text-ink">Moneda</span>
         <Segmented
           label="Moneda"
           value={currency}
@@ -111,7 +111,6 @@ export function BudgetsPage() {
           <EmptyState
             title={`No tenés presupuestos en ${currency}`}
             description="Creá un presupuesto mensual por categoría."
-            icon="budget"
             action={
               <Button size="sm" onClick={() => setBudgetOpen(true)}>
                 Crear presupuesto
@@ -120,7 +119,7 @@ export function BudgetsPage() {
           />
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {budgetList.map((budget) => {
             const status = statuses.byBudget.get(budget.id)
             const spent = status?.spent_amount ?? '0.00'
@@ -135,10 +134,8 @@ export function BudgetsPage() {
               <li key={budget.id} className="px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-[15px] font-semibold text-slate-900">
-                      {budget.category.name}
-                    </p>
-                    <p className="mt-0.5 text-[13px] text-slate-500">
+                    <p className="text-[15px] font-semibold text-ink">{budget.category.name}</p>
+                    <p className="mt-0.5 text-[13px] text-ink-muted">
                       Límite <MoneyAmount value={budget.limit_amount} currency={budget.currency} />{' '}
                       · aviso al {budget.alert_threshold}%
                     </p>
@@ -154,20 +151,20 @@ export function BudgetsPage() {
                   <>
                     <dl className="mt-4 grid gap-4 sm:grid-cols-3">
                       <div>
-                        <dt className="text-xs text-slate-500">Gastado</dt>
-                        <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                        <dt className="label-caps text-ink-subtle">Gastado</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-ink tabular">
                           <MoneyAmount value={status.spent_amount} currency={currency} />
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-slate-500">Disponible</dt>
-                        <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                        <dt className="label-caps text-ink-subtle">Disponible</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-ink tabular">
                           <MoneyAmount value={status.remaining_amount} currency={currency} />
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-slate-500">Umbral</dt>
-                        <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                        <dt className="label-caps text-ink-subtle">Umbral</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-ink tabular">
                           <MoneyAmount value={status.threshold_amount} currency={currency} />
                         </dd>
                       </div>
@@ -220,7 +217,6 @@ export function BudgetsPage() {
           <EmptyState
             title="Todavía no creaste categorías"
             description="Las categorías son las etiquetas de tus gastos."
-            icon="offer"
             action={
               <Button size="sm" onClick={() => setCategoryOpen(true)}>
                 Crear categoría
@@ -229,7 +225,7 @@ export function BudgetsPage() {
           />
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {categoryList.map((category) => (
             <li
               key={category.id}
@@ -246,7 +242,7 @@ export function BudgetsPage() {
                   <div className="flex-1">
                     <label
                       htmlFor={`rename-${category.id}`}
-                      className="text-xs font-medium text-slate-600"
+                      className="text-xs font-medium text-ink-muted"
                     >
                       Nuevo nombre
                     </label>
@@ -254,7 +250,7 @@ export function BudgetsPage() {
                       id={`rename-${category.id}`}
                       value={renameValue}
                       onChange={(event) => setRenameValue(event.target.value)}
-                      className="mt-1 w-full rounded-[var(--radius-control)] border border-line-strong px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      className="mt-1 w-full rounded-[var(--radius-control)] border border-line-strong px-3 py-2 text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20"
                     />
                   </div>
                   <Button size="sm" type="submit" loading={renameCategory.isPending}>
@@ -266,7 +262,7 @@ export function BudgetsPage() {
                 </form>
               ) : (
                 <>
-                  <p className="text-sm font-medium text-slate-900">{category.name}</p>
+                  <p className="text-sm font-medium text-ink">{category.name}</p>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -317,18 +313,17 @@ export function BudgetsPage() {
           <EmptyState
             title="Todavía no categorizaste ningún gasto"
             description="Elegí un movimiento del ledger y asignale una categoría."
-            icon="swap"
           />
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {expenseList.map((expense) => (
             <li
               key={expense.id}
               className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
             >
-              <p className="text-sm font-medium text-slate-900">{expense.category.name}</p>
-              <p className="text-xs text-slate-400 tabular">
+              <p className="text-sm font-medium text-ink">{expense.category.name}</p>
+              <p className="text-xs text-ink-subtle tabular">
                 Movimiento {expense.ledger_transaction_id.slice(0, 8)}… ·{' '}
                 {formatDateTime(expense.created_at)}
               </p>
