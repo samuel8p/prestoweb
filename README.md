@@ -71,6 +71,34 @@ verificado contra la API real: paginación, formato de errores, el header
 El esquema OpenAPI es la fuente de verdad de los endpoints y las formas de los
 datos.
 
+## Autenticación
+
+La API usa JWT: `POST /api/v1/auth/login/` devuelve un access token y un
+refresh token, y `POST /api/v1/auth/token/refresh/` los renueva **rotando** el
+refresh token (el anterior queda en blacklist).
+
+Dónde vive cada token y por qué:
+
+| Token   | Dónde                | Por qué                                                                                                                         |
+| ------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Access  | **solo en memoria**  | no se escribe en disco ni queda expuesto a otras pestañas ni a un script de la extensión. Vive hasta que se recarga la página   |
+| Refresh | **`sessionStorage`** | es el único almacenamiento del navegador que se borra al cerrar la pestaña. `localStorage` persistiría el token indefinidamente |
+
+El backend es una API JSON pura: no emite cookies `httpOnly`, así que no hay
+una vía más segura que ésta para guardar el refresh token. El criterio
+documentado es, entonces, **el refresh token más aislado disponible**:
+`sessionStorage` en lugar de `localStorage`.
+
+Además:
+
+- Al arrancar, si hay un refresh token en la pestaña, la app renueva el
+  access token y recupera el usuario; si la renovación falla, la sesión se
+  descarta y se vuelve al login.
+- Ante un `401`, el cliente renueva **una sola vez** y reintenta la petición.
+  Si la renovación falla, se limpia la sesión y se vuelve al login.
+- El logout borra los dos tokens de la sesión local. El backend no expone un
+  endpoint de revocación: el refresh token queda en blacklist cuando rota.
+
 ## Reglas de la casa
 
 - **El dinero nunca pasa por `Number`.** Los importes llegan como string

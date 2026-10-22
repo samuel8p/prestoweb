@@ -11,6 +11,11 @@
  * campo. Nunca se expone la traza ni los detalles internos del backend.
  */
 
+const SESSION_EXPIRED_MESSAGE = 'Tu sesión expiró. Volvé a iniciar sesión.'
+const NETWORK_MESSAGE = 'No pudimos conectar con el servidor. Revisá tu conexión.'
+const UNEXPECTED_MESSAGE = 'Ocurrió un error inesperado. Intentá de nuevo.'
+const KYC_MESSAGE = 'Tu cuenta aún no fue verificada (KYC)'
+
 export interface ErrorDescription {
   /** Título corto para mostrar arriba del mensaje. */
   title: string
@@ -55,10 +60,12 @@ const MESSAGE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^No password provided\.$/i, 'Ingresá tu contraseña.'],
   [/^Invalid credentials\.$/i, 'Email o contraseña incorrectos.'],
   [/^Unable to log in with provided credentials\.$/i, 'Email o contraseña incorrectos.'],
+  [/^No active account found with the given credentials\.$/i, 'Email o contraseña incorrectos.'],
+  [/^Authentication credentials were not provided\.$/i, SESSION_EXPIRED_MESSAGE],
   [/^Email already registered\.$/i, 'Ese email ya está registrado.'],
-  [/^Invalid token\.$/i, 'Tu sesión expiró. Volvé a iniciar sesión.'],
-  [/^Token is invalid or expired\.$/i, 'Tu sesión expiró. Volvé a iniciar sesión.'],
-  [/^Given token not valid for any token type\.$/i, 'Tu sesión expiró. Volvé a iniciar sesión.'],
+  [/^Invalid token\.$/i, SESSION_EXPIRED_MESSAGE],
+  [/^Token is invalid or expired\.$/i, SESSION_EXPIRED_MESSAGE],
+  [/^Given token not valid for any token type\.$/i, SESSION_EXPIRED_MESSAGE],
   [/^This password is too short/i, 'La contraseña es demasiado corta (mínimo 8 caracteres).'],
   [/^This password is too common\./i, 'La contraseña es demasiado común.'],
   [/^This password is entirely numeric\./i, 'La contraseña no puede ser solo números.'],
@@ -70,7 +77,7 @@ const MESSAGE_TRANSLATIONS: Array<[RegExp, string]> = [
 
 const DEFAULT_MESSAGES: Record<number, { title: string; message: string }> = {
   400: { title: 'Revisá los datos', message: 'Hay datos que no son válidos.' },
-  401: { title: 'Sesión expirada', message: 'Tu sesión expiró. Volvé a iniciar sesión.' },
+  401: { title: 'Sesión expirada', message: SESSION_EXPIRED_MESSAGE },
   403: { title: 'Sin permisos', message: 'No tenés permisos para realizar esta acción.' },
   404: { title: 'No encontrado', message: 'No encontramos lo que estabas buscando.' },
   405: { title: 'Método no permitido', message: 'Esta acción no está disponible.' },
@@ -80,10 +87,6 @@ const DEFAULT_MESSAGES: Record<number, { title: string; message: string }> = {
     message: 'Demasiadas solicitudes. Intentá de nuevo más tarde.',
   },
 }
-
-const NETWORK_MESSAGE = 'No pudimos conectar con el servidor. Revisá tu conexión.'
-const UNEXPECTED_MESSAGE = 'Ocurrió un error inesperado. Intentá de nuevo.'
-const KYC_MESSAGE = 'Tu cuenta aún no fue verificada (KYC)'
 
 /** Error de la API con el código, el estado y los errores por campo. */
 export class ApiError extends Error {
@@ -174,7 +177,7 @@ export function apiErrorFromResponse(status: number, body: unknown): ApiError {
 
   const code = typeof error?.code === 'string' ? error.code : defaultCodeFor(status)
   const rawMessage = typeof error?.message === 'string' ? error.message : ''
-  const message = unwrapMessage(rawMessage)
+  const message = translateMessage(unwrapMessage(rawMessage))
   const fieldErrors = toFieldErrors(error?.details)
 
   return new ApiError(status, code, message, fieldErrors)
@@ -212,7 +215,13 @@ export function describeError(error: unknown): ErrorDescription {
     }
 
     if (error.isUnauthorized) {
-      return { title: 'Sesión expirada', message: DEFAULT_MESSAGES[401]!.message, fieldErrors: {} }
+      const message = error.message.trim() || SESSION_EXPIRED_MESSAGE
+      return {
+        title:
+          message === SESSION_EXPIRED_MESSAGE ? 'Sesión expirada' : 'No pudimos iniciar sesión',
+        message,
+        fieldErrors: {},
+      }
     }
 
     const fallback = DEFAULT_MESSAGES[error.status]

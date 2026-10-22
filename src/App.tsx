@@ -1,7 +1,17 @@
+import { BrowserRouter } from 'react-router-dom'
+
+import { AppProviders } from './app/providers'
+import { AppRoutes } from './app/routes'
+import { AuthProvider } from './features/auth/AuthProvider'
+
 export default function App() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <p className="text-slate-500">Presto</p>
-    </main>
+    <AppProviders>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </AppProviders>
   )
 }
