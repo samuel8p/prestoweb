@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Alert } from '../../components/ui/Alert'
 import { Badge } from '../../components/ui/Badge'
@@ -9,7 +9,6 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { Modal } from '../../components/ui/Modal'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { SkeletonRows } from '../../components/ui/Skeleton'
 import {
   Table,
@@ -49,9 +48,17 @@ const STATUS_LABEL = {
   expired: 'Expirada',
 } as const
 
-/** Marketplace de ofertas: buscar, comparar, publicar y ver las propias. */
+/**
+ * Marketplace de ofertas.
+ *
+ * Arranca con las ofertas propias; la búsqueda se revela al apretar el botón
+ * principal y, recién ahí, aparece el formulario con los resultados debajo.
+ */
 export function MarketplacePage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searching = searchParams.get('buscar') === '1'
+
   const [filters, setFilters] = useState<Filters>({ currency: 'ARS', ordering: 'rate' })
   const [selected, setSelected] = useState<string[]>([])
   const [offerFormOpen, setOfferFormOpen] = useState(false)
@@ -60,12 +67,18 @@ export function MarketplacePage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey())
 
-  const offers = useMatchingOffers(filters)
+  const offers = useMatchingOffers(filters, searching)
   const myOffers = useMyOffers()
   const compare = useCompareOffers()
   const acceptOffer = useAcceptOffer()
 
-  const results = offers.data?.results ?? []
+  const results = searching ? (offers.data?.results ?? []) : []
+
+  function openSearch() {
+    const next = new URLSearchParams(searchParams)
+    next.set('buscar', '1')
+    setSearchParams(next)
+  }
 
   function toggleSelection(id: string) {
     setSelected((current) =>
@@ -104,104 +117,122 @@ export function MarketplacePage() {
   const comparison = compare.data
 
   return (
-    <div className="flex animate-fade-up flex-col gap-6">
-      <PageHeader
-        title="Ofertas de préstamo"
-        description="Buscá, compará y elegí la oferta que mejor te sirve."
-        action={
-          <Button icon="plus" onClick={() => setOfferFormOpen(true)}>
-            Publicar oferta
-          </Button>
-        }
-      />
-
+    <div className="flex flex-col gap-6">
       {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
 
-      {/* Búsqueda */}
+      {/* Búsqueda: el botón principal revela el formulario */}
       <Card>
         <CardHeader
           title="Buscar ofertas"
           description="El préstamo toma el importe completo de la oferta."
           icon="search"
-        />
-        <div className="px-5 py-4">
-          <OfferFiltersForm onFiltersChange={setFilters} />
-        </div>
-      </Card>
-
-      {/* Resultados */}
-      <Card>
-        <CardHeader
-          title="Ofertas disponibles"
-          description={`${results.length} ${results.length === 1 ? 'oferta' : 'ofertas'} en ${filters.currency}.`}
-          icon="offer"
           action={
-            selected.length >= 2 ? (
-              <Button size="sm" icon="sliders" onClick={() => void handleCompare()}>
-                Comparar ({selected.length})
+            searching ? (
+              <Button
+                variant="secondary"
+                icon="x"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams)
+                  next.delete('buscar')
+                  setSearchParams(next)
+                }}
+              >
+                Cerrar búsqueda
               </Button>
             ) : null
           }
         />
 
-        {offers.isLoading ? <SkeletonRows rows={4} columns={3} /> : null}
-
-        {offers.isError ? (
-          <div className="px-5 py-4">
-            <ErrorState
-              message={describeError(offers.error).message}
-              onRetry={() => void offers.refetch()}
-            />
-          </div>
-        ) : null}
-
-        {!offers.isLoading && !offers.isError && results.length === 0 ? (
+        {!searching ? (
           <EmptyState
-            title="No hay ofertas con esos filtros"
-            description="Probá con otro rango de importes o con otra tasa."
+            title="Buscá la oferta que mejor te sirva"
+            description="Filtrá por moneda, importe, tasa y plazo, y compará las que te interesen."
+            illustration="empty"
+            action={
+              <Button icon="search" onClick={openSearch}>
+                Buscar ofertas
+              </Button>
+            }
           />
-        ) : null}
+        ) : (
+          <>
+            <div className="px-5 py-4">
+              <OfferFiltersForm onFiltersChange={setFilters} />
+            </div>
 
-        <ul className="stagger divide-y divide-line">
-          {results.map((offer) => {
-            const currency = offer.currency === 'USD' ? 'USD' : 'ARS'
+            {offers.isLoading ? <SkeletonRows rows={4} columns={3} /> : null}
 
-            return (
-              <li key={offer.id} className="px-5 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-lg font-semibold tracking-tight text-ink tabular">
-                      <MoneyAmount value={offer.amount} currency={currency} />
-                    </p>
-                    <p className="mt-1 text-[13px] text-ink-muted">
-                      {formatRate(offer.interest_rate)} anual · {offer.term_months} meses
-                    </p>
-                    {offer.requirements ? (
-                      <p className="mt-1.5 max-w-xl truncate-1 text-[13px] text-ink-muted">
-                        {offer.requirements}
-                      </p>
-                    ) : null}
-                  </div>
+            {offers.isError ? (
+              <div className="px-5 py-4">
+                <ErrorState
+                  message={describeError(offers.error).message}
+                  onRetry={() => void offers.refetch()}
+                />
+              </div>
+            ) : null}
 
-                  <div className="flex shrink-0 items-center gap-3">
-                    <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-muted">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(offer.id)}
-                        onChange={() => toggleSelection(offer.id)}
-                        className="h-4 w-4 rounded border-line-strong text-teal focus:ring-teal"
-                      />
-                      Comparar
-                    </label>
-                    <Button size="sm" onClick={() => setAccepting(offer)}>
-                      Aceptar
+            {!offers.isLoading && !offers.isError && results.length === 0 ? (
+              <EmptyState
+                title="No hay ofertas con esos filtros"
+                description="Probá con otro rango de importes o con otra tasa."
+                illustration="empty"
+              />
+            ) : null}
+
+            {results.length > 0 ? (
+              <>
+                <ul className="divide-y divide-line border-t border-line">
+                  {results.map((offer) => {
+                    const currency = offer.currency === 'USD' ? 'USD' : 'ARS'
+
+                    return (
+                      <li key={offer.id} className="animate-fade-up px-5 py-4">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-lg font-semibold tracking-tight text-ink tabular">
+                              <MoneyAmount value={offer.amount} currency={currency} />
+                            </p>
+                            <p className="mt-1 text-[13px] text-ink-muted">
+                              {formatRate(offer.interest_rate)} anual · {offer.term_months} meses
+                            </p>
+                            {offer.requirements ? (
+                              <p className="mt-1.5 max-w-xl truncate-1 text-[13px] text-ink-muted">
+                                {offer.requirements}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-3">
+                            <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-muted">
+                              <input
+                                type="checkbox"
+                                checked={selected.includes(offer.id)}
+                                onChange={() => toggleSelection(offer.id)}
+                                className="h-4 w-4 rounded border-line-strong text-teal focus:ring-teal/30"
+                              />
+                              Comparar
+                            </label>
+                            <Button size="sm" onClick={() => setAccepting(offer)}>
+                              Aceptar
+                            </Button>
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+
+                {selected.length >= 2 ? (
+                  <div className="flex justify-end border-t border-line px-5 py-3">
+                    <Button icon="sliders" onClick={() => void handleCompare()}>
+                      Comparar ({selected.length})
                     </Button>
                   </div>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                ) : null}
+              </>
+            ) : null}
+          </>
+        )}
       </Card>
 
       {/* Mis ofertas */}
@@ -211,11 +242,9 @@ export function MarketplacePage() {
           description="Las ofertas que publicaste vos."
           icon="wallet"
           action={
-            (myOffers.data?.results.length ?? 0) === 0 ? (
-              <Button size="sm" variant="secondary" onClick={() => setOfferFormOpen(true)}>
-                Publicar oferta
-              </Button>
-            ) : null
+            <Button variant="secondary" icon="plus" onClick={() => setOfferFormOpen(true)}>
+              Publicar oferta
+            </Button>
           }
         />
 
@@ -234,15 +263,16 @@ export function MarketplacePage() {
           <EmptyState
             title="Todavía no publicaste ofertas"
             description="Publicá una oferta para prestar tu dinero."
+            illustration="empty"
             action={
-              <Button size="sm" onClick={() => setOfferFormOpen(true)}>
+              <Button icon="plus" onClick={() => setOfferFormOpen(true)}>
                 Publicar oferta
               </Button>
             }
           />
         ) : null}
 
-        <ul className="stagger divide-y divide-line">
+        <ul className="divide-y divide-line">
           {(myOffers.data?.results ?? []).map((offer) => {
             const currency = offer.currency === 'USD' ? 'USD' : 'ARS'
 
@@ -358,7 +388,7 @@ export function MarketplacePage() {
             </TableBody>
           </Table>
         ) : (
-          <EmptyState title="No hay nada para comparar todavía" />
+          <EmptyState title="No hay nada para comparar todavía" illustration="empty" />
         )}
       </Modal>
     </div>

@@ -6,7 +6,6 @@ import { Card, CardHeader } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { SkeletonRows } from '../../components/ui/Skeleton'
 import { describeError } from '../../lib/api/errors'
 import { formatDate, formatRate } from '../../lib/money/format'
@@ -34,18 +33,6 @@ export function LoansPage() {
 
   return (
     <div className="flex animate-fade-up flex-col gap-6">
-      <PageHeader
-        title="Préstamos"
-        description="Los préstamos que tomaste y los que vos prestaste."
-        secondaryActions={
-          <Link to="/ofertas">
-            <Button variant="secondary" icon="offer">
-              Ver ofertas
-            </Button>
-          </Link>
-        }
-      />
-
       <Card>
         <CardHeader title="Mis préstamos" icon="loan" />
 

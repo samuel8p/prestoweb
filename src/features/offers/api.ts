@@ -22,7 +22,7 @@ export interface OfferFilters {
 }
 
 /** Ofertas activas del marketplace, con los filtros de la búsqueda. */
-export function useMatchingOffers(filters: OfferFilters) {
+export function useMatchingOffers(filters: OfferFilters, enabled = true) {
   const client = useApiClient()
 
   return useQuery({
@@ -38,6 +38,7 @@ export function useMatchingOffers(filters: OfferFilters) {
           ordering: filters.ordering,
         },
       }),
+    enabled,
   })
 }
 

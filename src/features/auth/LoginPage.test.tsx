@@ -17,7 +17,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Ingresar' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Panel' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
     })
     expect(screen.queryByRole('button', { name: 'Ingresar' })).not.toBeInTheDocument()
   })
