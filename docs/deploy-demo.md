@@ -193,6 +193,12 @@ instancia, no se escala):
 |---|---|---|---|
 | 1 OCPU | 6 GB | **2** | **2** |
 | 2 OCPU | 12 GB | **4** | **4** |
+| plan gratuito chico (Northflank) | 512 MB - 1 GB | **1** | **1** |
+
+En los planes gratuitos el proceso es único: con un solo worker y una sola
+réplica el servicio entra en memoria y **no hay límites de memoria
+configurados** ✗ (un límite duro mata el proceso a mitad de una operación de
+dinero ✗ → es preferible que la plataforma avise ✓).
 
 Los procesos de gunicorn son los que más RAM consumen (cada uno es un proceso
 de Django con su copia de la aplicación); los del worker de Celery son tareas
