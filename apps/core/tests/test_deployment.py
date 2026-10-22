@@ -1,6 +1,8 @@
 """Tests de la configuración de despliegue (compose, health check y usuario sin root)."""
 
+import os
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -138,3 +140,45 @@ def test_the_production_defaults_are_low(prod_compose):
 
     assert 1 <= int(gunicorn_default) <= 3
     assert 1 <= int(celery_default) <= 3
+
+
+def run_entrypoint(tmp_path, role, environment):
+    """Ejecuta el entrypoint con un `celery` falso y devuelve sus argumentos."""
+    fake_bin = tmp_path / 'bin'
+    fake_bin.mkdir()
+    fake = fake_bin / 'celery'
+    fake.write_text('#!/bin/sh\necho "celery $@"\n', encoding='utf-8')
+    fake.chmod(0o755)
+
+    env = {**os.environ, 'PATH': f'{fake_bin}{os.pathsep}{os.environ["PATH"]}', **environment}
+    result = subprocess.run(
+        ['sh', str(ROOT / 'deploy/entrypoint.sh'), role],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def test_the_worker_starts_without_the_embedded_beat_by_default(tmp_path):
+    """Sin `CELERY_EMBED_BEAT` el worker no lleva el beat embebido."""
+    output = run_entrypoint(tmp_path, 'worker', {'CELERY_EMBED_BEAT': 'false'})
+
+    assert '-B' not in output
+
+
+def test_the_worker_starts_with_the_embedded_beat(tmp_path):
+    """Con `CELERY_EMBED_BEAT=true` el worker arranca con el beat embebido."""
+    output = run_entrypoint(tmp_path, 'worker', {'CELERY_EMBED_BEAT': 'true'})
+
+    assert '-B' in output
+    assert 'celery' in output
+
+
+def test_the_embedded_beat_keeps_the_schedule_of_the_project(tmp_path):
+    """El beat embebido usa el schedule del proyecto (`config/celery.py`)."""
+    output = run_entrypoint(tmp_path, 'worker', {'CELERY_EMBED_BEAT': 'true'})
+
+    assert '-A' in output
+    assert 'config' in output

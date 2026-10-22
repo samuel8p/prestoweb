@@ -52,4 +52,8 @@ USER presto
 EXPOSE 8000
 
 # Migrations + Gunicorn (docker-compose overrides the CMD to run migrations first)
+#
+# El entrypoint permite que la misma imagen sirva para el web y para el worker
+# cambiando solo el comando: `web`, `worker` o cualquier otro comando.
+ENTRYPOINT ["sh", "/app/deploy/entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
