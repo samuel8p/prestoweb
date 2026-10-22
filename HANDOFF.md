@@ -214,11 +214,19 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 Los commits anteriores de este mismo `HANDOFF.md` están listados; este commit no
 puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**136**).
+**144**).
 
 | Commit | Asunto |
 |---|---|
-| `59d5653` | docs(handoff): register the cors and the oracle cloud delivery |
+| `b5d14fd` | docs(deploy): guide for northflank and the vercel front |
+| `86f3aca` | fix(deploy): write the beat schedule where the container can |
+| `8b50de8` | feat(core): serve the admin static files from the application |
+| `bc14a78` | docs(deploy): document the resources of the free plans |
+| `06d2b32` | feat(core): answer the health check before the host validation |
+| `b88e5fb` | feat(deploy): serve the web and the worker with the same image |
+| `cf55020` | feat(deploy): allow the worker to run the beat embedded |
+| `2c87325` | feat(core): connect with the urls of the managed services |
+| `6cbc82f` | docs(handoff): register the cors and the oracle cloud delivery |
 | `57c2f89` | docs(deploy): guide for Oracle Cloud, DuckDNS and Vercel |
 | `538944a` | chore(infra): make the production concurrency configurable |
 | `b179fd0` | docs(deploy): verify and document the arm64 compatibility |
@@ -374,6 +382,7 @@ puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Bloque 7 — payments (proveedor real)** | ❌ no empezada | Hoy los depósitos y retiros son simulados y el system check `ledger.E001` los bloquea en producción. |
 | **Auditoría final y pulido** | ✅ completa | Auditoría de solo lectura (`docs/audit-final.md`: 0 críticos, 2 altos, 9 medios, 8 bajos) y corrección de todo lo crítico, alto y medio: validadores de contraseña de Django, HSTS en producción, carrera de las ofertas, contenedores sin root, health check de producción, tests faltantes (detalle de categoría, concurrencia de budgets), suite end-to-end, `docs/architecture.md`, ADR 0005-0007 y README al día. |
 | **Autorizaciones del 2026-10-21** | ✅ completa | Los cuatro puntos autorizados: el registro de la §17 de `AGENTS.md` aplicado (solo el changelog), `pip-audit` como dependencia de desarrollo con su puerta en la CI, `manage.py check --deploy` con los settings de producción en la CI y el `CheckConstraint` de moneda (`ARS`/`USD`) en `ledger.Account` y `ledger.LedgerEntry` con su migración. |
+| **Bloque 7 — despliegue en Northflank (plan gratuito)** | ✅ completa | La misma imagen sirve para el web y el worker (comando `web` / `worker` vía el entrypoint), conexión por URL a las bases administradas (parseo propio con la stdlib y `DB_SSLMODE`), beat embebido opcional (`CELERY_EMBED_BEAT`), migraciones al arrancar (`RUN_MIGRATIONS`), health check que responde antes de validar el `Host`, estáticos del admin con whitenoise y la guía `docs/deploy-northflank.md`. |
 
 ### 6.3 Funcionalidades implementadas (por app)
 
@@ -451,6 +460,9 @@ contra el código de este bloque):
 | Depósito en producción (demo) | `manage.py shell` con `ledger.services.deposit` | 201, saldo 1000.00 ARS y **suma por moneda = 0.00** |
 | arm64 | `docker buildx imagetools inspect` + `buildx build --platform linux/arm64` | `python:3.12-slim`, `postgres:16`, `redis:7-alpine` y `caddy:2-alpine` publican **linux/arm64**; la imagen del proyecto compila para arm64 y `uname -m` da `aarch64` |
 | Concurrencia de producción | `docker compose -p presto-prod logs worker` | `concurrency: 2 (prefork)` (default del compose) |
+| Simulación Northflank (local) | imagen única como `web` y como `worker` con `CELERY_EMBED_BEAT=true`, `DATABASE_URL` y `REDIS_URL` a un Postgres y un Redis de prueba | web con migraciones aplicadas y `/health/` **200 con el Host interno**; el resto de los endpoints siguen con 400 ante un Host desconocido; el worker levanta el beat embebido con el schedule del proyecto (4 tareas) y registra las 5 tasks; depósito simulado 1500.00 ARS con **suma por moneda = 0.00**; preflight CORS 200 con el origen permitido. Bajada con `docker compose -p presto-nf-test ... down -v` (sin rastros) |
+| Estáticos del admin | petición real a `/admin/` con el stack de producción | antes: 404 en `/static/admin/css/base.css`; ahora **200 text/css** (22 KB) |
+| Parseo de URLs | `DATABASE_URL` con clave percent-encoded y `DB_SSLMODE` | `p@ss:w/rd` des-codificado y `OPTIONS={'sslmode': 'require'}`; sin `DATABASE_URL` el comportamiento de siempre |
 | Worker | `docker compose logs worker` | `transport: redis://redis:6379/0`, `results: disabled://`, 5 tasks registradas, `ready.` |
 | Beat | `celery -A config inspect conf` | 4 entradas: `mark_overdue_loans_diario` (00:05), `notify_installments_due_soon_diario` (00:10), `settle_investments_diario` (00:15) y `notify_overdue_installments_diario` (00:20) |
 | Tareas en el worker | `docker compose logs worker` | 5 tasks registradas: `mark_overdue_loans`, `settle_investments`, `notify_installments_due_soon`, `notify_overdue_installments`, `send_notification_email` |
@@ -529,6 +541,10 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D50 | La **concurrencia de producción se ajusta por entorno** | `GUNICORN_WORKERS` (web) y `CELERY_WORKER_CONCURRENCY` (worker) con defaults bajos (3 y 2). La VM de Oracle tiene 1 o 2 OCPU y 6 o 12 GB: con 6 GB, 2 y 2; con 12 GB, 4 y 4. **No hay límites de memoria**: matan el proceso a mitad de una operación de dinero |
 | D51 | El stack es **multi-arquitectura** (`linux/arm64` y `linux/amd64`) | Las imágenes de producción (`python:3.12-slim`, `postgres:16`, `redis:7-alpine`, `caddy:2-alpine`) publican arm64 y el build del proyecto para arm64 funciona sin compilar nada |
 | D52 | El despliegue documentado apunta a **Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel** | La guía de `docs/deploy-demo.md` §8 tiene el paso a paso: Docker en Ubuntu, el **firewall interno** de la VM (las imágenes de Oracle bloquean el tráfico con iptables aunque la Security List esté abierta), DuckDNS, el `DOMAIN` de Caddy, el `.env.prod`, los perfiles `proxy` y `backup`, el superusuario, los datos de demo, la verificación con `curl` (salud, meta, depósito y preflight CORS), la actualización y la restauración de backups |
+| D53 | La **misma imagen** sirve para el web y para el worker, según el comando | El entrypoint de la imagen arma el comando: `web` (gunicorn en `$PORT`, con `RUN_MIGRATIONS` opcional) o `worker` (celery, con `-B` si `CELERY_EMBED_BEAT=true`). El compose de producción no cambia: su comando por defecto sigue siendo el de siempre |
+| D54 | El **health check se contesta antes de validar el `Host`** | Las plataformas lo llaman con la IP interna del servicio y Django responde 400 si el `Host` no está en `ALLOWED_HOSTS` (que tiene que quedar cerrado con el dominio público). El endpoint es público y solo dice si la base contesta |
+| D55 | Las **URLs de las bases administradas se parsean con la stdlib** | `DATABASE_URL` y `REDIS_URL` entran tal cual las da la plataforma (la clave percent-encoded se des-codifica) y `DB_SSLMODE` agrega o pisa el `sslmode`. Sin `DATABASE_URL` el comportamiento no cambia |
+| D56 | Los **estáticos los sirve la aplicación** con whitenoise | El admin del Django salía sin estilos en producción (404): no hay servidor de estáticos delante. La imagen los recolecta y whitenoise los sirve |
 
 ## 8. Problemas y resoluciones
 
@@ -785,6 +801,26 @@ Sin `EMAIL_HOST` el backend de email es el de consola; definiéndolo pasa a ser
 SMTP. El detalle (incluido el despliegue en una plataforma con Docker Compose, el
 proxy opcional y los backups) está en `docs/deploy-demo.md`.
 
+### Despliegue en plataformas administradas
+
+La imagen es única: el **entrypoint** (`deploy/entrypoint.sh`) arma el comando
+según el rol (`web` o `worker`) y las variables de entorno.
+
+```sh
+# El web
+sh deploy/entrypoint.sh web          # gunicorn en $PORT (8000), workers de GUNICORN_WORKERS
+# El worker (con el beat embebido)
+sh deploy/entrypoint.sh worker       # celery con --concurrency y -B si CELERY_EMBED_BEAT=true
+```
+
+Las guías de despliegue están en:
+
+- [docs/deploy-demo.md](docs/deploy-demo.md): modo demo, producción en general,
+  **Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel** y la compatibilidad
+  arm64.
+- [docs/deploy-northflank.md](docs/deploy-northflank.md): **Northflank (plan
+  gratuito) + Vercel**: dos servicios, dos bases administradas y dos cron jobs.
+
 ### Otros
 
 ```sh
@@ -949,7 +985,14 @@ Orden real de lo que falta, de mayor a menor prioridad.
     `sentry-sdk` como dependencia, imágenes fijadas a digest y el reintento o el
     resumen de los avisos fallidos. **Ya resueltas**: `pip-audit` en la CI, el
     `check --deploy` en la CI y el `CheckConstraint` de moneda del ledger
-    (2026-10-21), y el **CORS real** con `django-cors-headers` (2026-10-22).
+    (2026-10-21), el **CORS real** con `django-cors-headers` y los **estáticos
+    del admin** con `whitenoise` (2026-10-22).
+12. **Northflank**: la guía está escrita y el entorno se simuló localmente ✓,
+    pero **no se pudo comprobar la consola de la plataforma** (el plan, los
+    límites, los backups del add-on, el panel de logs): todo eso está marcado
+    como "verificar en la UI" en `docs/deploy-northflank.md` ✓. Falta además
+    el **cron job** que reemplace al beat embebido si el plan no lo permite
+    (hoy el worker lleva el beat ✓).
 
 ### 11.1 Decisiones abiertas con el cliente
 
@@ -1184,3 +1227,4 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Auditoría final y pulido del backend** (14 commits): auditoría de solo lectura en `docs/audit-final.md` (0 críticos, 2 altos, 9 medios y 8 bajos, con la evidencia de cada uno y una sección "Requiere decisión" con recomendación) y corrección de todo lo crítico, alto y medio, con TDD: validadores de contraseña de Django activos (AGENTS §9.5), HSTS en producción (AGENTS §9.4), `update_offer`/`expire_offer` con `transaction.atomic()` y `select_for_update()`, contenedores de la aplicación corriendo como el usuario `presto` (uid 1000), health check de producción mandando un `Host` permitido, test del endpoint de detalle de categoría, test de concurrencia de la categorización de gastos, test de concurrencia de la actualización de ofertas, suite end-to-end del flujo completo (registro → login → KYC → depósito → oferta → préstamo → cuota → inversión → reportes → avisos, en ARS y USD, verificando que la suma de saldos por moneda sea 0), `docs/architecture.md`, ADR 0005 (saldo desnormalizado), 0006 (doble entrada con trigger diferido) y 0007 (orden de las apps), README al día y `.env.example` con todas las variables. **655 tests pasan**, 28 contratos de import-linter, cobertura del 99%, OpenAPI sin warnings y arranque real verificado de los stacks de desarrollo y de producción (este último con `DEMO_MODE=true` y luego bajado con `down -v`). `AGENTS.md` **no** se modificó: el texto propuesto para su §17 quedó en `docs/agents-changelog-proposal.md`. |
 | 2026-10-21 | **Autorizaciones del desarrollador (4 commits)**: (1) `docs(agents)` aplicó el texto de `docs/agents-changelog-proposal.md` **solo en el registro de la §17** de `AGENTS.md` (bloque 6a, bloque 6b, modo demo, correcciones de la auditoría y documentación); las §§7, 15 y 4 no se tocaron. (2) `chore(deps)` agregó `pip-audit` como dependencia de desarrollo (pyproject, imagen y lista de la CI) con un paso en la CI que falla si hay vulnerabilidades conocidas, más el target `make audit`: **las dependencias del proyecto están limpias** (la auditoría previa solo mostró avisos en el propio `pip`, que la CI actualiza). El repo **no tiene lock file**, así que no había nada que fijar ahí. (3) `ci` agregó `manage.py check --deploy --fail-level WARNING` con los settings de producción (clave secreta aleatoria en el paso); el único aviso que quedaba, el preload del HSTS (`security.W021`), quedó silenciado en `production.py` con la razón escrita al lado, porque el preload es irreversible y la decisión es del cliente. (4) `feat(ledger)` agregó el `CheckConstraint` de moneda (`ARS`/`USD`) a `Account` y `LedgerEntry` con la migración `ledger.0003`: la base ya no acepta `EUR` ni `ars` en minúscula, y los triggers, la inmutabilidad y la idempotencia siguen funcionando. **662 tests pasan**. `docs/audit-final.md` §5 quedó con el estado de cada decisión. |
 | 2026-10-22 | **CORS + despliegue en Oracle Cloud (4 commits)**: `feat(core)` habilitó el CORS real con `django-cors-headers` (dependencia de producción, middleware primero en la pila, `CORS_ALLOWED_ORIGINS` desde el entorno sin `*` y sin credenciales, 8 tests nuevos); `docs(deploy)` verificó y documentó la compatibilidad **arm64** (las cuatro imágenes de producción publican `linux/arm64` y la imagen del proyecto compila para arm64); `chore(infra)` hizo configurable la concurrencia de producción (`GUNICORN_WORKERS` y `CELERY_WORKER_CONCURRENCY`, defaults 3 y 2, recomendados 2/2 para 6 GB y 4/4 para 12 GB, sin límites de memoria); `docs(deploy)` escribió la guía **Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel** (Docker, swap opcional, el firewall interno de la VM con iptables, DuckDNS y `DOMAIN`, `.env.prod`, perfiles `proxy` y `backup`, superusuario y datos de demo, verificación con `curl`, actualización y restauración de backups). **672 tests pasan**. Verificado en runtime con el stack de producción y `DEMO_MODE=true`: `/health/` 200, `/api/v1/meta/` 200 `mode=demo`, preflight CORS 200 con el origen permitido, depósito simulado con la suma por moneda en 0.00 y el worker con `concurrency: 2`. |
+| 2026-10-22 | **Despliegue en Northflank (7 commits)**: `feat(core)` dejó el parseo de las URLs de conexión en la stdlib (`DATABASE_URL` y `REDIS_URL` con `DB_SSLMODE`, parseo propio y sin `dj-database-url`); `feat(deploy)` agregó el **entrypoint de la imagen** (roles `web` y `worker`, puerto `$PORT`, `RUN_MIGRATIONS`) y el **beat embebido** (`CELERY_EMBED_BEAT`, con la restricción de una sola réplica); `feat(core)` hizo que el **health check** se conteste antes de validar el `Host` (las plataformas lo llaman con la IP interna); `feat(core)` habilitó **whitenoise** para que el **admin cargue sus estilos** (antes 404, verificado con una petición real); `fix(deploy)` movió el archivo del schedule del beat al directorio que el contenedor puede escribir (lo encontró la simulación local); `chore`/`docs` actualizaron los recursos recomendados (1 y 1 para los planes gratuitos) y escribieron `docs/deploy-northflank.md`. **700 tests pasan**. Verificado con una simulación local del entorno (imagen única como web y como worker, base y redis de prueba, beat embebido): migraciones aplicadas, `/health/` 200 con el Host interno, el beat con el schedule del proyecto, el depósito simulado con la suma por moneda en 0.00 y el preflight CORS 200. **No verificado**: la consola de Northflank (el plan, los límites, los backups del add-on, los logs), marcado como "verificar en la UI" en la guía. |
