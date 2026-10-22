@@ -15,7 +15,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const CONTROL =
-  'w-full rounded-[var(--radius-control)] border bg-white px-3 py-2 text-sm text-slate-900 shadow-xs transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500'
+  'w-full rounded-[var(--radius-control)] border bg-white px-3 py-2 text-sm text-ink shadow-xs transition-colors placeholder:text-ink-subtle focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-muted'
 
 /** Campo de texto con etiqueta, ayuda y error accesibles. */
 export function Input({
@@ -37,14 +37,14 @@ export function Input({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={inputId}
-        className={hideLabel ? 'sr-only' : 'text-[13px] font-medium text-slate-700'}
+        className={hideLabel ? 'sr-only' : 'text-[13px] font-medium text-ink'}
       >
         {label}
       </label>
 
       <div className="relative">
         {icon ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle">
             <Icon name={icon} size={16} />
           </span>
         ) : null}
@@ -55,21 +55,21 @@ export function Input({
           aria-describedby={error ? errorId : hint ? hintId : undefined}
           className={`${CONTROL} ${
             error
-              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100'
-              : 'border-line-strong focus:border-brand-500 focus:ring-brand-100'
+              ? 'border-danger focus:border-danger focus:ring-danger-bg'
+              : 'border-line-strong focus:border-teal focus:ring-teal/20'
           } ${icon ? 'pl-9' : ''} ${className}`}
           {...rest}
         />
       </div>
 
       {hint && !error ? (
-        <p id={hintId} className="text-xs text-slate-500">
+        <p id={hintId} className="text-xs text-ink-muted">
           {hint}
         </p>
       ) : null}
 
       {error ? (
-        <p id={errorId} role="alert" className="text-xs font-medium text-rose-600">
+        <p id={errorId} role="alert" className="text-xs font-medium text-danger">
           {error}
         </p>
       ) : null}

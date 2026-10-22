@@ -24,22 +24,22 @@ export interface StatCardProps {
  */
 export function StatCard({ label, value, hint, currency, icon, action }: StatCardProps) {
   return (
-    <div className="rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-card">
+    <div className="rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-card transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-raised">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[13px] font-medium text-slate-500">{label}</p>
+        <p className="label-caps text-ink-subtle">{label}</p>
         {icon ? (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-            <Icon name={icon} size={17} />
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-tint text-teal">
+            <Icon name={icon} size={16} />
           </span>
         ) : null}
       </div>
 
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 tabular">{value}</p>
+      <p className="mt-3 text-2xl font-bold tracking-tight text-ink tabular">{value}</p>
 
       <div className="mt-1.5 flex items-center justify-between gap-3">
-        {hint ? <p className="truncate-1 text-xs text-slate-500">{hint}</p> : <span />}
+        {hint ? <p className="truncate-1 text-xs text-ink-muted">{hint}</p> : <span />}
         {currency ? (
-          <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+          <span className="shrink-0 rounded bg-surface-muted px-1.5 py-0.5 text-[11px] font-bold text-ink-muted">
             {currency}
           </span>
         ) : null}

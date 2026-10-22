@@ -1,45 +1,53 @@
 import { Link } from 'react-router-dom'
 
 export interface LogoProps {
-  /** Variante compacta para el encabezado en pantallas chicas. */
+  /** `dark` para usarlo sobre el fondo océano. */
+  variant?: 'light' | 'dark'
+  /** Versión compacta, sin el nombre. */
   compact?: boolean
   className?: string
 }
 
 /**
- * Marca de Presto: un símbolo geométrico y el nombre.
+ * Marca de Presto.
  *
- * El símbolo evoca una cartera abierta con una línea de saldo: azul marino,
- * sin degradados.
+ * Símbolo geométrico: una cartera abierta con el saldo en turquesa sobre
+ * azul marino. Sin degradados ni recursos externos.
  */
-export function Logo({ compact = false, className = '' }: LogoProps) {
+export function Logo({ variant = 'light', compact = false, className = '' }: LogoProps) {
+  const dark = variant === 'dark'
+
   return (
     <Link
       to="/panel"
       aria-label="Presto, ir al panel"
       className={`flex items-center gap-2.5 ${className}`}
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-900 text-white shadow-xs">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <span className="flex h-9 w-9 items-center justify-center rounded-[0.65rem] bg-ocean">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path
-            d="M4 8.5A2.5 2.5 0 0 1 6.5 6H18a2 2 0 0 1 2 2v1.5"
-            stroke="currentColor"
-            strokeWidth="2"
+            d="M4 8.2A3.2 3.2 0 0 1 7.2 5H14a1 1 0 0 1 1 1v1.4"
+            stroke="#2DD4BF"
+            strokeWidth="1.8"
             strokeLinecap="round"
           />
           <path
-            d="M4 8.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H6"
-            stroke="currentColor"
-            strokeWidth="2"
+            d="M4 8.2V14a3 3 0 0 0 3 3h6.2a3 3 0 0 0 3-3v-3.4a1.6 1.6 0 0 0-1.6-1.6H7"
+            stroke="#FFFFFF"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <circle cx="16" cy="13" r="1.4" fill="currentColor" />
+          <circle cx="12.8" cy="11.6" r="1.15" fill="#0E7C86" />
         </svg>
       </span>
 
       {!compact ? (
-        <span className="text-[17px] font-semibold tracking-tight text-brand-950">Presto</span>
+        <span
+          className={`text-[17px] font-bold tracking-tight ${dark ? 'text-white' : 'text-ocean'}`}
+        >
+          Presto
+        </span>
       ) : null}
     </Link>
   )

@@ -12,11 +12,11 @@ export interface PageHeaderProps {
 /** Encabezado de página: título, bajada y la acción principal. */
 export function PageHeader({ title, description, action, secondaryActions }: PageHeaderProps) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
+    <header className="flex flex-wrap items-end justify-between gap-4 animate-fade-up">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">{title}</h1>
         {description ? (
-          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-slate-500">{description}</p>
+          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-ink-muted">{description}</p>
         ) : null}
       </div>
 

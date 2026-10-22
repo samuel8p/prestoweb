@@ -1,9 +1,9 @@
 type Tone = 'ok' | 'warning' | 'danger'
 
 const TONES: Record<Tone, string> = {
-  ok: 'bg-brand-600',
-  warning: 'bg-amber-500',
-  danger: 'bg-rose-500',
+  ok: 'bg-teal',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
 }
 
 export interface ProgressBarProps {
@@ -27,12 +27,15 @@ export function ProgressBar({ percent, label, tone = 'ok', showValue = true }: P
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-line"
       >
-        <div className={`h-full rounded-full ${TONES[tone]}`} style={{ width: `${clamped}%` }} />
+        <div
+          className={`bar-fill h-full rounded-full ${TONES[tone]}`}
+          style={{ width: `${clamped}%` }}
+        />
       </div>
       {showValue ? (
-        <p className="mt-1.5 text-xs font-medium text-slate-500 tabular">{percent}%</p>
+        <p className="mt-1.5 text-xs font-semibold text-ink-muted tabular">{percent}%</p>
       ) : null}
     </div>
   )

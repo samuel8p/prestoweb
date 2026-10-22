@@ -59,7 +59,7 @@ export function TableHeader({
   return (
     <th
       scope="col"
-      className={`px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 ${alignment} ${className}`}
+      className={`px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted ${alignment} ${className}`}
     >
       {children}
     </th>
@@ -78,9 +78,5 @@ export function TableCell({
   const alignment =
     align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
 
-  return (
-    <td className={`px-5 py-3 align-middle text-slate-700 ${alignment} ${className}`}>
-      {children}
-    </td>
-  )
+  return <td className={`px-5 py-3 align-middle text-ink ${alignment} ${className}`}>{children}</td>
 }

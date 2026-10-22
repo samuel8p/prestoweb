@@ -21,7 +21,7 @@ const SIZES = {
   lg: 'max-w-2xl',
 } as const
 
-/** Ventana modal con cierre con Escape y foco inicial. */
+/** Ventana modal con cierre con Escape y entrada animada. */
 export function Modal({
   open,
   title,
@@ -56,27 +56,27 @@ export function Modal({
         type="button"
         aria-label="Cerrar"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-slate-950/40 backdrop-blur-[2px]"
+        className="absolute inset-0 cursor-default bg-ocean/50 backdrop-blur-[2px] animate-fade-in"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-line bg-surface shadow-raised sm:rounded-[var(--radius-card)] ${SIZES[size]}`}
+        className={`relative flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-line bg-surface shadow-raised animate-scale-in sm:rounded-[var(--radius-card)] ${SIZES[size]}`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
+            <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
             {description ? (
-              <p className="mt-0.5 text-[13px] leading-5 text-slate-500">{description}</p>
+              <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{description}</p>
             ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="-mr-1 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            className="-mr-1 rounded-md p-1.5 text-ink-subtle transition-colors hover:bg-surface-muted hover:text-ink"
           >
             <Icon name="x" size={17} />
           </button>

@@ -7,24 +7,24 @@ type Tone = 'info' | 'success' | 'warning' | 'danger'
 
 const TONES: Record<Tone, { box: string; icon: IconName; iconClass: string }> = {
   info: {
-    box: 'border-brand-200 bg-brand-50 text-brand-900',
+    box: 'border-teal/25 bg-teal-tint text-teal-deep',
     icon: 'info',
-    iconClass: 'text-brand-600',
+    iconClass: 'text-teal',
   },
   success: {
-    box: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+    box: 'border-success/25 bg-success-bg text-success',
     icon: 'checkCircle',
-    iconClass: 'text-emerald-600',
+    iconClass: 'text-success',
   },
   warning: {
-    box: 'border-amber-200 bg-amber-50 text-amber-900',
+    box: 'border-warning/25 bg-warning-bg text-warning',
     icon: 'alert',
-    iconClass: 'text-amber-600',
+    iconClass: 'text-warning',
   },
   danger: {
-    box: 'border-rose-200 bg-rose-50 text-rose-900',
+    box: 'border-danger/25 bg-danger-bg text-danger',
     icon: 'alert',
-    iconClass: 'text-rose-600',
+    iconClass: 'text-danger',
   },
 }
 
