@@ -61,6 +61,23 @@ def add_nullable_responses(result, generator, request, public):
     return result
 
 
+def add_demo_mode_header(result, generator, request, public):
+    """Declara la cabecera `X-Presto-Mode` en las respuestas.
+
+    En modo demo la aplicación la agrega a todas las respuestas (el front la
+    usa para saber que el dinero es simulado).
+    """
+    header = {
+        'description': 'Vale `demo` cuando la aplicación corre en modo demo.',
+        'schema': {'type': 'string'},
+    }
+    for operations in result.get('paths', {}).values():
+        for operation in operations.values():
+            for response in operation.get('responses', {}).values():
+                response.setdefault('headers', {})['X-Presto-Mode'] = dict(header)
+    return result
+
+
 def add_error_responses(result, generator, request, public):
     """Le declara a cada operación los errores que puede devolver.
 

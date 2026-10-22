@@ -33,6 +33,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -64,6 +69,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '429':
           description: Demasiados intentos (throttle).
           content:
@@ -95,6 +105,11 @@ paths:
                   code: throttled
                   message: Demasiadas solicitudes. Intentá de nuevo más tarde.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/auth/me/:
     get:
       operationId: auth_me_retrieve
@@ -111,6 +126,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -142,6 +162,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     patch:
       operationId: auth_me_partial_update
       description: Actualiza los datos del perfil del usuario autenticado.
@@ -168,6 +193,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -199,6 +229,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -230,6 +265,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/auth/register/:
     post:
       operationId: auth_register_create
@@ -259,6 +299,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -290,6 +335,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '429':
           description: Demasiados intentos (throttle).
           content:
@@ -321,6 +371,11 @@ paths:
                   code: throttled
                   message: Demasiadas solicitudes. Intentá de nuevo más tarde.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/auth/token/refresh/:
     post:
       operationId: auth_token_refresh_create
@@ -348,6 +403,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -379,6 +439,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -410,6 +475,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/budgets/:
     get:
       operationId: budgets_list
@@ -426,6 +496,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedBudget'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -457,6 +532,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: budgets_create
       description: Crea el presupuesto mensual de una categoría y moneda.
@@ -484,6 +564,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Budget'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -515,6 +600,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -546,6 +636,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '409':
           description: Conflicto con el estado actual (por ejemplo, la misma clave
             de idempotencia con otro payload).
@@ -578,6 +673,11 @@ paths:
                   code: conflict
                   message: La solicitud entra en conflicto con el estado actual.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/budgets/{budget_id}/:
     get:
       operationId: budgets_retrieve
@@ -601,6 +701,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Budget'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -632,6 +737,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -663,6 +773,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/budgets/{budget_id}/status/:
     get:
       operationId: budgets_status
@@ -686,6 +801,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/BudgetStatus'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -717,6 +837,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -748,6 +873,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/budgets/categories/:
     get:
       operationId: budgets_categories_list
@@ -764,6 +894,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCategory'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -795,6 +930,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: budgets_categories_create
       description: Crea una categoría de gasto para el usuario.
@@ -822,6 +962,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Category'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -853,6 +998,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -884,6 +1034,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '409':
           description: Conflicto con el estado actual (por ejemplo, la misma clave
             de idempotencia con otro payload).
@@ -916,6 +1071,11 @@ paths:
                   code: conflict
                   message: La solicitud entra en conflicto con el estado actual.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/budgets/categories/{category_id}/:
     get:
       operationId: budgets_categories_retrieve
@@ -939,6 +1099,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Category'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -970,6 +1135,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -1001,6 +1171,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/budgets/expenses/:
     get:
       operationId: budgets_expenses_list
@@ -1017,6 +1192,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedExpense'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1048,6 +1228,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: budgets_expenses_create
       description: Categoriza un movimiento del ledger como gasto del usuario.
@@ -1075,6 +1260,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Expense'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -1106,6 +1296,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1137,6 +1332,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -1168,6 +1368,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '409':
           description: Conflicto con el estado actual (por ejemplo, la misma clave
             de idempotencia con otro payload).
@@ -1200,6 +1405,11 @@ paths:
                   code: conflict
                   message: La solicitud entra en conflicto con el estado actual.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/investments/positions/:
     get:
       operationId: investments_positions_list
@@ -1216,6 +1426,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedPosition'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1247,6 +1462,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: investments_positions_create
       description: Abre una posición de inversión a plazo fijo.
@@ -1283,6 +1503,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Position'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -1314,6 +1539,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1345,6 +1575,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '403':
           description: Sin permiso, o con el KYC sin aprobar.
           content:
@@ -1376,6 +1611,11 @@ paths:
                   code: permission_denied
                   message: No tenés permisos para realizar esta acción.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '409':
           description: Conflicto con el estado actual (por ejemplo, la misma clave
             de idempotencia con otro payload).
@@ -1408,6 +1648,11 @@ paths:
                   code: conflict
                   message: La solicitud entra en conflicto con el estado actual.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/investments/positions/{position_id}/:
     get:
       operationId: investments_positions_retrieve
@@ -1431,6 +1676,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PositionDetail'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1462,6 +1712,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -1493,6 +1748,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/investments/products/:
     get:
       operationId: investments_products_retrieve
@@ -1509,6 +1769,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedInvestmentProduct'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1540,6 +1805,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/kyc/:
     get:
       operationId: kyc_list
@@ -1559,6 +1829,11 @@ paths:
                 - $ref: '#/components/schemas/KYCVerification'
                 nullable: true
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1590,6 +1865,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: kyc_create
       description: Crea una solicitud de verificación KYC en estado pending.
@@ -1617,6 +1897,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/KYCVerification'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -1648,6 +1933,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1679,6 +1969,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '409':
           description: Conflicto con el estado actual (por ejemplo, la misma clave
             de idempotencia con otro payload).
@@ -1711,6 +2006,11 @@ paths:
                   code: conflict
                   message: La solicitud entra en conflicto con el estado actual.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/kyc/{verification_id}/:
     get:
       operationId: kyc_retrieve
@@ -1734,6 +2034,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/KYCVerification'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1765,6 +2070,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -1796,6 +2106,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/ledger/accounts/:
     get:
       operationId: ledger_accounts_retrieve
@@ -1812,6 +2127,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedAccount'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1843,6 +2163,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: ledger_accounts_create
       description: Crea la billetera del usuario para la moneda indicada.
@@ -1870,6 +2195,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Account'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -1901,6 +2231,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1932,6 +2267,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/ledger/accounts/{account_id}/balance/:
     get:
       operationId: ledger_accounts_balance_retrieve
@@ -1955,6 +2295,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Balance'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -1986,6 +2331,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -2017,6 +2367,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/ledger/transactions/:
     get:
       operationId: ledger_transactions_list
@@ -2033,6 +2388,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/CursorPaginatedLedgerTransaction'
           description: Listado paginado por cursor.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2064,6 +2424,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: ledger_transactions_create
       description: Crea un depósito, retiro o transferencia con idempotencia.
@@ -2100,6 +2465,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/LedgerTransaction'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -2131,6 +2501,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2162,6 +2537,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '403':
           description: Sin permiso, o con el KYC sin aprobar.
           content:
@@ -2193,6 +2573,11 @@ paths:
                   code: permission_denied
                   message: No tenés permisos para realizar esta acción.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '409':
           description: Conflicto con el estado actual (por ejemplo, la misma clave
             de idempotencia con otro payload).
@@ -2225,6 +2610,11 @@ paths:
                   code: conflict
                   message: La solicitud entra en conflicto con el estado actual.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/ledger/transactions/{transaction_id}/:
     get:
       operationId: ledger_transactions_retrieve
@@ -2248,6 +2638,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/LedgerTransaction'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2279,6 +2674,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -2310,6 +2710,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/loans/:
     get:
       operationId: loans_list
@@ -2326,6 +2731,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedLoan'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2357,6 +2767,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: loans_create
       description: Acepta una oferta y devuelve el préstamo creado.
@@ -2393,6 +2808,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Loan'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -2424,6 +2844,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2455,6 +2880,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '403':
           description: Sin permiso, o con el KYC sin aprobar.
           content:
@@ -2486,6 +2916,11 @@ paths:
                   code: permission_denied
                   message: No tenés permisos para realizar esta acción.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -2517,6 +2952,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '409':
           description: Conflicto con el estado actual (por ejemplo, la misma clave
             de idempotencia con otro payload).
@@ -2549,6 +2989,11 @@ paths:
                   code: conflict
                   message: La solicitud entra en conflicto con el estado actual.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/loans/{loan_id}/:
     get:
       operationId: loans_retrieve
@@ -2572,6 +3017,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoanDetail'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2603,6 +3053,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -2634,6 +3089,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/loans/{loan_id}/installments/{number}/pay/:
     post:
       operationId: loans_installments_pay_create
@@ -2662,6 +3122,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Installment'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -2693,6 +3158,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2724,6 +3194,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '403':
           description: Sin permiso, o con el KYC sin aprobar.
           content:
@@ -2755,6 +3230,11 @@ paths:
                   code: permission_denied
                   message: No tenés permisos para realizar esta acción.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -2786,6 +3266,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/matching/comparisons/:
     post:
       operationId: matching_comparisons_create
@@ -2814,6 +3299,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/OfferComparison'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -2845,6 +3335,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -2876,6 +3371,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -2907,6 +3407,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/matching/offers/:
     get:
       operationId: matching_offers_retrieve
@@ -2971,6 +3476,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedOfferMatch'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -3002,6 +3512,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3033,6 +3548,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/meta/:
     get:
       operationId: meta
@@ -3049,6 +3569,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Meta'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/notifications/:
     get:
       operationId: notifications_list
@@ -3065,6 +3590,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedNotification'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3096,6 +3626,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/notifications/preferences/:
     get:
       operationId: notifications_preferences
@@ -3112,6 +3647,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationPreferenceList'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3143,6 +3683,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     put:
       operationId: notifications_preferences_update
       description: Guarda si el usuario quiere recibir un tipo de aviso.
@@ -3170,6 +3715,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationPreference'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -3201,6 +3751,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3232,6 +3787,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/offers/:
     get:
       operationId: offers_list
@@ -3248,6 +3808,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedOffer'
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3279,6 +3844,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     post:
       operationId: offers_create
       description: Publica una oferta de préstamo. No reserva fondos.
@@ -3306,6 +3876,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Offer'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -3337,6 +3912,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3368,6 +3948,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '403':
           description: Sin permiso, o con el KYC sin aprobar.
           content:
@@ -3399,6 +3984,11 @@ paths:
                   code: permission_denied
                   message: No tenés permisos para realizar esta acción.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/offers/{offer_id}/:
     get:
       operationId: offers_retrieve
@@ -3422,6 +4012,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Offer'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3453,6 +4048,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -3484,6 +4084,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
     patch:
       operationId: offers_partial_update
       description: Actualiza los datos de la oferta o la expira.
@@ -3517,6 +4122,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Offer'
           description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -3548,6 +4158,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3579,6 +4194,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '403':
           description: Sin permiso, o con el KYC sin aprobar.
           content:
@@ -3610,6 +4230,11 @@ paths:
                   code: permission_denied
                   message: No tenés permisos para realizar esta acción.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '404':
           description: El recurso no existe o no es del usuario.
           content:
@@ -3641,6 +4266,11 @@ paths:
                   code: not_found
                   message: El recurso solicitado no existe.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/reports/investments/:
     get:
       operationId: reports_investments
@@ -3694,6 +4324,11 @@ paths:
                 type: string
                 format: binary
           description: El reporte en JSON.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -3725,6 +4360,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3756,6 +4396,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/reports/loans/:
     get:
       operationId: reports_loans
@@ -3809,6 +4454,11 @@ paths:
                 type: string
                 format: binary
           description: El reporte en JSON.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -3840,6 +4490,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3871,6 +4526,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/reports/movements/:
     get:
       operationId: reports_movements
@@ -3924,6 +4584,11 @@ paths:
                 type: string
                 format: binary
           description: Listado paginado.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -3955,6 +4620,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -3986,6 +4656,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/reports/spending/:
     get:
       operationId: reports_spending
@@ -4040,6 +4715,11 @@ paths:
                 type: string
                 format: binary
           description: El reporte en JSON.
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '400':
           description: Los datos enviados no son válidos (el `details` dice el campo).
           content:
@@ -4071,6 +4751,11 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
         '401':
           description: Falta el token o venció.
           content:
@@ -4102,6 +4787,11 @@ paths:
                   code: not_authenticated
                   message: Debés autenticarte para acceder a este recurso.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
 components:
   schemas:
     AcceptOffer:

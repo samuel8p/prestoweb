@@ -412,3 +412,17 @@ def test_the_api_answers_409_for_a_duplicate(api):
 def schema_paths():
     """El esquema versionado."""
     return yaml.safe_load(SCHEMA_PATH.read_text(encoding='utf-8'))['paths']
+
+
+def test_the_responses_declare_the_demo_mode_header(schema):
+    """Las respuestas declaran la cabecera `X-Presto-Mode`.
+
+    En modo demo la aplicación la agrega a todas las respuestas y el front
+    la usa para saber que el dinero es simulado.
+    """
+    response = schema['paths']['/api/v1/meta/']['get']['responses']['200']
+
+    headers = response.get('headers', {})
+
+    assert 'X-Presto-Mode' in headers
+    assert headers['X-Presto-Mode']['schema']['type'] == 'string'

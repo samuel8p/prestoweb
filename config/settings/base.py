@@ -113,6 +113,7 @@ SPECTACULAR_SETTINGS = {
         'apps.core.hooks.add_csv_response_to_the_reports',
         'apps.core.hooks.add_error_responses',
         'apps.core.hooks.add_nullable_responses',
+        'apps.core.hooks.add_demo_mode_header',
     ],
 }
 
