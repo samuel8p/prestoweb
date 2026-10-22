@@ -1,17 +1,22 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card, CardHeader } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { Modal } from '../../components/ui/Modal'
+import { MoneyAmount } from '../../components/ui/MoneyAmount'
 import { PageHeader } from '../../components/ui/PageHeader'
-import { Spinner } from '../../components/ui/Spinner'
+import { Segmented } from '../../components/ui/Segmented'
+import { StatCard } from '../../components/ui/StatCard'
+import { SkeletonRows } from '../../components/ui/Skeleton'
 import { formatDateTime } from '../../lib/money/format'
 import type { Currency } from '../../lib/money/format'
 import { useNotifications } from '../notifications/api'
 import { useAccounts } from '../ledger/api'
-import { MovementRow } from '../ledger/MovementRow'
-import { WalletCard } from '../ledger/WalletCard'
+import { MovementForm } from '../ledger/MovementForm'
+import { MovementList } from '../ledger/MovementList'
 import { useRecentMovements } from '../ledger/useRecentMovements'
 
 const EVENT_LABEL: Record<string, string> = {
@@ -21,18 +26,34 @@ const EVENT_LABEL: Record<string, string> = {
   budget_alert: 'Alerta de presupuesto',
 }
 
+const CURRENCY_OPTIONS = [
+  { value: 'ARS' as const, label: 'ARS' },
+  { value: 'USD' as const, label: 'USD' },
+]
+
 /** Panel principal: saldos, últimos movimientos y avisos. */
 export function DashboardPage() {
   const accounts = useAccounts()
   const notifications = useNotifications(5)
-
-  const currencies = (accounts.data?.results ?? []).map(
-    (account) => (account.currency === 'USD' ? 'USD' : 'ARS') as Currency,
-  )
-  const recent = useRecentMovements(currencies)
+  const [movementOpen, setMovementOpen] = useState(false)
+  const [currency, setCurrency] = useState<Currency>('ARS')
 
   const wallets = accounts.data?.results ?? []
+  const availableCurrencies = useMemo(
+    () =>
+      (accounts.data?.results ?? []).map(
+        (account) => (account.currency === 'USD' ? 'USD' : 'ARS') as Currency,
+      ),
+    [accounts.data],
+  )
+
+  const recent = useRecentMovements(availableCurrencies)
   const avisos = notifications.data?.results ?? []
+
+  const activeCurrency = availableCurrencies.includes(currency)
+    ? currency
+    : (availableCurrencies[0] ?? 'ARS')
+  const movements = recent.movements.filter((movement) => movement.currency === activeCurrency)
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,23 +61,25 @@ export function DashboardPage() {
         title="Panel"
         description="Tus saldos, tus movimientos y tus avisos."
         action={
-          <Link to="/billetera">
-            <Button variant="secondary">Ir a la billetera</Button>
-          </Link>
+          <Button icon="plus" onClick={() => setMovementOpen(true)}>
+            Nuevo movimiento
+          </Button>
         }
       />
 
+      {/* Saldos por moneda: un dato por billetera, sin sumar monedas */}
       <section aria-labelledby="titulo-billeteras" className="flex flex-col gap-3">
         <h2
           id="titulo-billeteras"
-          className="text-sm font-semibold uppercase tracking-wide text-slate-500"
+          className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400"
         >
-          Billeteras
+          Saldos
         </h2>
 
         {accounts.isLoading ? (
-          <div className="flex justify-center py-6">
-            <Spinner label="Cargando tus billeteras" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatCard label="Saldo disponible" value="—" />
+            <StatCard label="Saldo disponible" value="—" />
           </div>
         ) : null}
 
@@ -65,8 +88,14 @@ export function DashboardPage() {
             <EmptyState
               title="No pudimos cargar tus billeteras"
               description="Revisá tu conexión y probá de nuevo."
+              icon="wallet"
               action={
-                <Button size="sm" variant="secondary" onClick={() => void accounts.refetch()}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon="refresh"
+                  onClick={() => void accounts.refetch()}
+                >
                   Reintentar
                 </Button>
               }
@@ -79,6 +108,7 @@ export function DashboardPage() {
             <EmptyState
               title="Todavía no tenés billeteras"
               description="Abrí una billetera para empezar a mover dinero."
+              icon="wallet"
               action={
                 <Link to="/billetera">
                   <Button size="sm">Abrir billetera</Button>
@@ -90,83 +120,136 @@ export function DashboardPage() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           {wallets.map((account) => (
-            <WalletCard key={account.id} account={account} />
+            <StatCard
+              key={account.id}
+              label={`Saldo ${account.currency}`}
+              value={
+                <MoneyAmount
+                  value={account.balance}
+                  currency={account.currency === 'USD' ? 'USD' : 'ARS'}
+                />
+              }
+              icon="wallet"
+              hint={`Billetera ${account.id.slice(0, 8)}…`}
+            />
           ))}
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Movimientos */}
+        <Card className="lg:col-span-2">
           <CardHeader
             title="Últimos movimientos"
+            icon="swap"
             action={
-              <Link to="/billetera" className="text-sm font-medium text-brand-700 hover:underline">
-                Ver todos
-              </Link>
+              <div className="flex items-center gap-3">
+                <Segmented
+                  label="Moneda de los movimientos"
+                  value={activeCurrency}
+                  options={CURRENCY_OPTIONS}
+                  onChange={setCurrency}
+                />
+                <Link
+                  to="/billetera"
+                  className="text-[13px] font-medium text-brand-700 hover:underline"
+                >
+                  Ver todos
+                </Link>
+              </div>
             }
           />
+
           {recent.isLoading ? (
-            <div className="flex justify-center py-8">
-              <Spinner label="Cargando los movimientos" />
-            </div>
-          ) : recent.movements.length === 0 ? (
-            <EmptyState title="Todavía no hay movimientos" description="Empezá con un depósito." />
+            <SkeletonRows rows={4} columns={3} />
+          ) : movements.length === 0 ? (
+            <EmptyState
+              title="Todavía no hay movimientos"
+              description="Empezá con un depósito."
+              icon="swap"
+              action={
+                <Button size="sm" onClick={() => setMovementOpen(true)}>
+                  Nuevo movimiento
+                </Button>
+              }
+            />
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {recent.movements.map((movement) => (
-                <MovementRow
-                  key={movement.id}
-                  movement={movement}
-                  reversed={movement.is_reversed}
-                />
-              ))}
-            </ul>
+            <MovementList
+              movements={movements}
+              isLoading={false}
+              error={null}
+              hasNextPage={false}
+              isFetchingMore={false}
+              onRetry={() => void recent.refetch()}
+              onLoadMore={() => undefined}
+              emptyTitle="Todavía no hay movimientos"
+            />
           )}
         </Card>
 
+        {/* Avisos */}
         <Card>
           <CardHeader
             title="Avisos"
+            icon="bell"
             action={
-              <Link to="/avisos" className="text-sm font-medium text-brand-700 hover:underline">
+              <Link to="/avisos" className="text-[13px] font-medium text-brand-700 hover:underline">
                 Ver todos
               </Link>
             }
           />
+
           {notifications.isLoading ? (
-            <div className="flex justify-center py-8">
-              <Spinner label="Cargando los avisos" />
-            </div>
+            <SkeletonRows rows={3} columns={2} />
           ) : avisos.length === 0 ? (
-            <EmptyState title="No tenés avisos" description="Acá vas a ver las novedades." />
+            <EmptyState
+              title="No tenés avisos"
+              description="Acá vas a ver las novedades de tu cuenta."
+              icon="bell"
+            />
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line">
               {avisos.map((notification) => (
-                <li
-                  key={notification.id}
-                  className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5"
-                >
-                  <div>
+                <li key={notification.id} className="px-5 py-3">
+                  <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-medium text-slate-900">
                       {EVENT_LABEL[notification.event_type] ?? notification.event_type}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-400">
-                      {formatDateTime(notification.created_at)}
-                    </p>
+                    <Badge
+                      tone={
+                        notification.status === 'failed'
+                          ? 'danger'
+                          : notification.status === 'sent'
+                            ? 'success'
+                            : 'warning'
+                      }
+                      dot
+                    >
+                      {notification.status === 'sent'
+                        ? 'Enviado'
+                        : notification.status === 'failed'
+                          ? 'Fallido'
+                          : 'Pendiente'}
+                    </Badge>
                   </div>
-                  <Badge tone={notification.status === 'failed' ? 'danger' : 'neutral'}>
-                    {notification.status === 'sent'
-                      ? 'Enviado'
-                      : notification.status === 'failed'
-                        ? 'Fallido'
-                        : 'Pendiente'}
-                  </Badge>
+                  <p className="mt-0.5 text-xs text-slate-400 tabular">
+                    {formatDateTime(notification.created_at)}
+                  </p>
                 </li>
               ))}
             </ul>
           )}
         </Card>
       </div>
+
+      <Modal
+        open={movementOpen}
+        title="Nuevo movimiento"
+        description="Depositá, retirá o transferí dinero."
+        onClose={() => setMovementOpen(false)}
+      >
+        <MovementForm defaultCurrency={activeCurrency} onDone={() => setMovementOpen(false)} />
+      </Modal>
     </div>
   )
 }

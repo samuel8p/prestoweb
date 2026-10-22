@@ -100,10 +100,31 @@ describe('WalletsPage', () => {
   })
 
   it('abre el formulario de billetera nueva', async () => {
+    server.use(
+      http.get('*/api/v1/ledger/accounts/', () =>
+        HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              id: '22222222-2222-4222-8222-222222222222',
+              user_id: '11111111-1111-4111-8111-111111111111',
+              currency: 'ARS',
+              kind: 'user_wallet',
+              balance: '1500.50',
+              created_at: '2026-10-01T10:00:00Z',
+            },
+          ],
+        }),
+      ),
+    )
+
     const user = userEvent.setup()
     renderWithProviders(<AppRoutes />, { route: '/billetera', session: 'authenticated' })
 
-    await user.click(await screen.findByRole('button', { name: 'Abrir billetera' }))
+    await user.click(await screen.findByRole('radio', { name: 'Dólares (USD)' }))
+    await user.click(await screen.findByRole('button', { name: 'Abrir billetera USD' }))
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
@@ -123,7 +144,7 @@ describe('WalletsPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<AppRoutes />, { route: '/billetera', session: 'authenticated' })
 
-    await user.selectOptions(await screen.findByLabelText('Moneda'), 'USD')
+    await user.click(await screen.findByRole('radio', { name: 'Dólares (USD)' }))
 
     await waitFor(() => {
       expect(currencies.at(-1)).toBe('USD')
