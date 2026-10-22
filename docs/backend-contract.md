@@ -159,3 +159,204 @@ número.
 Todos los importes llegan como **string decimal** con dos decimales
 (`"1500.50"`), incluso los negativos. Nunca se convierten a `Number`: el
 frontend los formatea y compara como strings (ver `src/lib/money`).
+
+---
+
+## 9. Qué hay que corregir en el esquema
+
+Checklist exacto para que `docs/openapi.yaml` describa la API real. Cada punto
+está verificado contra la API corriendo. Los ejemplos de YAML son los que
+genera `drf-spectacular` con la misma convención del archivo actual.
+
+### 9.1 Header `Idempotency-Key` (falta en 3 endpoints)
+
+Es **obligatorio** y sin él la API responde `400` con
+`details: { "idempotency_key": [...] }`. Hay que declararlo como parámetro de
+header:
+
+```yaml
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+```
+
+Endpoints:
+
+- `POST /api/v1/ledger/transactions/`
+- `POST /api/v1/loans/`
+- `POST /api/v1/investments/positions/`
+
+### 9.2 Parámetros de los reportes (hoy no hay ninguno declarado)
+
+Los cuatro reportes aceptan `currency` y, dos de ellos, un rango de fechas.
+Ninguno está declarado en el esquema.
+
+```yaml
+      parameters:
+        - in: query
+          name: currency
+          required: true
+          schema:
+            enum: [ARS, USD]
+            type: string
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: export
+          required: false
+          schema:
+            enum: [csv]
+            type: string
+```
+
+| Endpoint | `currency` | `from` / `to` | `export` |
+|---|---|---|---|
+| `GET /api/v1/reports/spending/` | obligatorio | opcional | opcional |
+| `GET /api/v1/reports/movements/` | obligatorio | opcional | opcional |
+| `GET /api/v1/reports/loans/` | obligatorio | — | opcional |
+| `GET /api/v1/reports/investments/` | obligatorio | — | opcional |
+
+Los defaults: sin `from`/`to` el reporte va del primer al último día del mes
+calendario actual (UTC). El rango no puede pasar de **12 meses calendario** y
+`from` posterior a `to` se rechaza.
+
+### 9.3 La paginación: los listados devuelven un sobre, no el objeto suelto
+
+El esquema declara la respuesta de cada listado como el esquema del ítem
+(`Account`, `Offer`, ...), pero la API devuelve un sobre. Hay que agregar dos
+componentes y usarlos en las respuestas.
+
+```yaml
+    PaginatedAccount:
+      type: object
+      properties:
+        count: { type: integer }
+        next: { type: string, format: uri, nullable: true }
+        previous: { type: string, format: uri, nullable: true }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/Account' }
+      required: [count, next, previous, results]
+```
+
+El de cursor (sin `count`):
+
+```yaml
+    CursorPaginatedLedgerTransaction:
+      type: object
+      properties:
+        next: { type: string, format: uri, nullable: true }
+        previous: { type: string, format: uri, nullable: true }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/LedgerTransaction' }
+      required: [next, previous, results]
+```
+
+**Lista completa de los listados** (todos devuelven el sobre `Paginated*`):
+
+| Endpoint | Envoltorio a usar |
+|---|---|
+| `GET /api/v1/ledger/accounts/` | `PaginatedAccount` |
+| `GET /api/v1/ledger/transactions/` | `CursorPaginatedLedgerTransaction` |
+| `GET /api/v1/offers/` | `PaginatedOffer` |
+| `GET /api/v1/matching/offers/` | `PaginatedOfferMatch` |
+| `GET /api/v1/loans/` | `PaginatedLoan` |
+| `GET /api/v1/investments/products/` | `PaginatedInvestmentProduct` ⚠️ |
+| `GET /api/v1/investments/positions/` | `PaginatedPosition` |
+| `GET /api/v1/budgets/` | `PaginatedBudget` |
+| `GET /api/v1/budgets/categories/` | `PaginatedCategory` |
+| `GET /api/v1/budgets/expenses/` | `PaginatedExpense` |
+| `GET /api/v1/notifications/` | `PaginatedNotification` |
+| `GET /api/v1/reports/movements/` | `PaginatedMovementReportRow` |
+
+⚠️ **`GET /api/v1/investments/products/`** es el que más confunde: el esquema lo
+declara como un array plano de `InvestmentProduct`, pero la API lo pagina
+igual que a los demás y devuelve `{ count, next, previous, results }`.
+
+`POST /api/v1/matching/comparisons/` **sí** devuelve un array suelto (no está
+paginado): eso está bien como está.
+
+Además, `GET /api/v1/ledger/transactions/` usa paginación por cursor: el cursor
+viaja en el query param `cursor` (el default de DRF `CursorPagination`) y la
+página siguiente viene completa en `next`. La página va de 50 (máximo 200).
+
+### 9.4 `GET /api/v1/kyc/` puede devolver `null`
+
+Hoy el esquema declara `KYCVerification`, pero si el usuario nunca pidió la
+verificación la API responde `null`. Hay que marcarlo nullable:
+
+```yaml
+    KYCVerificationNullable:
+      nullable: true
+      allOf:
+        - $ref: '#/components/schemas/KYCVerification'
+```
+
+### 9.5 `POST /api/v1/auth/token/refresh/` no declara el body
+
+La petición es `{"refresh": "<token>"}` y la respuesta es
+`{ "access": "...", "refresh": "..." }` (sin `user`):
+
+```yaml
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh: { type: string }
+      required: [refresh]
+```
+
+### 9.6 Respuestas de error: falta el sobre de error
+
+Todas las vistas declaran solo el `200`. La API responde con el formato
+uniforme de AGENTS §8, así que conviene un componente y referenciarlo en las
+respuestas `400`, `401`, `403`, `404`, `409` y `429`:
+
+```yaml
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+          required: [code, message, details]
+      required: [error]
+```
+
+Los `details` de un error de validación son `{ "<campo>": ["<mensaje>", ...] }`;
+el de los errores sin campo es `{}`.
+
+Códigos que usa la API: `validation_error` (400), `not_authenticated` (401),
+`permission_denied` (403), `not_found` (404), `method_not_allowed` (405),
+`conflict` (409), `idempotency_conflict` (409), `throttled` (429) y `api_error`
+(otros). El 403 del **KYC no aprobado** usa el código genérico
+`permission_denied` y el mensaje "Necesitás completar la verificación KYC para
+realizar esta operación."
+
+### 9.7 Qué implica para el frontend
+
+- El front ya funciona contra la API real: estas diferencias están
+  contempladas y documentadas en `src/lib/api/types.ts` (`Paginated<T>` y
+  `CursorPaginated<T>` escritos a mano) y en `src/lib/config.ts` (las rutas).
+- Cuando el esquema esté corregido hay que **volver a copiar**
+  `docs/openapi.yaml` del backend al front y correr `npm run types:api`: los
+  tipos generados pasan a describir los sobres y se pueden borrar los alias
+  manuales de `src/lib/api/types.ts`.
+- Mientras tanto, el front sigue funcionando igual: los tipos del esquema y
+  los sobres conviven sin romper nada.
