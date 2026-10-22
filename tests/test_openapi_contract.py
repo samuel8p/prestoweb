@@ -285,3 +285,130 @@ def test_the_api_rejects_an_unknown_export(api):
 
     assert response.status_code == 400
     assert response.json()['error']['code'] == 'validation_error'
+
+
+# --- Los errores ---
+
+PROTECTED_OPERATIONS = [
+    ('/api/v1/auth/me/', 'get'),
+    ('/api/v1/kyc/', 'get'),
+    ('/api/v1/ledger/accounts/', 'get'),
+    ('/api/v1/ledger/transactions/', 'get'),
+    ('/api/v1/offers/', 'get'),
+    ('/api/v1/matching/offers/', 'get'),
+    ('/api/v1/loans/', 'get'),
+    ('/api/v1/investments/products/', 'get'),
+    ('/api/v1/investments/positions/', 'get'),
+    ('/api/v1/budgets/', 'get'),
+    ('/api/v1/budgets/categories/', 'get'),
+    ('/api/v1/budgets/expenses/', 'get'),
+    ('/api/v1/reports/spending/', 'get'),
+    ('/api/v1/reports/movements/', 'get'),
+    ('/api/v1/notifications/', 'get'),
+    ('/api/v1/notifications/preferences/', 'get'),
+]
+
+
+@pytest.mark.parametrize(
+    'path,method',
+    PROTECTED_OPERATIONS,
+    ids=[f'{method} {path}' for path, method in PROTECTED_OPERATIONS],
+)
+def test_every_protected_operation_declares_and_answers_401(schema, path, method):
+    """Las operaciones protegidas declaran el 401 y lo responden de verdad."""
+    responses = schema['paths'][path][method]['responses']
+
+    assert '401' in responses
+
+    response = APIClient().get(path)
+
+    assert response.status_code == 401
+    assert response.json()['error']['code'] == 'not_authenticated'
+
+
+def test_the_error_format_is_the_one_of_agents_8(schema):
+    """El error declarado tiene la forma de AGENTS §8."""
+    schema_ = schema['paths']['/api/v1/ledger/transactions/']['post']['responses']['401']
+    content = schema_['content']['application/json']
+    error = content['example']['error']
+
+    assert set(error.keys()) == {'code', 'message', 'details'}
+    assert error['code'] == 'not_authenticated'
+
+
+def test_the_kyc_error_is_the_permission_denied_of_the_kyc(schema):
+    """El 403 de las operaciones con KYC es `permission_denied`."""
+    responses = schema['paths']['/api/v1/ledger/transactions/']['post']['responses']
+
+    assert '403' in responses
+    example = responses['403']['content']['application/json']['example']
+    assert example['error']['code'] == 'permission_denied'
+
+
+def test_the_kyc_status_can_be_null(schema):
+    """`GET /api/v1/kyc/` declara que puede venir null."""
+    content = schema['paths']['/api/v1/kyc/']['get']['responses']['200']['content']
+    schema_ = content['application/json']['schema']
+
+    assert schema_['nullable'] is True
+
+
+def test_the_api_really_answers_null_when_there_is_no_kyc():
+    """Sin verificación, la API responde null (y el esquema lo dice)."""
+    from apps.identity.services import register_user
+
+    email = f'sin-kyc-{uuid.uuid4().hex[:8]}@presto.local'
+    user = register_user(email=email, password=PASSWORD)
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    token = RefreshToken.for_user(user)
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {token.access_token}')
+
+    response = client.get('/api/v1/kyc/')
+
+    assert response.status_code == 200
+    # Sin verificación la API responde el body vacío (el frontend lo lee como
+    # null) y el esquema lo declara nullable.
+    assert response.content == b''
+    assert (
+        schema_paths()['/api/v1/kyc/']['get']['responses']['200']['content']['application/json'][
+            'schema'
+        ]['nullable']
+        is True
+    )
+
+
+def test_the_api_answers_404_for_a_resource_of_another_user(api):
+    """Un recurso de otro usuario responde 404 (y el esquema lo declara)."""
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    from apps.identity.services import register_user
+
+    email = f'otro-{uuid.uuid4().hex[:8]}@presto.local'
+    other = register_user(email=email, password=PASSWORD)
+    token = RefreshToken.for_user(other)
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {token.access_token}')
+
+    response = client.get('/api/v1/kyc/00000000-0000-0000-0000-000000000000/')
+
+    assert response.status_code == 404
+    assert response.json()['error']['code'] == 'not_found'
+    assert '404' in schema_paths()['/api/v1/kyc/{verification_id}/']['get']['responses']
+
+
+def test_the_api_answers_409_for_a_duplicate(api):
+    """Un recurso duplicado responde 409 (y el esquema lo declara)."""
+    payload = {'name': f'Categoría {uuid.uuid4().hex[:6]}'}
+    first = api.post('/api/v1/budgets/categories/', payload, format='json')
+    second = api.post('/api/v1/budgets/categories/', payload, format='json')
+
+    assert first.status_code == 201
+    assert second.status_code == 409
+    assert '409' in schema_paths()['/api/v1/budgets/categories/']['post']['responses']
+
+
+def schema_paths():
+    """El esquema versionado."""
+    return yaml.safe_load(SCHEMA_PATH.read_text(encoding='utf-8'))['paths']

@@ -58,6 +58,28 @@ class ErrorResponseSerializer(serializers.Serializer):
     error = ErrorDetailSerializer()
 
 
+# El mismo formato, como schema de OpenAPI (el hook lo declara en cada
+# operación sin necesitar un componente).
+ERROR_RESPONSE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'error': {
+            'type': 'object',
+            'properties': {
+                'code': {'type': 'string', 'example': 'validation_error'},
+                'message': {'type': 'string', 'example': 'Los datos enviados no son válidos.'},
+                'details': {
+                    'type': 'object',
+                    'example': {'amount': ['A valid number is required.']},
+                },
+            },
+            'required': ['code', 'message'],
+        },
+    },
+    'required': ['error'],
+}
+
+
 # --- Paginación ---
 
 
@@ -150,6 +172,63 @@ def error_responses(*statuses: int) -> dict[int, OpenApiResponse]:
             example={'error': {'code': code, 'message': message, 'details': {}}},
         )
     return responses
+
+
+# Los errores que puede devolver cada operación de la API. El hook
+# `apps.core.hooks.add_error_responses` los declara en el esquema.
+ERRORS_BY_OPERATION: dict[tuple[str, str], tuple[int, ...]] = {
+    ('/api/v1/auth/register/', 'post'): (400, 429),
+    ('/api/v1/auth/login/', 'post'): (400, 429),
+    ('/api/v1/auth/token/refresh/', 'post'): (400, 401),
+    ('/api/v1/auth/me/', 'get'): (401,),
+    ('/api/v1/auth/me/', 'patch'): (400, 401),
+    ('/api/v1/kyc/', 'get'): (401,),
+    ('/api/v1/kyc/', 'post'): (400, 401, 409),
+    ('/api/v1/kyc/{verification_id}/', 'get'): (401, 404),
+    ('/api/v1/ledger/accounts/', 'get'): (401,),
+    ('/api/v1/ledger/accounts/', 'post'): (400, 401),
+    ('/api/v1/ledger/accounts/{account_id}/balance/', 'get'): (401, 404),
+    ('/api/v1/ledger/transactions/', 'get'): (401,),
+    ('/api/v1/ledger/transactions/', 'post'): (400, 401, 403, 409),
+    ('/api/v1/ledger/transactions/{transaction_id}/', 'get'): (401, 404),
+    ('/api/v1/offers/', 'get'): (401,),
+    ('/api/v1/offers/', 'post'): (400, 401, 403),
+    ('/api/v1/offers/{offer_id}/', 'get'): (401, 404),
+    ('/api/v1/offers/{offer_id}/', 'patch'): (400, 401, 403, 404),
+    ('/api/v1/matching/offers/', 'get'): (400, 401),
+    ('/api/v1/matching/comparisons/', 'post'): (400, 401, 404),
+    ('/api/v1/loans/', 'get'): (401,),
+    ('/api/v1/loans/', 'post'): (400, 401, 403, 404, 409),
+    ('/api/v1/loans/{loan_id}/', 'get'): (401, 404),
+    ('/api/v1/loans/{loan_id}/installments/{number}/pay/', 'post'): (
+        400,
+        401,
+        403,
+        404,
+    ),
+    ('/api/v1/investments/products/', 'get'): (401,),
+    ('/api/v1/investments/positions/', 'get'): (401,),
+    ('/api/v1/investments/positions/', 'post'): (400, 401, 403, 409),
+    ('/api/v1/investments/positions/{position_id}/', 'get'): (401, 404),
+    ('/api/v1/budgets/', 'get'): (401,),
+    ('/api/v1/budgets/', 'post'): (400, 401, 409),
+    ('/api/v1/budgets/{budget_id}/', 'get'): (401, 404),
+    ('/api/v1/budgets/{budget_id}/', 'patch'): (400, 401, 404),
+    ('/api/v1/budgets/{budget_id}/status/', 'get'): (401, 404),
+    ('/api/v1/budgets/categories/', 'get'): (401,),
+    ('/api/v1/budgets/categories/', 'post'): (400, 401, 409),
+    ('/api/v1/budgets/categories/{category_id}/', 'get'): (401, 404),
+    ('/api/v1/budgets/categories/{category_id}/', 'patch'): (400, 401, 404),
+    ('/api/v1/budgets/expenses/', 'get'): (401,),
+    ('/api/v1/budgets/expenses/', 'post'): (400, 401, 404, 409),
+    ('/api/v1/reports/spending/', 'get'): (400, 401),
+    ('/api/v1/reports/investments/', 'get'): (400, 401),
+    ('/api/v1/reports/loans/', 'get'): (400, 401),
+    ('/api/v1/reports/movements/', 'get'): (400, 401),
+    ('/api/v1/notifications/', 'get'): (401,),
+    ('/api/v1/notifications/preferences/', 'get'): (401,),
+    ('/api/v1/notifications/preferences/', 'put'): (400, 401),
+}
 
 
 # --- Parámetros de los reportes ---

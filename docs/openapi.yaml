@@ -33,6 +33,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '429':
+          description: Demasiados intentos (throttle).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: throttled
+                  message: Demasiadas solicitudes. Intentá de nuevo más tarde.
+                  details: {}
   /api/v1/auth/me/:
     get:
       operationId: auth_me_retrieve
@@ -49,6 +111,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     patch:
       operationId: auth_me_partial_update
       description: Actualiza los datos del perfil del usuario autenticado.
@@ -75,6 +168,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/auth/register/:
     post:
       operationId: auth_register_create
@@ -104,6 +259,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '429':
+          description: Demasiados intentos (throttle).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: throttled
+                  message: Demasiadas solicitudes. Intentá de nuevo más tarde.
+                  details: {}
   /api/v1/auth/token/refresh/:
     post:
       operationId: auth_token_refresh_create
@@ -131,6 +348,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/budgets/:
     get:
       operationId: budgets_list
@@ -147,6 +426,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedBudget'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: budgets_create
       description: Crea el presupuesto mensual de una categoría y moneda.
@@ -174,6 +484,100 @@ paths:
               schema:
                 $ref: '#/components/schemas/Budget'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
   /api/v1/budgets/{budget_id}/:
     get:
       operationId: budgets_retrieve
@@ -197,6 +601,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/Budget'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/budgets/{budget_id}/status/:
     get:
       operationId: budgets_status
@@ -220,6 +686,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/BudgetStatus'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/budgets/categories/:
     get:
       operationId: budgets_categories_list
@@ -236,6 +764,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCategory'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: budgets_categories_create
       description: Crea una categoría de gasto para el usuario.
@@ -263,6 +822,100 @@ paths:
               schema:
                 $ref: '#/components/schemas/Category'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
   /api/v1/budgets/categories/{category_id}/:
     get:
       operationId: budgets_categories_retrieve
@@ -286,6 +939,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/Category'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/budgets/expenses/:
     get:
       operationId: budgets_expenses_list
@@ -302,6 +1017,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedExpense'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: budgets_expenses_create
       description: Categoriza un movimiento del ledger como gasto del usuario.
@@ -329,6 +1075,131 @@ paths:
               schema:
                 $ref: '#/components/schemas/Expense'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
   /api/v1/investments/positions/:
     get:
       operationId: investments_positions_list
@@ -345,6 +1216,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedPosition'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: investments_positions_create
       description: Abre una posición de inversión a plazo fijo.
@@ -381,6 +1283,131 @@ paths:
               schema:
                 $ref: '#/components/schemas/Position'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '403':
+          description: Sin permiso, o con el KYC sin aprobar.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: permission_denied
+                  message: No tenés permisos para realizar esta acción.
+                  details: {}
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
   /api/v1/investments/positions/{position_id}/:
     get:
       operationId: investments_positions_retrieve
@@ -404,6 +1431,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/PositionDetail'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/investments/products/:
     get:
       operationId: investments_products_retrieve
@@ -420,6 +1509,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedInvestmentProduct'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/kyc/:
     get:
       operationId: kyc_list
@@ -435,8 +1555,41 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KYCVerification'
+                allOf:
+                - $ref: '#/components/schemas/KYCVerification'
+                nullable: true
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: kyc_create
       description: Crea una solicitud de verificación KYC en estado pending.
@@ -464,6 +1617,100 @@ paths:
               schema:
                 $ref: '#/components/schemas/KYCVerification'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
   /api/v1/kyc/{verification_id}/:
     get:
       operationId: kyc_retrieve
@@ -487,6 +1734,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/KYCVerification'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/ledger/accounts/:
     get:
       operationId: ledger_accounts_retrieve
@@ -503,6 +1812,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedAccount'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: ledger_accounts_create
       description: Crea la billetera del usuario para la moneda indicada.
@@ -530,6 +1870,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/Account'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/ledger/accounts/{account_id}/balance/:
     get:
       operationId: ledger_accounts_balance_retrieve
@@ -553,6 +1955,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/Balance'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/ledger/transactions/:
     get:
       operationId: ledger_transactions_list
@@ -569,6 +2033,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/CursorPaginatedLedgerTransaction'
           description: Listado paginado por cursor.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: ledger_transactions_create
       description: Crea un depósito, retiro o transferencia con idempotencia.
@@ -605,6 +2100,131 @@ paths:
               schema:
                 $ref: '#/components/schemas/LedgerTransaction'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '403':
+          description: Sin permiso, o con el KYC sin aprobar.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: permission_denied
+                  message: No tenés permisos para realizar esta acción.
+                  details: {}
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
   /api/v1/ledger/transactions/{transaction_id}/:
     get:
       operationId: ledger_transactions_retrieve
@@ -628,6 +2248,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/LedgerTransaction'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/loans/:
     get:
       operationId: loans_list
@@ -644,6 +2326,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedLoan'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: loans_create
       description: Acepta una oferta y devuelve el préstamo creado.
@@ -680,6 +2393,162 @@ paths:
               schema:
                 $ref: '#/components/schemas/Loan'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '403':
+          description: Sin permiso, o con el KYC sin aprobar.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: permission_denied
+                  message: No tenés permisos para realizar esta acción.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
   /api/v1/loans/{loan_id}/:
     get:
       operationId: loans_retrieve
@@ -703,6 +2572,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoanDetail'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/loans/{loan_id}/installments/{number}/pay/:
     post:
       operationId: loans_installments_pay_create
@@ -731,6 +2662,130 @@ paths:
               schema:
                 $ref: '#/components/schemas/Installment'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '403':
+          description: Sin permiso, o con el KYC sin aprobar.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: permission_denied
+                  message: No tenés permisos para realizar esta acción.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/matching/comparisons/:
     post:
       operationId: matching_comparisons_create
@@ -759,6 +2814,99 @@ paths:
               schema:
                 $ref: '#/components/schemas/OfferComparison'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/matching/offers/:
     get:
       operationId: matching_offers_retrieve
@@ -823,6 +2971,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedOfferMatch'
           description: Listado paginado.
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/meta/:
     get:
       operationId: meta
@@ -855,6 +3065,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedNotification'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/notifications/preferences/:
     get:
       operationId: notifications_preferences
@@ -871,6 +3112,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationPreferenceList'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     put:
       operationId: notifications_preferences_update
       description: Guarda si el usuario quiere recibir un tipo de aviso.
@@ -898,6 +3170,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationPreference'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/offers/:
     get:
       operationId: offers_list
@@ -914,6 +3248,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedOffer'
           description: Listado paginado.
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
     post:
       operationId: offers_create
       description: Publica una oferta de préstamo. No reserva fondos.
@@ -941,6 +3306,99 @@ paths:
               schema:
                 $ref: '#/components/schemas/Offer'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '403':
+          description: Sin permiso, o con el KYC sin aprobar.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: permission_denied
+                  message: No tenés permisos para realizar esta acción.
+                  details: {}
   /api/v1/offers/{offer_id}/:
     get:
       operationId: offers_retrieve
@@ -964,6 +3422,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/Offer'
           description: ''
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
     patch:
       operationId: offers_partial_update
       description: Actualiza los datos de la oferta o la expira.
@@ -997,6 +3517,130 @@ paths:
               schema:
                 $ref: '#/components/schemas/Offer'
           description: ''
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+        '403':
+          description: Sin permiso, o con el KYC sin aprobar.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: permission_denied
+                  message: No tenés permisos para realizar esta acción.
+                  details: {}
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
   /api/v1/reports/investments/:
     get:
       operationId: reports_investments
@@ -1050,6 +3694,68 @@ paths:
                 type: string
                 format: binary
           description: El reporte en JSON.
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/reports/loans/:
     get:
       operationId: reports_loans
@@ -1103,6 +3809,68 @@ paths:
                 type: string
                 format: binary
           description: El reporte en JSON.
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/reports/movements/:
     get:
       operationId: reports_movements
@@ -1156,6 +3924,68 @@ paths:
                 type: string
                 format: binary
           description: Listado paginado.
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
   /api/v1/reports/spending/:
     get:
       operationId: reports_spending
@@ -1210,6 +4040,68 @@ paths:
                 type: string
                 format: binary
           description: El reporte en JSON.
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
 components:
   schemas:
     AcceptOffer:

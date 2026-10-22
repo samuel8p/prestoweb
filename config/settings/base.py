@@ -104,12 +104,15 @@ SPECTACULAR_SETTINGS = {
         'LoanStatusEnum': 'apps.loans.models.Loan.Status',
         'PositionStatusEnum': 'apps.investments.models.Position.Status',
     },
-    # El hook le declara la respuesta CSV a los cuatro reportes. La lista
+    # Los hooks: el de drf-spectacular (los enums) y los dos del proyecto (la
+    # respuesta CSV de los reportes y los errores de cada operación). La lista
     # **reemplaza** la de drf-spectacular, así que hay que volver a poner la
-    # de por defecto (la de los enums).
+    # de por defecto.
     'POSTPROCESSING_HOOKS': [
         'drf_spectacular.hooks.postprocess_schema_enums',
         'apps.core.hooks.add_csv_response_to_the_reports',
+        'apps.core.hooks.add_error_responses',
+        'apps.core.hooks.add_nullable_responses',
     ],
 }
 
