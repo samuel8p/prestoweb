@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 import { AppProviders } from '../app/providers'
+import { ActionProvider } from '../app/actions'
 import { AuthProvider } from '../features/auth/AuthProvider'
 import { createQueryClient } from '../lib/query/client'
 
@@ -35,7 +36,9 @@ export function renderWithProviders(ui: ReactElement, options: RenderOptions = {
     return (
       <AppProviders queryClient={queryClient}>
         <AuthProvider>
-          <MemoryRouter initialEntries={[options.route ?? '/']}>{children}</MemoryRouter>
+          <ActionProvider>
+            <MemoryRouter initialEntries={[options.route ?? '/']}>{children}</MemoryRouter>
+          </ActionProvider>
         </AuthProvider>
       </AppProviders>
     )
