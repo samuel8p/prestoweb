@@ -9,6 +9,7 @@ import { LoansPage } from '../features/loans/LoansPage'
 import { InvestmentsPage } from '../features/investments/InvestmentsPage'
 import { MarketplacePage } from '../features/offers/MarketplacePage'
 import { ProfilePage } from '../features/auth/ProfilePage'
+import { ReportsPage } from '../features/reports/ReportsPage'
 import { RegisterPage } from '../features/auth/RegisterPage'
 import { RedirectIfAuthenticated, RequireAuth } from '../features/auth/guards'
 import { WalletsPage } from '../features/ledger/WalletsPage'
@@ -52,7 +53,7 @@ export function AppRoutes() {
         <Route path="/prestamos/:loanId" element={<LoanDetailPage />} />
         <Route path="/inversiones" element={<InvestmentsPage />} />
         <Route path="/presupuestos" element={<BudgetsPage />} />
-        <Route path="/reportes" element={<PendingPage title="Reportes" />} />
+        <Route path="/reportes" element={<ReportsPage />} />
         <Route path="/avisos" element={<PendingPage title="Avisos" />} />
         <Route path="/perfil" element={<ProfilePage />} />
       </Route>
