@@ -57,6 +57,8 @@ export interface MovementFormProps {
   onDone: () => void
   /** Moneda inicial del formulario. */
   defaultCurrency?: 'ARS' | 'USD'
+  /** Tipo de movimiento preseleccionado (lo usan las acciones rápidas). */
+  initialType?: 'deposit' | 'withdrawal' | 'transfer'
 }
 
 /**
@@ -65,7 +67,11 @@ export interface MovementFormProps {
  * La clave de idempotencia se genera al abrir el formulario y se reutiliza en
  * los reintentos: la API no duplica la operación.
  */
-export function MovementForm({ onDone, defaultCurrency = 'ARS' }: MovementFormProps) {
+export function MovementForm({
+  onDone,
+  defaultCurrency = 'ARS',
+  initialType = 'deposit',
+}: MovementFormProps) {
   const createTransaction = useCreateTransaction()
   const [idempotencyKey] = useState(() => createIdempotencyKey())
   const [formError, setFormError] = useState<string | null>(null)
@@ -79,7 +85,7 @@ export function MovementForm({ onDone, defaultCurrency = 'ARS' }: MovementFormPr
   } = useForm<MovementValues>({
     resolver: zodResolver(movementSchema),
     defaultValues: {
-      type: 'deposit',
+      type: initialType,
       currency: defaultCurrency,
       amount: '',
       destination_account_id: '',
