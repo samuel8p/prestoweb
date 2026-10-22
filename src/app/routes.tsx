@@ -5,6 +5,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { LoanDetailPage } from '../features/loans/LoanDetailPage'
 import { LoansPage } from '../features/loans/LoansPage'
+import { InvestmentsPage } from '../features/investments/InvestmentsPage'
 import { MarketplacePage } from '../features/offers/MarketplacePage'
 import { ProfilePage } from '../features/auth/ProfilePage'
 import { RegisterPage } from '../features/auth/RegisterPage'
@@ -48,7 +49,7 @@ export function AppRoutes() {
         <Route path="/ofertas" element={<MarketplacePage />} />
         <Route path="/prestamos" element={<LoansPage />} />
         <Route path="/prestamos/:loanId" element={<LoanDetailPage />} />
-        <Route path="/inversiones" element={<PendingPage title="Inversiones" />} />
+        <Route path="/inversiones" element={<InvestmentsPage />} />
         <Route path="/presupuestos" element={<PendingPage title="Presupuestos" />} />
         <Route path="/reportes" element={<PendingPage title="Reportes" />} />
         <Route path="/avisos" element={<PendingPage title="Avisos" />} />

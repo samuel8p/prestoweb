@@ -336,7 +336,7 @@ export const handlers: HttpHandler[] = [
   }),
 
   // --- inversiones ---
-  http.get(`${API}/investments/products/`, () => HttpResponse.json(state.products)),
+  http.get(`${API}/investments/products/`, () => HttpResponse.json(paginated(state.products))),
 
   http.get(`${API}/investments/positions/`, () => HttpResponse.json(paginated(state.positions))),
 
