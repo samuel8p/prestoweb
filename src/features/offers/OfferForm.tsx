@@ -39,10 +39,10 @@ const offerSchema = z
       .refine((value) => Number(value) > 0, 'El plazo tiene que ser mayor que cero.'),
     requirements: z.string().trim().max(2000, 'Los requisitos son demasiado largos.'),
   })
-  .refine(
-    (values) => compareDecimals(values.interest_rate, '100.00') <= 0,
-    'La tasa no puede ser mayor al 100%.',
-  )
+  .refine((values) => compareDecimals(values.interest_rate, '100.00') <= 0, {
+    message: 'La tasa no puede ser mayor al 100%.',
+    path: ['interest_rate'],
+  })
 
 type OfferValues = z.infer<typeof offerSchema>
 
@@ -106,6 +106,7 @@ export function OfferForm({ onDone }: OfferFormProps) {
         label="Importe"
         inputMode="decimal"
         placeholder="100000.00"
+        icon="wallet"
         hint="El prestatario recibe el importe completo de la oferta."
         error={errors.amount?.message}
         {...register('amount')}
@@ -122,6 +123,7 @@ export function OfferForm({ onDone }: OfferFormProps) {
         label="Tasa anual (TNA)"
         inputMode="decimal"
         placeholder="24.00"
+        icon="trending"
         hint="Porcentaje anual: 24.00 significa 24% TNA."
         error={errors.interest_rate?.message}
         {...register('interest_rate')}
@@ -131,6 +133,7 @@ export function OfferForm({ onDone }: OfferFormProps) {
         label="Plazo en meses"
         inputMode="numeric"
         placeholder="12"
+        icon="calendar"
         error={errors.term_months?.message}
         {...register('term_months')}
       />
@@ -142,7 +145,7 @@ export function OfferForm({ onDone }: OfferFormProps) {
         {...register('requirements')}
       />
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 border-t border-line pt-4">
         <Button variant="secondary" onClick={onDone}>
           Cancelar
         </Button>

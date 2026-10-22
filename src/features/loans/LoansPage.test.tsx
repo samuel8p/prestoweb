@@ -58,7 +58,9 @@ describe('LoansPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Detalle del préstamo' })).toBeInTheDocument()
     })
-    expect(await screen.findByText('Cuota 1')).toBeInTheDocument()
+    // La cuota se muestra en una tabla: número, vencimiento y total.
+    expect(await screen.findByText('20/11/2026')).toBeInTheDocument()
     expect(screen.getByText('ARS 10.000,00')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Cuota' })).toBeInTheDocument()
   })
 })

@@ -10,6 +10,14 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Spinner } from '../../components/ui/Spinner'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table'
 import { describeError } from '../../lib/api/errors'
 import { formatDate, formatRate } from '../../lib/money/format'
 import type { Installment } from '../../lib/api/types'
@@ -72,7 +80,7 @@ export function LoanDetailPage() {
           message={describeError(loan.error).message}
           onRetry={() => void loan.refetch()}
         />
-        <Link to="/prestamos" className="text-sm font-medium text-brand-700 hover:underline">
+        <Link to="/prestamos" className="text-[13px] font-medium text-brand-700 hover:underline">
           Volver a mis préstamos
         </Link>
       </div>
@@ -93,40 +101,47 @@ export function LoanDetailPage() {
       <PageHeader
         title="Detalle del préstamo"
         description={`Aceptado el ${formatDate(detail.accepted_at)}`}
-        action={
+        secondaryActions={
           <Link to="/prestamos">
-            <Button variant="secondary">Volver</Button>
+            <Button variant="secondary" icon="chevronRight" className="rotate-180">
+              Volver
+            </Button>
           </Link>
         }
       />
 
+      {/* Condiciones */}
       <Card>
-        <CardHeader title="Condiciones" />
-        <dl className="grid gap-4 px-4 py-4 text-sm sm:grid-cols-2 lg:grid-cols-4 sm:px-5">
+        <CardHeader title="Condiciones" icon="loan" />
+        <dl className="grid gap-5 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <dt className="text-slate-500">Capital</dt>
-            <dd className="font-medium text-slate-900">
+            <dt className="text-[13px] text-slate-500">Capital</dt>
+            <dd className="mt-1 text-lg font-semibold text-slate-900 tabular">
               <MoneyAmount value={detail.principal} currency={currency} />
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Tasa anual</dt>
-            <dd className="font-medium text-slate-900">{formatRate(detail.interest_rate)}</dd>
+            <dt className="text-[13px] text-slate-500">Tasa anual</dt>
+            <dd className="mt-1 text-lg font-semibold text-slate-900">
+              {formatRate(detail.interest_rate)}
+            </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Plazo</dt>
-            <dd className="font-medium text-slate-900">{detail.term_months} meses</dd>
+            <dt className="text-[13px] text-slate-500">Plazo</dt>
+            <dd className="mt-1 text-lg font-semibold text-slate-900">
+              {detail.term_months} meses
+            </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Estado</dt>
-            <dd className="mt-1">
-              <Badge tone={STATUS_TONE[detail.status] ?? 'neutral'}>
+            <dt className="text-[13px] text-slate-500">Estado</dt>
+            <dd className="mt-1.5">
+              <Badge tone={STATUS_TONE[detail.status] ?? 'neutral'} dot>
                 {STATUS_LABEL[detail.status] ?? detail.status}
               </Badge>
             </dd>
           </div>
         </dl>
-        <p className="px-4 pb-4 text-xs text-slate-500 sm:px-5">
+        <p className="border-t border-line px-5 py-3 text-xs text-slate-500">
           Las condiciones quedan congeladas en un snapshot: editar la oferta no cambia este
           préstamo.
         </p>
@@ -134,62 +149,69 @@ export function LoanDetailPage() {
 
       {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
 
+      {/* Cuotas */}
       <Card>
-        <CardHeader title="Cuotas" description={`${installments.length} cuotas en total.`} />
+        <CardHeader
+          title="Cuotas"
+          description={`${installments.length} cuotas en total.`}
+          icon="calendar"
+        />
 
         {installments.length === 0 ? (
-          <EmptyState title="Este préstamo no tiene cuotas cargadas." />
+          <EmptyState title="Este préstamo no tiene cuotas cargadas." icon="calendar" />
         ) : (
-          <ul className="divide-y divide-slate-100">
-            {installments.map((installment) => (
-              <li
-                key={installment.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5"
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-slate-900">Cuota {installment.number}</p>
-                    <Badge tone={INSTALLMENT_TONE[installment.status] ?? 'neutral'}>
-                      {INSTALLMENT_LABEL[installment.status] ?? installment.status}
-                    </Badge>
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    Vence el {formatDate(installment.due_date)}
-                    {installment.paid_at ? ` · pagada el ${formatDate(installment.paid_at)}` : ''}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="text-right text-xs text-slate-500">
-                    <p>
-                      Capital{' '}
-                      <MoneyAmount value={installment.principal_amount} currency={currency} />
-                    </p>
-                    <p>
-                      Interés{' '}
-                      <MoneyAmount value={installment.interest_amount} currency={currency} />
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-slate-900">
-                      <MoneyAmount value={installment.amount} currency={currency} />
-                    </p>
-                    {isBorrower && installment.status !== 'paid' ? (
-                      <Button
-                        size="sm"
-                        className="mt-1"
-                        loading={payInstallment.isPending}
-                        onClick={() => void handlePay(installment)}
-                      >
-                        Pagar
-                      </Button>
+          <Table>
+            <TableHead>
+              <TableHeader>Cuota</TableHeader>
+              <TableHeader>Vencimiento</TableHeader>
+              <TableHeader align="right">Capital</TableHeader>
+              <TableHeader align="right">Interés</TableHeader>
+              <TableHeader align="right">Total</TableHeader>
+              <TableHeader align="right">Estado</TableHeader>
+            </TableHead>
+            <TableBody>
+              {installments.map((installment) => (
+                <TableRow key={installment.id}>
+                  <TableCell className="font-medium text-slate-900 tabular">
+                    {installment.number}
+                  </TableCell>
+                  <TableCell>
+                    {formatDate(installment.due_date)}
+                    {installment.paid_at ? (
+                      <span className="block text-xs text-slate-400">
+                        Pagada el {formatDate(installment.paid_at)}
+                      </span>
                     ) : null}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </TableCell>
+                  <TableCell align="right" className="tabular">
+                    <MoneyAmount value={installment.principal_amount} currency={currency} />
+                  </TableCell>
+                  <TableCell align="right" className="tabular">
+                    <MoneyAmount value={installment.interest_amount} currency={currency} />
+                  </TableCell>
+                  <TableCell align="right" className="font-semibold text-slate-900 tabular">
+                    <MoneyAmount value={installment.amount} currency={currency} />
+                  </TableCell>
+                  <TableCell align="right">
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge tone={INSTALLMENT_TONE[installment.status] ?? 'neutral'} dot>
+                        {INSTALLMENT_LABEL[installment.status] ?? installment.status}
+                      </Badge>
+                      {isBorrower && installment.status !== 'paid' ? (
+                        <Button
+                          size="sm"
+                          loading={payInstallment.isPending}
+                          onClick={() => void handlePay(installment)}
+                        >
+                          Pagar
+                        </Button>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </Card>
     </div>

@@ -10,7 +10,15 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { Modal } from '../../components/ui/Modal'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
 import { PageHeader } from '../../components/ui/PageHeader'
-import { Spinner } from '../../components/ui/Spinner'
+import { SkeletonRows } from '../../components/ui/Skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table'
 import { describeError } from '../../lib/api/errors'
 import { formatDate, formatRate } from '../../lib/money/format'
 import type { OfferMatch } from '../../lib/api/types'
@@ -29,6 +37,18 @@ interface Filters {
   ordering?: string
 }
 
+const STATUS_TONE = {
+  active: 'success',
+  accepted: 'info',
+  expired: 'neutral',
+} as const
+
+const STATUS_LABEL = {
+  active: 'Activa',
+  accepted: 'Aceptada',
+  expired: 'Expirada',
+} as const
+
 /** Marketplace de ofertas: buscar, comparar, publicar y ver las propias. */
 export function MarketplacePage() {
   const navigate = useNavigate()
@@ -36,13 +56,14 @@ export function MarketplacePage() {
   const [selected, setSelected] = useState<string[]>([])
   const [offerFormOpen, setOfferFormOpen] = useState(false)
   const [accepting, setAccepting] = useState<OfferMatch | null>(null)
+  const [comparisonOpen, setComparisonOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey())
 
   const offers = useMatchingOffers(filters)
   const myOffers = useMyOffers()
   const compare = useCompareOffers()
   const acceptOffer = useAcceptOffer()
-  const [idempotencyKey, setIdempotencyKey] = useState(() => createIdempotencyKey())
 
   const results = offers.data?.results ?? []
 
@@ -56,6 +77,7 @@ export function MarketplacePage() {
     setActionError(null)
     try {
       await compare.mutateAsync({ offer_ids: selected })
+      setComparisonOpen(true)
     } catch (error) {
       setActionError(describeError(error).message)
     }
@@ -86,42 +108,46 @@ export function MarketplacePage() {
       <PageHeader
         title="Ofertas de préstamo"
         description="Buscá, compará y elegí la oferta que mejor te sirve."
-        action={<Button onClick={() => setOfferFormOpen(true)}>Publicar oferta</Button>}
+        action={
+          <Button icon="plus" onClick={() => setOfferFormOpen(true)}>
+            Publicar oferta
+          </Button>
+        }
       />
 
+      {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
+
+      {/* Búsqueda */}
       <Card>
         <CardHeader
-          title="Buscar"
+          title="Buscar ofertas"
           description="El préstamo toma el importe completo de la oferta."
+          icon="search"
         />
-        <div className="px-4 py-4 sm:px-5">
+        <div className="px-5 py-4">
           <OfferFiltersForm onFiltersChange={setFilters} />
         </div>
       </Card>
 
-      {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
-
+      {/* Resultados */}
       <Card>
         <CardHeader
           title="Ofertas disponibles"
           description={`${results.length} ${results.length === 1 ? 'oferta' : 'ofertas'} en ${filters.currency}.`}
+          icon="offer"
           action={
             selected.length >= 2 ? (
-              <Button size="sm" loading={compare.isPending} onClick={() => void handleCompare()}>
+              <Button size="sm" icon="sliders" onClick={() => void handleCompare()}>
                 Comparar ({selected.length})
               </Button>
             ) : null
           }
         />
 
-        {offers.isLoading ? (
-          <div className="flex justify-center px-4 py-10">
-            <Spinner label="Buscando ofertas" />
-          </div>
-        ) : null}
+        {offers.isLoading ? <SkeletonRows rows={4} columns={3} /> : null}
 
         {offers.isError ? (
-          <div className="px-4 py-4">
+          <div className="px-5 py-4">
             <ErrorState
               message={describeError(offers.error).message}
               onRetry={() => void offers.refetch()}
@@ -133,36 +159,38 @@ export function MarketplacePage() {
           <EmptyState
             title="No hay ofertas con esos filtros"
             description="Probá con otro rango de importes o con otra tasa."
+            icon="offer"
           />
         ) : null}
 
-        {results.length > 0 ? (
-          <ul className="divide-y divide-slate-100">
-            {results.map((offer) => (
-              <li key={offer.id} className="px-4 py-4 sm:px-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-semibold text-slate-900">
-                      <MoneyAmount
-                        value={offer.amount}
-                        currency={offer.currency === 'USD' ? 'USD' : 'ARS'}
-                      />
+        <ul className="divide-y divide-line">
+          {results.map((offer) => {
+            const currency = offer.currency === 'USD' ? 'USD' : 'ARS'
+
+            return (
+              <li key={offer.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lg font-semibold tracking-tight text-slate-900 tabular">
+                      <MoneyAmount value={offer.amount} currency={currency} />
                     </p>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-[13px] text-slate-600">
                       {formatRate(offer.interest_rate)} anual · {offer.term_months} meses
                     </p>
                     {offer.requirements ? (
-                      <p className="mt-1 max-w-xl text-sm text-slate-500">{offer.requirements}</p>
+                      <p className="mt-1.5 max-w-xl truncate-1 text-[13px] text-slate-500">
+                        {offer.requirements}
+                      </p>
                     ) : null}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <div className="flex shrink-0 items-center gap-3">
+                    <label className="flex cursor-pointer items-center gap-2 text-[13px] text-slate-600">
                       <input
                         type="checkbox"
                         checked={selected.includes(offer.id)}
                         onChange={() => toggleSelection(offer.id)}
-                        className="h-4 w-4 rounded border-slate-300"
+                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
                       />
                       Comparar
                     </label>
@@ -172,85 +200,30 @@ export function MarketplacePage() {
                   </div>
                 </div>
               </li>
-            ))}
-          </ul>
-        ) : null}
+            )
+          })}
+        </ul>
       </Card>
 
-      {comparison && comparison.length > 0 ? (
-        <Card>
-          <CardHeader title="Comparación" description="Cuota, interés total y costo total." />
-          <div className="overflow-x-auto px-4 py-4 sm:px-5">
-            <table className="w-full min-w-[34rem] text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th scope="col" className="py-2 pr-3">
-                    Importe
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Tasa
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Plazo
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Cuota
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Interés total
-                  </th>
-                  <th scope="col" className="py-2">
-                    Costo total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {comparison.map((item) => (
-                  <tr key={item.id}>
-                    <td className="py-2 pr-3">
-                      <MoneyAmount
-                        value={item.amount}
-                        currency={item.currency === 'USD' ? 'USD' : 'ARS'}
-                      />
-                    </td>
-                    <td className="py-2 pr-3">{formatRate(item.interest_rate)}</td>
-                    <td className="py-2 pr-3">{item.term_months} meses</td>
-                    <td className="py-2 pr-3">
-                      <MoneyAmount
-                        value={item.installment}
-                        currency={item.currency === 'USD' ? 'USD' : 'ARS'}
-                      />
-                    </td>
-                    <td className="py-2 pr-3">
-                      <MoneyAmount
-                        value={item.total_interest}
-                        currency={item.currency === 'USD' ? 'USD' : 'ARS'}
-                      />
-                    </td>
-                    <td className="py-2">
-                      <MoneyAmount
-                        value={item.total_cost}
-                        currency={item.currency === 'USD' ? 'USD' : 'ARS'}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ) : null}
-
+      {/* Mis ofertas */}
       <Card>
-        <CardHeader title="Mis ofertas" description="Las ofertas que publicaste vos." />
-        {myOffers.isLoading ? (
-          <div className="flex justify-center px-4 py-10">
-            <Spinner label="Cargando tus ofertas" />
-          </div>
-        ) : null}
+        <CardHeader
+          title="Mis ofertas"
+          description="Las ofertas que publicaste vos."
+          icon="wallet"
+          action={
+            (myOffers.data?.results.length ?? 0) === 0 ? (
+              <Button size="sm" variant="secondary" onClick={() => setOfferFormOpen(true)}>
+                Publicar oferta
+              </Button>
+            ) : null
+          }
+        />
+
+        {myOffers.isLoading ? <SkeletonRows rows={3} columns={3} /> : null}
 
         {myOffers.isError ? (
-          <div className="px-4 py-4">
+          <div className="px-5 py-4">
             <ErrorState
               message={describeError(myOffers.error).message}
               onRetry={() => void myOffers.refetch()}
@@ -262,6 +235,7 @@ export function MarketplacePage() {
           <EmptyState
             title="Todavía no publicaste ofertas"
             description="Publicá una oferta para prestar tu dinero."
+            icon="offer"
             action={
               <Button size="sm" onClick={() => setOfferFormOpen(true)}>
                 Publicar oferta
@@ -270,67 +244,63 @@ export function MarketplacePage() {
           />
         ) : null}
 
-        <ul className="divide-y divide-slate-100">
-          {(myOffers.data?.results ?? []).map((offer) => (
-            <li
-              key={offer.id}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5"
-            >
-              <div>
-                <p className="text-sm font-medium text-slate-900">
-                  <MoneyAmount
-                    value={offer.amount}
-                    currency={offer.currency === 'USD' ? 'USD' : 'ARS'}
-                  />
-                </p>
-                <p className="text-xs text-slate-500">
-                  {formatRate(offer.interest_rate)} anual · {offer.term_months} meses ·{' '}
-                  {formatDate(offer.created_at)}
-                </p>
-              </div>
-              <Badge
-                tone={
-                  offer.status === 'active'
-                    ? 'success'
-                    : offer.status === 'accepted'
-                      ? 'info'
-                      : 'neutral'
-                }
+        <ul className="divide-y divide-line">
+          {(myOffers.data?.results ?? []).map((offer) => {
+            const currency = offer.currency === 'USD' ? 'USD' : 'ARS'
+
+            return (
+              <li
+                key={offer.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
               >
-                {offer.status === 'active'
-                  ? 'Activa'
-                  : offer.status === 'accepted'
-                    ? 'Aceptada'
-                    : 'Expirada'}
-              </Badge>
-            </li>
-          ))}
+                <div>
+                  <p className="text-sm font-medium text-slate-900 tabular">
+                    <MoneyAmount value={offer.amount} currency={currency} />
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {formatRate(offer.interest_rate)} anual · {offer.term_months} meses · publicada
+                    el {formatDate(offer.created_at)}
+                  </p>
+                </div>
+                <Badge tone={STATUS_TONE[offer.status] ?? 'neutral'} dot>
+                  {STATUS_LABEL[offer.status] ?? offer.status}
+                </Badge>
+              </li>
+            )
+          })}
         </ul>
       </Card>
 
-      <Modal open={offerFormOpen} title="Publicar oferta" onClose={() => setOfferFormOpen(false)}>
+      {/* Publicar oferta */}
+      <Modal
+        open={offerFormOpen}
+        title="Publicar oferta"
+        description="El prestatario recibe el importe completo de la oferta."
+        onClose={() => setOfferFormOpen(false)}
+      >
         <OfferForm onDone={() => setOfferFormOpen(false)} />
       </Modal>
 
-      <Modal open={accepting !== null} title="Aceptar la oferta" onClose={() => setAccepting(null)}>
+      {/* Aceptar oferta */}
+      <Modal
+        open={accepting !== null}
+        title="Aceptar la oferta"
+        description="Se crea un préstamo a tu nombre con su cronograma de cuotas."
+        onClose={() => setAccepting(null)}
+      >
         {accepting ? (
           <div className="flex flex-col gap-4">
-            <div className="rounded-lg bg-slate-50 p-3 text-sm">
-              <p className="font-medium text-slate-900">
+            <div className="rounded-[--radius-control] bg-surface-muted p-4">
+              <p className="text-lg font-semibold text-slate-900 tabular">
                 <MoneyAmount
                   value={accepting.amount}
                   currency={accepting.currency === 'USD' ? 'USD' : 'ARS'}
                 />
               </p>
-              <p className="mt-1 text-slate-600">
+              <p className="mt-1 text-[13px] text-slate-600">
                 {formatRate(accepting.interest_rate)} anual a {accepting.term_months} meses
               </p>
             </div>
-
-            <p className="text-sm text-slate-600">
-              Al aceptar, el prestamista te transfiere el importe y queda registrado un préstamo con
-              su cronograma de cuotas.
-            </p>
 
             {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
 
@@ -344,6 +314,54 @@ export function MarketplacePage() {
             </div>
           </div>
         ) : null}
+      </Modal>
+
+      {/* Comparación */}
+      <Modal
+        open={comparisonOpen}
+        title="Comparación de ofertas"
+        description="Cuota, interés total y costo total de cada oferta."
+        size="lg"
+        onClose={() => setComparisonOpen(false)}
+      >
+        {comparison && comparison.length > 0 ? (
+          <Table>
+            <TableHead>
+              <TableHeader>Importe</TableHeader>
+              <TableHeader>Tasa</TableHeader>
+              <TableHeader>Plazo</TableHeader>
+              <TableHeader align="right">Cuota</TableHeader>
+              <TableHeader align="right">Interés total</TableHeader>
+              <TableHeader align="right">Costo total</TableHeader>
+            </TableHead>
+            <TableBody>
+              {comparison.map((item) => {
+                const currency = item.currency === 'USD' ? 'USD' : 'ARS'
+
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium text-slate-900">
+                      <MoneyAmount value={item.amount} currency={currency} />
+                    </TableCell>
+                    <TableCell>{formatRate(item.interest_rate)}</TableCell>
+                    <TableCell>{item.term_months} meses</TableCell>
+                    <TableCell align="right">
+                      <MoneyAmount value={item.installment} currency={currency} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <MoneyAmount value={item.total_interest} currency={currency} />
+                    </TableCell>
+                    <TableCell align="right" className="font-medium text-slate-900">
+                      <MoneyAmount value={item.total_cost} currency={currency} />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        ) : (
+          <EmptyState title="No hay nada para comparar todavía" icon="sliders" />
+        )}
       </Modal>
     </div>
   )

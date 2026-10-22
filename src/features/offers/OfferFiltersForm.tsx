@@ -102,65 +102,70 @@ export function OfferFiltersForm({ onFiltersChange }: OfferFiltersFormProps) {
   }
 
   return (
-    <form
-      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-      onSubmit={handleSubmit(onSubmit)}
-      noValidate
-    >
+    <form onSubmit={handleSubmit(onSubmit)} noValidate>
       {formError ? (
-        <div className="sm:col-span-2 lg:col-span-3">
+        <div className="mb-4">
           <Alert tone="danger">{formError}</Alert>
         </div>
       ) : null}
 
-      <Select
-        label="Moneda"
-        options={CURRENCY_OPTIONS}
-        error={errors.currency?.message}
-        {...register('currency')}
-      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Select
+          label="Moneda"
+          options={CURRENCY_OPTIONS}
+          error={errors.currency?.message}
+          {...register('currency')}
+        />
 
-      <Input
-        label="Importe mínimo"
-        inputMode="decimal"
-        placeholder="10000.00"
-        error={errors.amount_min?.message}
-        {...register('amount_min')}
-      />
+        <Input
+          label="Importe mínimo"
+          inputMode="decimal"
+          placeholder="10000.00"
+          icon="wallet"
+          error={errors.amount_min?.message}
+          {...register('amount_min')}
+        />
 
-      <Input
-        label="Importe máximo"
-        inputMode="decimal"
-        placeholder="500000.00"
-        error={errors.amount_max?.message}
-        {...register('amount_max')}
-      />
+        <Input
+          label="Importe máximo"
+          inputMode="decimal"
+          placeholder="500000.00"
+          icon="wallet"
+          error={errors.amount_max?.message}
+          {...register('amount_max')}
+        />
 
-      <Input
-        label="Tasa máxima (TNA)"
-        inputMode="decimal"
-        placeholder="30.00"
-        error={errors.max_rate?.message}
-        {...register('max_rate')}
-      />
+        <Input
+          label="Tasa máxima (TNA)"
+          inputMode="decimal"
+          placeholder="30.00"
+          icon="trending"
+          hint="Porcentaje anual."
+          error={errors.max_rate?.message}
+          {...register('max_rate')}
+        />
 
-      <Input
-        label="Plazo en meses"
-        inputMode="numeric"
-        placeholder="12"
-        error={errors.term_months?.message}
-        {...register('term_months')}
-      />
+        <Input
+          label="Plazo en meses"
+          inputMode="numeric"
+          placeholder="12"
+          icon="calendar"
+          error={errors.term_months?.message}
+          {...register('term_months')}
+        />
 
-      <Select
-        label="Ordenar por"
-        options={ORDERING_OPTIONS}
-        error={errors.ordering?.message}
-        {...register('ordering')}
-      />
+        <Select
+          label="Ordenar por"
+          options={ORDERING_OPTIONS}
+          error={errors.ordering?.message}
+          {...register('ordering')}
+        />
+      </div>
 
-      <div className="sm:col-span-2 lg:col-span-3">
-        <Button type="submit">Buscar ofertas</Button>
+      <div className="mt-4 flex justify-end border-t border-line pt-4">
+        <Button type="submit" icon="search">
+          Buscar ofertas
+        </Button>
       </div>
     </form>
   )
