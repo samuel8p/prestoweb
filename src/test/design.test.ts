@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
  * la preferencia de movimiento reducido sin que nadie lo note.
  */
 const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf-8')
+
 function token(name: string): string {
   const match = new RegExp(`--color-${name}:\\s*(#[0-9a-fA-F]{6})`).exec(css)
   if (!match?.[1]) {
@@ -46,25 +47,39 @@ describe('paleta', () => {
     expect(contrast(token('ink'), token('surface'))).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('el texto secundario cumple AA', () => {
+  it('el texto secundario y el sutil cumplen AA', () => {
     expect(contrast(token('ink-muted'), token('canvas'))).toBeGreaterThanOrEqual(4.5)
     expect(contrast(token('ink-muted'), token('surface'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(token('ink-subtle'), token('canvas'))).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('el teal de acción lleva texto blanco', () => {
-    expect(contrast('#ffffff', token('teal'))).toBeGreaterThanOrEqual(4.5)
-    expect(contrast('#ffffff', token('teal-dark'))).toBeGreaterThanOrEqual(4.5)
+  it('el azul de acción lleva texto blanco', () => {
+    expect(contrast('#ffffff', token('primary'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast('#ffffff', token('primary-hover'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast('#ffffff', token('primary-deep'))).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('el teal sirve como color de enlace sobre fondos claros', () => {
-    expect(contrast(token('teal'), token('canvas'))).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(token('teal'), token('surface'))).toBeGreaterThanOrEqual(4.5)
+  it('el azul de acción sirve como color de enlace sobre fondos claros', () => {
+    expect(contrast(token('primary'), token('canvas'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(token('primary'), token('surface'))).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('el océano lleva texto blanco y el turquesa se lee sobre él', () => {
-    expect(contrast('#ffffff', token('ocean'))).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(token('turquoise'), token('ocean'))).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(token('turquoise'), token('ocean-800'))).toBeGreaterThanOrEqual(4.5)
+  it('el cromo oscuro lleva texto blanco', () => {
+    expect(contrast('#ffffff', token('chrome'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast('#ffffff', token('chrome-800'))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('los acentos se leen solo sobre el fondo oscuro', () => {
+    expect(contrast(token('aqua'), token('chrome'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(token('aqua'), token('chrome-800'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(token('turquoise'), token('chrome'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(token('turquoise'), token('chrome-800'))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('el sol es decorativo: no se usa como texto ni como botón', () => {
+    // Sobre el fondo claro no llega a 4.5: solo puede ser un detalle.
+    expect(contrast(token('sun'), token('canvas'))).toBeLessThan(4.5)
+    expect(contrast(token('sun'), token('chrome'))).toBeGreaterThanOrEqual(4.5)
   })
 
   it('los colores de estado cumplen AA sobre su fondo', () => {
@@ -76,6 +91,13 @@ describe('paleta', () => {
   it('el borde de los controles se distingue del fondo (3:1)', () => {
     expect(contrast(token('line-strong'), token('surface'))).toBeGreaterThanOrEqual(3)
     expect(contrast(token('line-strong'), token('canvas'))).toBeGreaterThanOrEqual(3)
+  })
+
+  it('el gradiente del saldo es el único gradiente de la app', () => {
+    const gradients = css.match(/linear-gradient\([^)]*\)/g) ?? []
+    const meaningful = gradients.filter((gradient) => !gradient.includes('90deg, transparent'))
+
+    expect(meaningful.length).toBeLessThanOrEqual(1)
   })
 })
 

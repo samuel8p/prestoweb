@@ -59,7 +59,7 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
 
           return (
             <li key={notification.id} className="flex items-start gap-3 px-4 py-3">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-tint text-teal">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary">
                 <Icon name={meta?.icon ?? 'bell'} size={16} />
               </span>
               <div className="min-w-0 flex-1">
@@ -95,14 +95,14 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
         <Link
           to="/avisos"
           onClick={onClose}
-          className="text-[13px] font-semibold text-teal hover:underline"
+          className="text-[13px] font-semibold text-primary hover:underline"
         >
           Ver todos
         </Link>
         <Link
           to="/avisos#preferencias"
           onClick={onClose}
-          className="text-[13px] font-semibold text-teal hover:underline"
+          className="text-[13px] font-semibold text-primary hover:underline"
         >
           Configurar
         </Link>

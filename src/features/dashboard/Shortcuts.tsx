@@ -37,7 +37,7 @@ export function Shortcuts({ shortcuts }: ShortcutsProps) {
             to={shortcut.to}
             className="flex items-center gap-3 rounded-[var(--radius-control)] border border-line bg-surface px-4 py-3 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-card"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-tint text-teal">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary">
               <Icon name={shortcut.icon} size={17} />
             </span>
             <span className="min-w-0 flex-1">

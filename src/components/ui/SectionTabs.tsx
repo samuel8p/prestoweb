@@ -45,7 +45,7 @@ export function SectionTabs({ value, tabs, param = 'vista' }: SectionTabsProps) 
               onClick={() => select(tab.id)}
               className={`-mb-px border-b-2 px-3 py-2 text-[13px] font-semibold transition-colors duration-200 ${
                 selected
-                  ? 'border-teal text-teal'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-ink-muted hover:text-ink'
               }`}
             >

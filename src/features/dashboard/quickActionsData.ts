@@ -17,7 +17,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     hint: 'Sumar dinero a tu billetera',
     icon: 'arrowDownLeft',
     shape: 'rounded-2xl',
-    tone: 'bg-teal-tint text-teal',
+    tone: 'bg-primary-tint text-primary',
   },
   {
     id: 'transferir',
@@ -25,7 +25,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     hint: 'Mandar dinero a otra billetera',
     icon: 'swap',
     shape: 'rounded-[1.75rem]',
-    tone: 'bg-ocean-800 text-turquoise',
+    tone: 'bg-chrome-800 text-turquoise',
   },
   {
     id: 'retirar',

@@ -250,7 +250,7 @@ export function BudgetsPage() {
                       id={`rename-${category.id}`}
                       value={renameValue}
                       onChange={(event) => setRenameValue(event.target.value)}
-                      className="mt-1 w-full rounded-[var(--radius-control)] border border-line-strong px-3 py-2 text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20"
+                      className="mt-1 w-full rounded-[var(--radius-control)] border border-line-strong px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <Button size="sm" type="submit" loading={renameCategory.isPending}>

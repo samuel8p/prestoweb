@@ -4,7 +4,7 @@ type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger'
 
 const TONES: Record<Tone, string> = {
   neutral: 'bg-surface-muted text-ink-muted ring-line',
-  info: 'bg-teal-tint text-teal-deep ring-teal/25',
+  info: 'bg-primary-tint text-primary-deep ring-primary/25',
   success: 'bg-success-bg text-success ring-success/25',
   warning: 'bg-warning-bg text-warning ring-warning/25',
   danger: 'bg-danger-bg text-danger ring-danger/25',
@@ -12,7 +12,7 @@ const TONES: Record<Tone, string> = {
 
 const DOT_TONES: Record<Tone, string> = {
   neutral: 'bg-ink-subtle',
-  info: 'bg-teal',
+  info: 'bg-primary',
   success: 'bg-success',
   warning: 'bg-warning',
   danger: 'bg-danger',

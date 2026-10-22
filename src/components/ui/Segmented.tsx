@@ -45,7 +45,7 @@ export function Segmented<T extends string>({
             onClick={() => onChange(option.value)}
             className={`inline-flex items-center gap-1.5 rounded-[0.4rem] px-3 py-1.5 text-[13px] font-semibold transition-[background-color,color,transform] duration-200 ease-out active:scale-[0.97] ${
               selected
-                ? 'bg-teal text-white'
+                ? 'bg-primary text-white'
                 : 'text-ink-muted hover:bg-surface-muted hover:text-ink'
             }`}
           >

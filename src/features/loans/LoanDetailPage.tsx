@@ -80,7 +80,7 @@ export function LoanDetailPage() {
           message={describeError(loan.error).message}
           onRetry={() => void loan.refetch()}
         />
-        <Link to="/prestamos" className="text-[13px] font-medium text-teal hover:underline">
+        <Link to="/prestamos" className="text-[13px] font-medium text-primary hover:underline">
           Volver a mis préstamos
         </Link>
       </div>

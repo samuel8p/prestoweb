@@ -23,7 +23,7 @@ export function Card({ children, className = '', as: Tag = 'div', tone = 'light'
   return (
     <Tag
       className={`rounded-[var(--radius-card)] ${
-        dark ? 'bg-ocean text-white shadow-raised' : 'border border-line bg-surface shadow-card'
+        dark ? 'bg-chrome text-white shadow-raised' : 'border border-line bg-surface shadow-card'
       } ${className}`}
     >
       {children}
@@ -55,7 +55,7 @@ export function CardHeader({ title, description, action, icon, tone = 'light' }:
         {icon ? (
           <span
             className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-              dark ? 'bg-white/10 text-turquoise' : 'bg-teal-tint text-teal'
+              dark ? 'bg-white/10 text-turquoise' : 'bg-primary-tint text-primary'
             }`}
           >
             <Icon name={icon} size={17} />

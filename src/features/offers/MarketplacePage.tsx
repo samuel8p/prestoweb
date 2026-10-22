@@ -208,7 +208,7 @@ export function MarketplacePage() {
                                 type="checkbox"
                                 checked={selected.includes(offer.id)}
                                 onChange={() => toggleSelection(offer.id)}
-                                className="h-4 w-4 rounded border-line-strong text-teal focus:ring-teal/30"
+                                className="h-4 w-4 rounded border-line-strong text-primary focus:ring-primary/30"
                               />
                               Comparar
                             </label>

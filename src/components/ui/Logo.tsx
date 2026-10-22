@@ -23,7 +23,7 @@ export function Logo({ variant = 'light', compact = false, className = '' }: Log
       aria-label="Presto, ir al panel"
       className={`flex items-center gap-2.5 ${className}`}
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-[0.65rem] bg-ocean">
+      <span className="flex h-9 w-9 items-center justify-center rounded-[0.65rem] bg-chrome">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path
             d="M4 8.2A3.2 3.2 0 0 1 7.2 5H14a1 1 0 0 1 1 1v1.4"
@@ -44,7 +44,7 @@ export function Logo({ variant = 'light', compact = false, className = '' }: Log
 
       {!compact ? (
         <span
-          className={`text-[17px] font-bold tracking-tight ${dark ? 'text-white' : 'text-ocean'}`}
+          className={`text-[17px] font-bold tracking-tight ${dark ? 'text-white' : 'text-chrome'}`}
         >
           Presto
         </span>

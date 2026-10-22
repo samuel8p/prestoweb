@@ -57,7 +57,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-canvas pb-20 lg:pb-0">
-      <header className="sticky top-0 z-30 bg-ocean text-white on-dark">
+      <header className="sticky top-0 z-30 bg-chrome text-white on-dark">
         <DemoBanner />
 
         <div className="mx-auto flex h-16 max-w-[92rem] items-center gap-3 px-4 sm:px-6 lg:px-8">
@@ -149,7 +149,7 @@ export function AppShell() {
                 end={section.to === '/'}
                 className={({ isActive }) =>
                   `flex flex-col items-center gap-1 px-1 py-2.5 text-[10.5px] font-semibold transition-colors duration-200 ${
-                    isActive ? 'text-teal' : 'text-ink-muted'
+                    isActive ? 'text-primary' : 'text-ink-muted'
                   }`
                 }
               >
@@ -178,7 +178,7 @@ export function AppShell() {
             type="button"
             aria-label="Cerrar"
             onClick={() => setMoreOpen(false)}
-            className="absolute inset-0 cursor-default bg-ocean/50 animate-fade-in"
+            className="absolute inset-0 cursor-default bg-chrome/50 animate-fade-in"
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-line bg-surface p-4 shadow-raised animate-fade-up">
             <ul className="space-y-1">

@@ -56,7 +56,7 @@ export function Modal({
         type="button"
         aria-label="Cerrar"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-ocean/50 backdrop-blur-[2px] animate-fade-in"
+        className="absolute inset-0 cursor-default bg-chrome/50 backdrop-blur-[2px] animate-fade-in"
       />
 
       <div

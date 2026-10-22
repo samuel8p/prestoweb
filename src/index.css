@@ -10,49 +10,49 @@
     'Helvetica Neue', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* ── Arena: fondos, superficies y bordes ──────────────────── */
-  --color-canvas: #fbf8f3;
+  /* ── Azul de marca ────────────────────────────────────────────
+     500 = acción, 700 = hover, 900 =起始 del gradiente del saldo. */
+  --color-primary: #0077b6;
+  --color-primary-hover: #005f92;
+  --color-primary-deep: #023e8a;
+  --color-primary-tint: #e6f2fa;
+
+  /* ── Cromo oscuro (encabezado) ─────────────────────────────── */
+  --color-chrome: #03264f;
+  --color-chrome-800: #023e8a;
+  --color-chrome-700: #0a3a66;
+
+  /* ── Acentos: solo sobre fondo oscuro ──────────────────────── */
+  --color-aqua: #48cae4;
+  --color-turquoise: #00d4c8;
+  --color-sun: #ffb703;
+
+  /* ── Arena: fondos, superficies y bordes ────────────────────── */
+  --color-canvas: #fffbf5;
   --color-surface: #ffffff;
-  --color-surface-muted: #f6f2ea;
-  --color-line: #e7e0d4;
-  --color-line-strong: #96876e;
+  --color-surface-muted: #fbf4e7;
+  --color-line: #eadfcb;
+  /* Borde de los controles: 3:1 contra el fondo (WCAG 1.4.11). */
+  --color-line-strong: #a08b62;
 
-  /* ── Tinta: texto ─────────────────────────────────────────── */
-  --color-ink: #0b2530;
-  --color-ink-muted: #4a6470;
-  --color-ink-subtle: #6b818b;
+  /* ── Tinta ─────────────────────────────────────────────────── */
+  --color-ink: #0b2540;
+  --color-ink-muted: #4a6275;
+  --color-ink-subtle: #5e7688;
 
-  /* ── Océano: barra lateral y bloque de saldo ─────────────── */
-  --color-ocean: #06303a;
-  --color-ocean-800: #0b4a57;
-  --color-ocean-700: #12596a;
-  --color-ocean-600: #1b6b7d;
-
-  /* ── Teal: acción (botones, enlaces, foco) ────────────────── */
-  --color-teal: #0e7c86;
-  --color-teal-dark: #0a6670;
-  --color-teal-deep: #085a61;
-  --color-teal-tint: #e4f0f1;
-
-  /* ── Turquesa: acento SOLO sobre fondo oscuro ────────────── */
-  --color-turquoise: #2dd4bf;
-
-  /* ── Estados (contraste AA verificado en el informe) ───────── */
-  --color-success: #117635;
-  --color-success-bg: #e7f5ec;
-  --color-danger: #b53624;
+  /* ── Estados (contraste AA verificado en el informe) ─────────── */
+  --color-success: #0e7f44;
+  --color-success-bg: #e4f6ec;
+  --color-danger: #bc3a27;
   --color-danger-bg: #fcece8;
   --color-warning: #8f5c11;
   --color-warning-bg: #fbf1dc;
 
-  /* ── Coral: detalle decorativo ───────────────────────────── */
-  --color-coral: #ff8a5b;
-
   /* ── Radios y sombras ────────────────────────────────────── */
-  --radius-card: 0.875rem;
-  --radius-control: 0.625rem;
-  --shadow-card: 0 1px 2px 0 rgb(6 48 58 / 0.04);
-  --shadow-raised: 0 16px 40px -12px rgb(6 48 58 / 0.24);
+  --radius-card: 1.25rem;
+  --radius-control: 0.75rem;
+  --shadow-card: 0 1px 2px 0 rgb(11 37 64 / 0.04);
+  --shadow-raised: 0 16px 40px -12px rgb(11 37 64 / 0.22);
 
   /* ── Movimiento (solo transform y opacity) ────────────────── */
   --animate-fade-in: fade-in 180ms ease-out both;
@@ -61,7 +61,6 @@
   --animate-slide-left: slide-left 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-grow-x: grow-x 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-draw: draw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes fade-in {
@@ -122,15 +121,6 @@
   }
 }
 
-@keyframes draw {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -144,9 +134,9 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Foco visible sobre fondos claros (teal) y oscuros (turquesa). */
+  /* Foco visible sobre fondos claros (azul) y oscuros (turquesa). */
   :focus-visible {
-    outline: 2px solid var(--color-teal);
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -179,14 +169,21 @@
     overflow: hidden;
   }
 
-  /* Patrón de olas para el bloque oscuro: líneas finas, muy sutiles. */
+  /* Superficie en L: la esquina del bloque de arriba se curva hacia adentro
+     (convexa hacia el gradiente) con una máscara radial. */
+  .esquina-concava {
+    -webkit-mask: radial-gradient(circle at 0 100%, transparent 22px, #000 22.5px);
+    mask: radial-gradient(circle at 0 100%, transparent 22px, #000 22.5px);
+  }
+
+  /* Patrón de puntos para el bloque del saldo. */
   .wave-pattern {
     background-image:
-      radial-gradient(circle at 12% 18%, rgb(45 212 191 / 0.16) 0 1px, transparent 1px),
-      radial-gradient(circle at 68% 62%, rgb(45 212 191 / 0.12) 0 1px, transparent 1px);
+      radial-gradient(circle at 14% 22%, rgb(72 202 228 / 0.22) 0 1px, transparent 1px),
+      radial-gradient(circle at 72% 68%, rgb(0 212 200 / 0.16) 0 1px, transparent 1px);
     background-size:
-      22px 22px,
-      34px 34px;
+      24px 24px,
+      36px 36px;
   }
 }
 
@@ -230,11 +227,11 @@
     animation: var(--animate-grow-x);
   }
 
-  /* Skeletons con shimmer: el brillo se desplaza con transform (nada de paint). */
+  /* Skeletons con shimmer: el brillo se desplaza con transform. */
   .skeleton {
     position: relative;
     overflow: hidden;
-    background-color: rgb(6 48 58 / 0.08);
+    background-color: rgb(11 37 64 / 0.08);
   }
 
   .skeleton::after {
@@ -245,7 +242,7 @@
     background-image: linear-gradient(
       90deg,
       transparent 0%,
-      rgb(6 48 58 / 0.09) 50%,
+      rgb(11 37 64 / 0.09) 50%,
       transparent 100%
     );
     animation: var(--animate-shimmer);

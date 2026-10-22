@@ -156,7 +156,7 @@ export function ReportsPage() {
             onClick={() => setTab(item.id)}
             className={`-mb-px border-b-2 px-3 py-2 text-[13px] font-medium transition-colors ${
               tab === item.id
-                ? 'border-teal text-teal'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >

@@ -28,7 +28,7 @@ export function StatCard({ label, value, hint, currency, icon, action }: StatCar
       <div className="flex items-start justify-between gap-3">
         <p className="label-caps text-ink-subtle">{label}</p>
         {icon ? (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-tint text-teal">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-tint text-primary">
             <Icon name={icon} size={16} />
           </span>
         ) : null}

@@ -58,14 +58,14 @@ export function BalanceCards({
                 aria-selected={selected}
                 onClick={() => onCurrencyChange(option)}
                 className={`relative rounded-t-lg px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] transition-colors duration-200 ${
-                  selected ? 'bg-ocean-800 text-turquoise' : 'text-white/45 hover:text-white/80'
+                  selected ? 'bg-chrome-800 text-turquoise' : 'text-white/45 hover:text-white/80'
                 }`}
               >
                 {CURRENCY_LABEL[option]}
                 {selected ? (
                   <span
                     aria-hidden="true"
-                    className="absolute -bottom-[7px] left-0 h-3 w-3 -rotate-45 bg-ocean-800"
+                    className="absolute -bottom-[7px] left-0 h-3 w-3 -rotate-45 bg-chrome-800"
                   />
                 ) : null}
               </button>
@@ -160,7 +160,7 @@ export function BalanceCards({
             <button
               type="button"
               onClick={() => onCreateWallet(other)}
-              className="mt-1.5 text-[13px] font-semibold text-teal hover:underline"
+              className="mt-1.5 text-[13px] font-semibold text-primary hover:underline"
             >
               Abrir billetera en {CURRENCY_LABEL[other]}
             </button>

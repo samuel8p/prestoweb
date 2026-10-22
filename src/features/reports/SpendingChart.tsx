@@ -45,7 +45,7 @@ export function SpendingChart({ categories, currency }: SpendingChartProps) {
               className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-line"
             >
               <div
-                className="bar-fill h-full rounded-full bg-teal"
+                className="bar-fill h-full rounded-full bg-primary"
                 style={{ width: `${Math.max(width, 2)}%` }}
               />
             </div>

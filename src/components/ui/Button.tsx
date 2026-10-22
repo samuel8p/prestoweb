@@ -8,12 +8,12 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dark' | 'onDark'
 type Size = 'sm' | 'md' | 'lg'
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-teal text-white hover:bg-teal-dark active:bg-teal-deep',
+  primary: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-deep',
   secondary:
-    'bg-surface text-ink hover:bg-surface-muted border border-line-strong hover:border-teal/50',
+    'bg-surface text-ink hover:bg-surface-muted border border-line-strong hover:border-primary/50',
   ghost: 'text-ink-muted hover:bg-surface-muted hover:text-ink',
   danger: 'bg-danger text-white hover:bg-danger/90 active:bg-danger/95',
-  dark: 'bg-ocean text-white hover:bg-ocean-800',
+  dark: 'bg-chrome text-white hover:bg-chrome-800',
   onDark: 'bg-white/10 text-white hover:bg-white/20',
 }
 
@@ -39,7 +39,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 /**
  * Botón de la aplicación.
  *
- * Jerarquía: `primary` es la única acción principal de la pantalla (teal
+ * Jerarquía: `primary` es la única acción principal de la pantalla (primary
  * sólido), `secondary` acompaña, `ghost` es terciario.
  */
 export function Button({

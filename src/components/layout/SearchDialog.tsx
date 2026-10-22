@@ -114,7 +114,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
         type="button"
         aria-label="Cerrar el buscador"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-ocean/50 backdrop-blur-[2px] animate-fade-in"
+        className="absolute inset-0 cursor-default bg-chrome/50 backdrop-blur-[2px] animate-fade-in"
       />
 
       <div
@@ -171,12 +171,12 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => activate(entry)}
                   className={`flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-left transition-colors duration-150 ${
-                    active ? 'bg-teal-tint' : 'hover:bg-surface-muted'
+                    active ? 'bg-primary-tint' : 'hover:bg-surface-muted'
                   }`}
                 >
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                      active ? 'bg-teal text-white' : 'bg-surface-muted text-ink-muted'
+                      active ? 'bg-primary text-white' : 'bg-surface-muted text-ink-muted'
                     }`}
                   >
                     <Icon name={entry.icon} size={16} />

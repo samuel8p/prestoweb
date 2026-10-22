@@ -7,9 +7,9 @@ type Tone = 'info' | 'success' | 'warning' | 'danger'
 
 const TONES: Record<Tone, { box: string; icon: IconName; iconClass: string }> = {
   info: {
-    box: 'border-teal/25 bg-teal-tint text-teal-deep',
+    box: 'border-primary/25 bg-primary-tint text-primary-deep',
     icon: 'info',
-    iconClass: 'text-teal',
+    iconClass: 'text-primary',
   },
   success: {
     box: 'border-success/25 bg-success-bg text-success',

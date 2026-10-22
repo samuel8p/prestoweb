@@ -1,7 +1,7 @@
 type Tone = 'ok' | 'warning' | 'danger'
 
 const TONES: Record<Tone, string> = {
-  ok: 'bg-teal',
+  ok: 'bg-primary',
   warning: 'bg-warning',
   danger: 'bg-danger',
 }

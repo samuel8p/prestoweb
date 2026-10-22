@@ -56,7 +56,7 @@ export function Input({
           className={`${CONTROL} ${
             error
               ? 'border-danger focus:border-danger focus:ring-danger-bg'
-              : 'border-line-strong focus:border-teal focus:ring-teal/20'
+              : 'border-line-strong focus:border-primary focus:ring-primary/20'
           } ${icon ? 'pl-9' : ''} ${className}`}
           {...rest}
         />

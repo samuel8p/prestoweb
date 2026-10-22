@@ -138,7 +138,7 @@ export function InicioPage() {
       {/* Saldos */}
       {accounts.isLoading ? (
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <div className="h-56 animate-pulse rounded-[1.25rem] bg-ocean/20" />
+          <div className="h-56 animate-pulse rounded-[1.25rem] bg-chrome/20" />
           <div className="h-40 animate-pulse rounded-[1.25rem] bg-line/60" />
         </div>
       ) : (
@@ -160,7 +160,10 @@ export function InicioPage() {
             title="Movimientos recientes"
             icon="swap"
             action={
-              <Link to="/billetera" className="text-[13px] font-semibold text-teal hover:underline">
+              <Link
+                to="/billetera"
+                className="text-[13px] font-semibold text-primary hover:underline"
+              >
                 Ver todos
               </Link>
             }
