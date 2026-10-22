@@ -50,6 +50,10 @@ describe('ReportsPage', () => {
     // el router.
     Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true })
     Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true })
+    // jsdom no implementa la navegación de un `<a download>`.
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
 
     let requestedUrl = ''
     server.use(
@@ -84,5 +88,6 @@ describe('ReportsPage', () => {
     })
     expect(requestedUrl).toContain('currency=ARS')
     expect(createObjectURL).toHaveBeenCalled()
+    expect(clickSpy).toHaveBeenCalled()
   })
 })

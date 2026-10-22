@@ -10,10 +10,10 @@ import { InvestmentsPage } from '../features/investments/InvestmentsPage'
 import { MarketplacePage } from '../features/offers/MarketplacePage'
 import { ProfilePage } from '../features/auth/ProfilePage'
 import { ReportsPage } from '../features/reports/ReportsPage'
+import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { RegisterPage } from '../features/auth/RegisterPage'
 import { RedirectIfAuthenticated, RequireAuth } from '../features/auth/guards'
 import { WalletsPage } from '../features/ledger/WalletsPage'
-import { PendingPage } from './PendingPage'
 
 /** Rutas de la aplicación. */
 export function AppRoutes() {
@@ -54,7 +54,7 @@ export function AppRoutes() {
         <Route path="/inversiones" element={<InvestmentsPage />} />
         <Route path="/presupuestos" element={<BudgetsPage />} />
         <Route path="/reportes" element={<ReportsPage />} />
-        <Route path="/avisos" element={<PendingPage title="Avisos" />} />
+        <Route path="/avisos" element={<NotificationsPage />} />
         <Route path="/perfil" element={<ProfilePage />} />
       </Route>
 
