@@ -2386,7 +2386,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CursorPaginatedLedgerTransaction'
+                $ref: '#/components/schemas/CursorPaginatedLedgerTransactionList'
           description: Listado paginado por cursor.
           headers:
             X-Presto-Mode:
@@ -5094,7 +5094,7 @@ components:
       description: |-
         * `ARS` - Peso argentino
         * `USD` - Dólar
-    CursorPaginatedLedgerTransaction:
+    CursorPaginatedLedgerTransactionList:
       type: object
       properties:
         next:
@@ -5110,7 +5110,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/LedgerTransaction'
+            $ref: '#/components/schemas/LedgerTransactionList'
       required:
       - next
       - previous
@@ -5439,6 +5439,72 @@ components:
       required:
       - created_at
       - created_by_user_id
+      - description
+      - destination_account_id
+      - id
+      - idempotency_key
+      - occurred_at
+      - reverses
+      - type
+    LedgerTransactionList:
+      type: object
+      description: |-
+        Un movimiento del listado, con el importe y la moneda del usuario.
+
+        El importe y la moneda los calcula `ledger.selectors.list_user_movement_amounts`
+        y llegan en el contexto (`amounts`): el serializer solo los da forma.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/LedgerTransactionTypeEnum'
+          readOnly: true
+        idempotency_key:
+          type: string
+          readOnly: true
+        created_by_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        destination_account_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        reverses:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        amount:
+          type: string
+          nullable: true
+          description: El importe del movimiento para el usuario, como string decimal.
+          readOnly: true
+        currency:
+          type: string
+          nullable: true
+          description: La moneda del movimiento.
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - created_by_user_id
+      - currency
       - description
       - destination_account_id
       - id

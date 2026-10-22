@@ -103,6 +103,8 @@ SPECTACULAR_SETTINGS = {
     'ENUM_NAME_OVERRIDES': {
         'LoanStatusEnum': 'apps.loans.models.Loan.Status',
         'PositionStatusEnum': 'apps.investments.models.Position.Status',
+        # El mismo `type` del ledger aparece en el detalle y en el listado.
+        'LedgerTransactionTypeEnum': 'apps.ledger.models.LedgerTransaction.Type',
     },
     # Los hooks: el de drf-spectacular (los enums) y los dos del proyecto (la
     # respuesta CSV de los reportes y los errores de cada operación). La lista

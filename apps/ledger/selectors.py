@@ -1,12 +1,13 @@
 """Selectores de lectura de la app ledger (interfaz pública)."""
 
 import uuid
+from collections.abc import Iterable
 from datetime import datetime
 from decimal import Decimal
 
 from django.db.models import Exists, OuterRef, Q, QuerySet
 
-from apps.ledger.models import Account, LedgerTransaction
+from apps.ledger.models import Account, LedgerEntry, LedgerTransaction
 
 
 def get_account_for_user(account_id: uuid.UUID, user_id: uuid.UUID) -> Account | None:
@@ -89,6 +90,45 @@ def list_transactions_for_user(user_id: uuid.UUID) -> QuerySet[LedgerTransaction
         .prefetch_related('entries__account')
         .order_by('-occurred_at', '-id')
     )
+
+
+def list_user_movement_amounts(
+    transactions: Iterable[LedgerTransaction],
+    user_id: uuid.UUID,
+) -> dict[uuid.UUID, dict[str, Decimal | str]]:
+    """El importe (con signo) y la moneda de cada movimiento, para el usuario.
+
+    El importe es el de la **pata que toca la cuenta del usuario**: un crédito
+    suma (entró dinero) y un débito resta (salió dinero). La moneda es la de
+    esa pata (un movimiento nunca mezcla monedas).
+
+    Usa los asientos que el selector del listado ya precarga
+    (`entries__account`): no hace ninguna consulta extra.
+
+    Args:
+        transactions: los movimientos (con los asientos precargados).
+        user_id: identificador del usuario.
+
+    Returns:
+        Dict con el importe y la moneda de cada movimiento, indexado por su id.
+    """
+    amounts: dict[uuid.UUID, dict[str, Decimal | str]] = {}
+    for transaction in transactions:
+        legs = [entry for entry in transaction.entries.all() if entry.account.user_id == user_id]
+        if not legs:
+            continue
+        total = sum(
+            (
+                entry.amount if entry.direction == LedgerEntry.Direction.CREDIT else -entry.amount
+                for entry in legs
+            ),
+            Decimal('0.00'),
+        )
+        amounts[transaction.id] = {
+            'amount': total,
+            'currency': legs[0].currency,
+        }
+    return amounts
 
 
 def list_transactions_in_period(

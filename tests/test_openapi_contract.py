@@ -143,6 +143,26 @@ def test_the_cursor_pagination_of_the_movements_is_declared(schema, api):
     assert set(response.json().keys()) == {'next', 'previous', 'results'}
 
 
+def test_the_movements_declare_the_amount_and_the_currency(schema, api):
+    """El listado de movimientos declara el importe y la moneda (D-10)."""
+    properties = schema['components']['schemas']['LedgerTransactionList']['properties']
+
+    assert 'amount' in properties
+    assert 'currency' in properties
+
+    api.post(
+        '/api/v1/ledger/transactions/',
+        {'type': 'deposit', 'currency': 'ARS', 'amount': '1000.00'},
+        format='json',
+        HTTP_IDEMPOTENCY_KEY='contrato-movimientos',
+    )
+    response = api.get('/api/v1/ledger/transactions/')
+    movement = response.json()['results'][0]
+
+    assert movement['amount'] == '1000.00'
+    assert movement['currency'] == 'ARS'
+
+
 def test_the_movements_report_is_paginated(schema, api):
     """El reporte de movimientos también pagina."""
     declared = schema_keys(schema, '/api/v1/reports/movements/', 'get')

@@ -205,3 +205,4 @@ fechas en ISO 8601 UTC. Los errores usan siempre el mismo formato:
 | [0005](adr/0005-saldo-desnormalizado.md) | El saldo de las cuentas está desnormalizado |
 | [0006](adr/0006-doble-entrada-diferida.md) | La doble entrada se valida con un trigger diferido |
 | [0007](adr/0007-orden-de-las-apps.md) | El orden de las apps y por qué |
+| [0008](adr/0008-importe-del-movimiento-en-el-listado.md) | El importe del movimiento en el listado del ledger (la pata propia, con signo) |

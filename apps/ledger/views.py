@@ -31,12 +31,14 @@ from apps.ledger.selectors import (
     get_transaction,
     list_accounts_for_user,
     list_transactions_for_user,
+    list_user_movement_amounts,
 )
 from apps.ledger.serializers import (
     AccountSerializer,
     BalanceSerializer,
     CreateAccountSerializer,
     CreateTransactionSerializer,
+    LedgerTransactionListSerializer,
     LedgerTransactionSerializer,
 )
 from apps.ledger.services import create_user_wallet, deposit, transfer, withdraw
@@ -173,7 +175,7 @@ class TransactionListCreateView(KycApprovedForUnsafeMethods, APIView):
     pagination_class = TransactionCursorPagination
 
     @extend_schema(
-        responses={200: cursor_paginated_response(LedgerTransactionSerializer)},
+        responses={200: cursor_paginated_response(LedgerTransactionListSerializer)},
         summary='Listar los movimientos del usuario',
         operation_id='ledger_transactions_list',
     )
@@ -182,7 +184,16 @@ class TransactionListCreateView(KycApprovedForUnsafeMethods, APIView):
         transactions = list_transactions_for_user(user_id=request.user.id)
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(transactions, request, view=self)
-        return paginator.get_paginated_response(LedgerTransactionSerializer(page, many=True).data)
+        amounts = list_user_movement_amounts(
+            transactions=page,
+            user_id=request.user.id,
+        )
+        serializer = LedgerTransactionListSerializer(
+            page,
+            many=True,
+            context={'amounts': amounts},
+        )
+        return paginator.get_paginated_response(serializer.data)
 
     @extend_schema(
         request=CreateTransactionSerializer,
