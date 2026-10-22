@@ -35,6 +35,11 @@ class Notification(BaseModel):
     status = models.CharField(max_length=8, choices=Status.choices, default=Status.PENDING)
     sent_at = models.DateTimeField(null=True, blank=True)
     error = models.CharField(max_length=255, blank=True)
+    read_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Cuándo lo leyó el usuario (null si todavía no lo leyó).',
+    )
 
     class Meta:
         constraints = [

@@ -18,9 +18,26 @@ class NotificationSerializer(serializers.ModelSerializer):
             'status',
             'created_at',
             'sent_at',
+            'read_at',
             'error',
         ]
         read_only_fields = fields
+
+
+class UnreadCountSerializer(serializers.Serializer):
+    """La cantidad de avisos sin leer."""
+
+    count = serializers.IntegerField(
+        help_text='Avisos que el usuario todav\u00eda no ley\u00f3.',
+    )
+
+
+class ReadAllSerializer(serializers.Serializer):
+    """Cuantos avisos se marcaron como leídos."""
+
+    count = serializers.IntegerField(
+        help_text='Avisos marcados como le\u00eddos en esta llamada.',
+    )
 
 
 class NotificationPreferenceSerializer(serializers.Serializer):

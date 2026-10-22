@@ -3,9 +3,15 @@
 import uuid
 from datetime import UTC, datetime
 
+from django.utils import timezone
+
 from apps.notifications.exceptions import InvalidEventType
 from apps.notifications.models import Notification, NotificationPreference
-from apps.notifications.selectors import get_preference_for_user, list_preferences_for_user
+from apps.notifications.selectors import (
+    get_notification_for_user,
+    get_preference_for_user,
+    list_preferences_for_user,
+)
 
 
 def create_notification(
@@ -67,6 +73,46 @@ def set_preference(user_id: uuid.UUID, event_type: str, enabled: bool) -> Notifi
         defaults={'enabled': enabled},
     )
     return preference
+
+
+def mark_notification_read(
+    user_id: uuid.UUID,
+    notification_id: uuid.UUID,
+) -> Notification | None:
+    """Marca un aviso del usuario como le\u00eddo.
+
+    Es idempotente: si ya estaba le\u00eddo, no cambia el `read_at`.
+
+    Args:
+        user_id: identificador del usuario dueno del aviso.
+        notification_id: identificador del aviso.
+
+    Returns:
+        El Notification leído, o None si no existe o es de otro usuario.
+    """
+    notification = get_notification_for_user(user_id=user_id, notification_id=notification_id)
+    if notification is None:
+        return None
+    if notification.read_at is None:
+        notification.read_at = timezone.now()
+        notification.save(update_fields=['read_at'])
+    return notification
+
+
+def mark_all_notifications_read(user_id: uuid.UUID) -> int:
+    """Marca como le\u00eddos todos los avisos que el usuario todav\u00eda no ley\u00f3.
+
+    Es idempotente: la segunda vez no marca ninguno.
+
+    Args:
+        user_id: identificador del usuario.
+
+    Returns:
+        La cantidad de avisos marcados en esta llamada.
+    """
+    return Notification.objects.filter(user_id=user_id, read_at__isnull=True).update(
+        read_at=timezone.now()
+    )
 
 
 def get_preferences(user_id: uuid.UUID) -> list[dict]:

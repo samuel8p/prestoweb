@@ -3965,6 +3965,106 @@ paths:
               description: Vale `demo` cuando la aplicación corre en modo demo.
               schema:
                 type: string
+  /api/v1/notifications/{notification_id}/read/:
+    post:
+      operationId: notifications_read
+      description: Marca el aviso como leído (idempotente).
+      summary: Marcar un aviso como leído
+      parameters:
+      - in: path
+        name: notification_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/notifications/preferences/:
     get:
       operationId: notifications_preferences
@@ -4085,6 +4185,120 @@ paths:
                   code: validation_error
                   message: Los datos enviados no son válidos.
                   details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+  /api/v1/notifications/read-all/:
+    post:
+      operationId: notifications_read_all
+      description: Marca todos los avisos sin leer (idempotente).
+      summary: Marcar todos los avisos como leídos
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadAll'
+          description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count
+      description: Devuelve la cantidad de avisos sin leer.
+      summary: Ver la cantidad de avisos sin leer
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+          description: ''
           headers:
             X-Presto-Mode:
               description: Vale `demo` cuando la aplicación corre en modo demo.
@@ -6209,6 +6423,12 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: Cuándo lo leyó el usuario (null si todavía no lo leyó).
         error:
           type: string
           readOnly: true
@@ -6217,6 +6437,7 @@ components:
       - error
       - event_type
       - id
+      - read_at
       - reference_id
       - sent_at
       - status
@@ -6863,6 +7084,15 @@ components:
       description: |-
         * `active` - Activa
         * `matured` - Vencida
+    ReadAll:
+      type: object
+      description: Cuantos avisos se marcaron como leídos.
+      properties:
+        count:
+          type: integer
+          description: Avisos marcados como leídos en esta llamada.
+      required:
+      - count
     Register:
       type: object
       description: Datos necesarios para registrar un usuario.
@@ -6930,6 +7160,15 @@ components:
           description: El refresh token que se renueva (queda en blacklist).
       required:
       - refresh
+    UnreadCount:
+      type: object
+      description: La cantidad de avisos sin leer.
+      properties:
+        count:
+          type: integer
+          description: Avisos que el usuario todavía no leyó.
+      required:
+      - count
     UpdateOfferStatusEnum:
       enum:
       - expired

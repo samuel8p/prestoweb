@@ -100,7 +100,7 @@ El compose de desarrollo ya lo trae activado. La guía completa está en
 | investments | `GET /api/v1/investments/products/`, `GET/POST /api/v1/investments/positions/`, `GET /api/v1/investments/positions/{id}/` |
 | budgets | `GET/POST /api/v1/budgets/`, `GET/PATCH /api/v1/budgets/{id}/`, `GET /api/v1/budgets/{id}/status/`, `GET/POST /api/v1/budgets/categories/`, `GET/PATCH /api/v1/budgets/categories/{id}/`, `GET/POST /api/v1/budgets/expenses/` |
 | reports | `GET /api/v1/reports/spending/`, `GET /api/v1/reports/investments/`, `GET /api/v1/reports/loans/`, `GET /api/v1/reports/movements/` |
-| notifications | `GET /api/v1/notifications/`, `GET/PUT /api/v1/notifications/preferences/` |
+| notifications | `GET /api/v1/notifications/`, `POST /api/v1/notifications/{id}/read/`, `POST /api/v1/notifications/read-all/`, `GET /api/v1/notifications/unread-count/`, `GET/PUT /api/v1/notifications/preferences/` |
 
 Los errores usan un formato uniforme:
 

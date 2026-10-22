@@ -6,20 +6,30 @@ devuelven la respuesta. Cada usuario ve solo lo suyo.
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.openapi import paginated_response
 from apps.core.pagination import StandardPagination
-from apps.notifications.selectors import list_notifications_for_user
+from apps.notifications.selectors import (
+    count_unread_for_user,
+    list_notifications_for_user,
+)
 from apps.notifications.serializers import (
     NotificationPreferenceListSerializer,
     NotificationPreferenceSerializer,
     NotificationSerializer,
+    ReadAllSerializer,
+    UnreadCountSerializer,
 )
-from apps.notifications.services import get_preferences, set_preference
+from apps.notifications.services import (
+    get_preferences,
+    mark_all_notifications_read,
+    mark_notification_read,
+    set_preference,
+)
 
 
 class NotificationListView(APIView):
@@ -39,6 +49,63 @@ class NotificationListView(APIView):
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(notifications, request, view=self)
         return paginator.get_paginated_response(NotificationSerializer(page, many=True).data)
+
+
+class NotificationReadView(APIView):
+    """Marca un aviso propio como le\u00eddo."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses={200: NotificationSerializer},
+        summary='Marcar un aviso como le\u00eddo',
+        operation_id='notifications_read',
+    )
+    def post(self, request, notification_id):
+        """Marca el aviso como le\u00eddo (idempotente)."""
+        notification = mark_notification_read(
+            user_id=request.user.id,
+            notification_id=notification_id,
+        )
+        if notification is None:
+            raise NotFound('El aviso no existe.')
+        return Response(NotificationSerializer(notification).data, status=status.HTTP_200_OK)
+
+
+class NotificationReadAllView(APIView):
+    """Marca todos los avisos propios como le\u00eddos."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses={200: ReadAllSerializer},
+        summary='Marcar todos los avisos como le\u00eddos',
+        operation_id='notifications_read_all',
+    )
+    def post(self, request):
+        """Marca todos los avisos sin leer (idempotente)."""
+        count = mark_all_notifications_read(user_id=request.user.id)
+        return Response({'count': count}, status=status.HTTP_200_OK)
+
+
+class NotificationUnreadCountView(APIView):
+    """Cantidad de avisos que el usuario todav\u00eda no ley\u00f3."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: UnreadCountSerializer},
+        summary='Ver la cantidad de avisos sin leer',
+        operation_id='notifications_unread_count',
+    )
+    def get(self, request):
+        """Devuelve la cantidad de avisos sin leer."""
+        return Response(
+            {'count': count_unread_for_user(user_id=request.user.id)},
+            status=status.HTTP_200_OK,
+        )
 
 
 class NotificationPreferenceView(APIView):

@@ -48,6 +48,20 @@ def get_notification(notification_id: uuid.UUID) -> Notification | None:
     return Notification.objects.filter(id=notification_id).first()
 
 
+def count_unread_for_user(user_id: uuid.UUID) -> int:
+    """Cuenta los avisos que el usuario todav\u00eda no ley\u00f3.
+
+    Es un `COUNT` sobre la lista: no trae los avisos al memoria.
+
+    Args:
+        user_id: identificador del usuario.
+
+    Returns:
+        La cantidad de avisos sin leer.
+    """
+    return Notification.objects.filter(user_id=user_id, read_at__isnull=True).count()
+
+
 def get_preference_for_user(
     user_id: uuid.UUID,
     event_type: str,

@@ -230,6 +230,9 @@ ERRORS_BY_OPERATION: dict[tuple[str, str], tuple[int, ...]] = {
     ('/api/v1/reports/loans/', 'get'): (400, 401),
     ('/api/v1/reports/movements/', 'get'): (400, 401),
     ('/api/v1/notifications/', 'get'): (401,),
+    ('/api/v1/notifications/{notification_id}/read/', 'post'): (401, 404),
+    ('/api/v1/notifications/read-all/', 'post'): (401,),
+    ('/api/v1/notifications/unread-count/', 'get'): (401,),
     ('/api/v1/notifications/preferences/', 'get'): (401,),
     ('/api/v1/notifications/preferences/', 'put'): (400, 401),
 }
