@@ -214,10 +214,16 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 Los commits anteriores de este mismo `HANDOFF.md` están listados; este commit no
 puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**129**).
+**136**).
 
 | Commit | Asunto |
 |---|---|
+| `59d5653` | docs(handoff): register the cors and the oracle cloud delivery |
+| `57c2f89` | docs(deploy): guide for Oracle Cloud, DuckDNS and Vercel |
+| `538944a` | chore(infra): make the production concurrency configurable |
+| `b179fd0` | docs(deploy): verify and document the arm64 compatibility |
+| `3ee2f62` | feat(core): enable the cors headers for the front |
+| `e27332f` | docs: close the audit decisions and update the handoff |
 | `b875471` | feat(ledger): restrict the currency to ARS and USD in the database |
 | `caac920` | ci: check the production settings with the deploy check |
 | `307e2a6` | chore(deps): audit the dependencies for known vulnerabilities |
@@ -441,6 +447,10 @@ contra el código de este bloque):
 | Docker (producción, demo) | `docker compose -p presto-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build` con `DEMO_MODE=true` | `db`, `redis` y `web` **healthy**, `worker` y `beat` Up; `/health/` 200, `/api/v1/meta/` 200 `{"mode":"demo","simulated_money":true}`, depósito simulado 201 y **suma de saldos por moneda = 0.00** |
 | Bajada del stack de producción | `docker compose -p presto-prod -f docker-compose.prod.yml down -v` | contenedores, red y volúmenes eliminados (no queda ningún `presto-prod*`) |
 | Suite end-to-end | `pytest tests/test_end_to_end.py` | 1 passed (ARS y USD, flujo completo, invariante del ledger) |
+| CORS (stack de producción) | preflight `OPTIONS` con `Origin: https://presto-front.vercel.app` | 200 con `access-control-allow-origin: https://presto-front.vercel.app`, `authorization` permitido y **sin** `access-control-allow-credentials`; un origen no permitido no recibe el header |
+| Depósito en producción (demo) | `manage.py shell` con `ledger.services.deposit` | 201, saldo 1000.00 ARS y **suma por moneda = 0.00** |
+| arm64 | `docker buildx imagetools inspect` + `buildx build --platform linux/arm64` | `python:3.12-slim`, `postgres:16`, `redis:7-alpine` y `caddy:2-alpine` publican **linux/arm64**; la imagen del proyecto compila para arm64 y `uname -m` da `aarch64` |
+| Concurrencia de producción | `docker compose -p presto-prod logs worker` | `concurrency: 2 (prefork)` (default del compose) |
 | Worker | `docker compose logs worker` | `transport: redis://redis:6379/0`, `results: disabled://`, 5 tasks registradas, `ready.` |
 | Beat | `celery -A config inspect conf` | 4 entradas: `mark_overdue_loans_diario` (00:05), `notify_installments_due_soon_diario` (00:10), `settle_investments_diario` (00:15) y `notify_overdue_installments_diario` (00:20) |
 | Tareas en el worker | `docker compose logs worker` | 5 tasks registradas: `mark_overdue_loans`, `settle_investments`, `notify_installments_due_soon`, `notify_overdue_installments`, `send_notification_email` |
@@ -515,6 +525,10 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D46 | Los booleanos de entorno se leen **sin distinguir mayúsculas** | El compose pasa `true` en minúscula y la comparación con `'True'` apagaba el modo demo sin avisar |
 | D47 | El proxy con TLS (Caddy) vive bajo el perfil `proxy` del compose de producción | Si la plataforma ya da HTTPS, el proxy sobra; con el perfil activo es el único que publica 80/443 y `web` queda en la red interna |
 | D48 | El backup diario de PostgreSQL es un servicio con el perfil `backup` | Un `pg_dump` comprimido con rotación, con el procedimiento de restauración en el script |
+| D49 | El **CORS lo responde la aplicación** con `django-cors-headers` | El front vive en otro origen (Vercel) y la API tiene que mandar los headers herself: `CORS_ALLOWED_ORIGINS` viene del entorno como lista separada por comas, **nunca `*`**, vacío significa "ningún origen", y **no se permiten credenciales** (la autenticación viaja en `Authorization: Bearer`, que sí está permitido en el preflight). El middleware va primero en la pila, antes de cualquier middleware que pueda generar una respuesta, para que el preflight `OPTIONS` se conteste |
+| D50 | La **concurrencia de producción se ajusta por entorno** | `GUNICORN_WORKERS` (web) y `CELERY_WORKER_CONCURRENCY` (worker) con defaults bajos (3 y 2). La VM de Oracle tiene 1 o 2 OCPU y 6 o 12 GB: con 6 GB, 2 y 2; con 12 GB, 4 y 4. **No hay límites de memoria**: matan el proceso a mitad de una operación de dinero |
+| D51 | El stack es **multi-arquitectura** (`linux/arm64` y `linux/amd64`) | Las imágenes de producción (`python:3.12-slim`, `postgres:16`, `redis:7-alpine`, `caddy:2-alpine`) publican arm64 y el build del proyecto para arm64 funciona sin compilar nada |
+| D52 | El despliegue documentado apunta a **Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel** | La guía de `docs/deploy-demo.md` §8 tiene el paso a paso: Docker en Ubuntu, el **firewall interno** de la VM (las imágenes de Oracle bloquean el tráfico con iptables aunque la Security List esté abierta), DuckDNS, el `DOMAIN` de Caddy, el `.env.prod`, los perfiles `proxy` y `backup`, el superusuario, los datos de demo, la verificación con `curl` (salud, meta, depósito y preflight CORS), la actualización y la restauración de backups |
 
 ## 8. Problemas y resoluciones
 
@@ -927,16 +941,15 @@ Orden real de lo que falta, de mayor a menor prioridad.
    umbrales de AGENTS §10 son 90% en `ledger`/`budgets` y 80% general).
 9. ✅ **Agregar `budgets` al umbral de cobertura del 90%** en la CI: ya está
    (gate de `apps.budgets.services`).
-10. **Envío del esquema OpenAPI al frontend**: queda pendiente, así como la
-    configuración de CORS real para el front (hoy la variable está documentada
-    pero la aplicación no la lee: sin `django-cors-headers` el CORS se resuelve
-    en el proxy inverso).
+10. **Envío del esquema OpenAPI al frontend**: queda pendiente. El **CORS ya
+    está resuelto** ✅: `django-cors-headers` es dependencia de producción, el
+    middleware responde el preflight y `CORS_ALLOWED_ORIGINS` viene del entorno
+    (sin `*`, vacío = ningún origen, sin credenciales).
 11. **Decisiones técnicas que siguen abiertas** (ver `docs/audit-final.md` §5):
-    `sentry-sdk` y `django-cors-headers` como dependencias, CORS real, imágenes
-    fijadas a digest y el reintento o el resumen de los avisos fallidos. Ninguna
-    se implementó: son decisiones del cliente. **Ya resueltas** en la
-    autorización del 2026-10-21: `pip-audit` en la CI, el `check --deploy` en la
-    CI y el `CheckConstraint` de moneda del ledger.
+    `sentry-sdk` como dependencia, imágenes fijadas a digest y el reintento o el
+    resumen de los avisos fallidos. **Ya resueltas**: `pip-audit` en la CI, el
+    `check --deploy` en la CI y el `CheckConstraint` de moneda del ledger
+    (2026-10-21), y el **CORS real** con `django-cors-headers` (2026-10-22).
 
 ### 11.1 Decisiones abiertas con el cliente
 
@@ -1170,3 +1183,4 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-21 | **Reescritura del documento** para traspaso a Claude: §2 con el stack real (Celery 5.6.3 en uso), §3 con el árbol real (celery.py, tasks.py, ADR 0001), §5 con las reglas de API/seguridad/testing, §6.3 con los módulos verificados, §6.4 con la tabla de verificaciones comprobadas hoy (407 tests, 99,07% de cobertura, 11 contratos, 5 servicios Up), §7 con D19-D24 (Celery), §8 con P15-P17, §9 corregido (una billetera por moneda; depósitos simulados apagados en local), §10 con los comandos reales (`docker compose ps` muestra 5 servicios), §11 con el bloque 6b como tarea recomendada y §11.3 con el contexto técnico de `budgets`, §11.4 con los huecos de especificación de `reports`/`notifications`, **§13 nueva con las reglas para Claude** y §14 el registro. Se eliminaron datos obsoletos (conteo de commits, "374 passed", "3 servicios Up", `docs/adr/` vacío) sin perder decisiones vigentes. |
 | 2026-10-21 | **Auditoría final y pulido del backend** (14 commits): auditoría de solo lectura en `docs/audit-final.md` (0 críticos, 2 altos, 9 medios y 8 bajos, con la evidencia de cada uno y una sección "Requiere decisión" con recomendación) y corrección de todo lo crítico, alto y medio, con TDD: validadores de contraseña de Django activos (AGENTS §9.5), HSTS en producción (AGENTS §9.4), `update_offer`/`expire_offer` con `transaction.atomic()` y `select_for_update()`, contenedores de la aplicación corriendo como el usuario `presto` (uid 1000), health check de producción mandando un `Host` permitido, test del endpoint de detalle de categoría, test de concurrencia de la categorización de gastos, test de concurrencia de la actualización de ofertas, suite end-to-end del flujo completo (registro → login → KYC → depósito → oferta → préstamo → cuota → inversión → reportes → avisos, en ARS y USD, verificando que la suma de saldos por moneda sea 0), `docs/architecture.md`, ADR 0005 (saldo desnormalizado), 0006 (doble entrada con trigger diferido) y 0007 (orden de las apps), README al día y `.env.example` con todas las variables. **655 tests pasan**, 28 contratos de import-linter, cobertura del 99%, OpenAPI sin warnings y arranque real verificado de los stacks de desarrollo y de producción (este último con `DEMO_MODE=true` y luego bajado con `down -v`). `AGENTS.md` **no** se modificó: el texto propuesto para su §17 quedó en `docs/agents-changelog-proposal.md`. |
 | 2026-10-21 | **Autorizaciones del desarrollador (4 commits)**: (1) `docs(agents)` aplicó el texto de `docs/agents-changelog-proposal.md` **solo en el registro de la §17** de `AGENTS.md` (bloque 6a, bloque 6b, modo demo, correcciones de la auditoría y documentación); las §§7, 15 y 4 no se tocaron. (2) `chore(deps)` agregó `pip-audit` como dependencia de desarrollo (pyproject, imagen y lista de la CI) con un paso en la CI que falla si hay vulnerabilidades conocidas, más el target `make audit`: **las dependencias del proyecto están limpias** (la auditoría previa solo mostró avisos en el propio `pip`, que la CI actualiza). El repo **no tiene lock file**, así que no había nada que fijar ahí. (3) `ci` agregó `manage.py check --deploy --fail-level WARNING` con los settings de producción (clave secreta aleatoria en el paso); el único aviso que quedaba, el preload del HSTS (`security.W021`), quedó silenciado en `production.py` con la razón escrita al lado, porque el preload es irreversible y la decisión es del cliente. (4) `feat(ledger)` agregó el `CheckConstraint` de moneda (`ARS`/`USD`) a `Account` y `LedgerEntry` con la migración `ledger.0003`: la base ya no acepta `EUR` ni `ars` en minúscula, y los triggers, la inmutabilidad y la idempotencia siguen funcionando. **662 tests pasan**. `docs/audit-final.md` §5 quedó con el estado de cada decisión. |
+| 2026-10-22 | **CORS + despliegue en Oracle Cloud (4 commits)**: `feat(core)` habilitó el CORS real con `django-cors-headers` (dependencia de producción, middleware primero en la pila, `CORS_ALLOWED_ORIGINS` desde el entorno sin `*` y sin credenciales, 8 tests nuevos); `docs(deploy)` verificó y documentó la compatibilidad **arm64** (las cuatro imágenes de producción publican `linux/arm64` y la imagen del proyecto compila para arm64); `chore(infra)` hizo configurable la concurrencia de producción (`GUNICORN_WORKERS` y `CELERY_WORKER_CONCURRENCY`, defaults 3 y 2, recomendados 2/2 para 6 GB y 4/4 para 12 GB, sin límites de memoria); `docs(deploy)` escribió la guía **Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel** (Docker, swap opcional, el firewall interno de la VM con iptables, DuckDNS y `DOMAIN`, `.env.prod`, perfiles `proxy` y `backup`, superusuario y datos de demo, verificación con `curl`, actualización y restauración de backups). **672 tests pasan**. Verificado en runtime con el stack de producción y `DEMO_MODE=true`: `/health/` 200, `/api/v1/meta/` 200 `mode=demo`, preflight CORS 200 con el origen permitido, depósito simulado con la suma por moneda en 0.00 y el worker con `concurrency: 2`. |
