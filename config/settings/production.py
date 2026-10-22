@@ -32,6 +32,15 @@ SILENCED_SYSTEM_CHECKS = ['security.W021']
 # El proxy inverso (Nginx o Caddy) termina TLS y reenvía X-Forwarded-Proto.
 # Sin esto, SECURE_SSL_REDIRECT redirigía en loop y el chequeo de salud
 # (/health/) recibía un 301 en vez de un 200.
+#
+# Las plataformas administradas (Northflank, Railway, Fly...) también terminan
+# TLS y reenvían X-Forwarded-Proto, así que el mismo ajuste sirve.
+#
+# Cómo comprobarlo (con el dominio público):
+#   curl -i https://<dominio>/health/ | head -1
+#     -> HTTP/2 200 (si el proxy no manda la cabecera, se ve un 301)
+#   curl -i http://<dominio>/health/ | head -1
+#     -> HTTP/2 301 (redirección a https, la que hace SECURE_SSL_REDIRECT)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Celery: el broker es obligatorio en producción, no hay default silencioso
