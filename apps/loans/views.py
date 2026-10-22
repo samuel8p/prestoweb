@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.exceptions import InsufficientFunds, KYCNotCompleted
+from apps.core.openapi import paginated_response
 from apps.core.pagination import StandardPagination
 from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.ledger.exceptions import IdempotencyConflict, IdempotencyKeyConflict
@@ -39,7 +40,7 @@ class LoanListCreateView(KycApprovedForUnsafeMethods, APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: LoanSerializer},
+        responses={200: paginated_response(LoanSerializer)},
         summary='Listar los préstamos propios',
         operation_id='loans_list',
     )

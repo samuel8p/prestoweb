@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.openapi import paginated_response
 from apps.core.pagination import StandardPagination
 from apps.reports import export
 from apps.reports.exceptions import InvalidReportParameters, ReportTooLarge
@@ -167,7 +168,7 @@ class MovementsReportView(APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: MovementReportRowSerializer},
+        responses={200: paginated_response(MovementReportRowSerializer)},
         summary='Ver los movimientos del usuario en el período',
         operation_id='reports_movements',
     )

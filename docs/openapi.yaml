@@ -133,8 +133,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Budget'
-          description: ''
+                $ref: '#/components/schemas/PaginatedBudget'
+          description: Listado paginado.
     post:
       operationId: budgets_create
       description: Crea el presupuesto mensual de una categoría y moneda.
@@ -222,8 +222,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Category'
-          description: ''
+                $ref: '#/components/schemas/PaginatedCategory'
+          description: Listado paginado.
     post:
       operationId: budgets_categories_create
       description: Crea una categoría de gasto para el usuario.
@@ -288,8 +288,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Expense'
-          description: ''
+                $ref: '#/components/schemas/PaginatedExpense'
+          description: Listado paginado.
     post:
       operationId: budgets_expenses_create
       description: Categoriza un movimiento del ledger como gasto del usuario.
@@ -331,8 +331,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Position'
-          description: ''
+                $ref: '#/components/schemas/PaginatedPosition'
+          description: Listado paginado.
     post:
       operationId: investments_positions_create
       description: Abre una posición de inversión a plazo fijo.
@@ -397,8 +397,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InvestmentProduct'
-          description: ''
+                $ref: '#/components/schemas/PaginatedInvestmentProduct'
+          description: Listado paginado.
   /api/v1/kyc/:
     get:
       operationId: kyc_list
@@ -480,8 +480,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
-          description: ''
+                $ref: '#/components/schemas/PaginatedAccount'
+          description: Listado paginado.
     post:
       operationId: ledger_accounts_create
       description: Crea la billetera del usuario para la moneda indicada.
@@ -546,8 +546,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LedgerTransaction'
-          description: ''
+                $ref: '#/components/schemas/CursorPaginatedLedgerTransaction'
+          description: Listado paginado por cursor.
     post:
       operationId: ledger_transactions_create
       description: Crea un depósito, retiro o transferencia con idempotencia.
@@ -612,8 +612,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Loan'
-          description: ''
+                $ref: '#/components/schemas/PaginatedLoan'
+          description: Listado paginado.
     post:
       operationId: loans_create
       description: Acepta una oferta y devuelve el préstamo creado.
@@ -782,8 +782,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OfferMatch'
-          description: ''
+                $ref: '#/components/schemas/PaginatedOfferMatch'
+          description: Listado paginado.
   /api/v1/meta/:
     get:
       operationId: meta
@@ -814,8 +814,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Notification'
-          description: ''
+                $ref: '#/components/schemas/PaginatedNotification'
+          description: Listado paginado.
   /api/v1/notifications/preferences/:
     get:
       operationId: notifications_preferences
@@ -873,8 +873,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Offer'
-          description: ''
+                $ref: '#/components/schemas/PaginatedOffer'
+          description: Listado paginado.
     post:
       operationId: offers_create
       description: Publica una oferta de préstamo. No reserva fondos.
@@ -1004,8 +1004,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MovementReportRow'
-          description: ''
+                $ref: '#/components/schemas/PaginatedMovementReportRow'
+          description: Listado paginado.
   /api/v1/reports/spending/:
     get:
       operationId: reports_spending
@@ -1325,6 +1325,27 @@ components:
       description: |-
         * `ARS` - Peso argentino
         * `USD` - Dólar
+    CursorPaginatedLedgerTransaction:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LedgerTransaction'
+      required:
+      - next
+      - previous
+      - results
     EventTypeEnum:
       enum:
       - installment_due_soon
@@ -2193,6 +2214,281 @@ components:
       required:
       - amount
       - product_id
+    PaginatedAccount:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedBudget:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Budget'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedCategory:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedExpense:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedInvestmentProduct:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvestmentProduct'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedLoan:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Loan'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedMovementReportRow:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MovementReportRow'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedNotification:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedOffer:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Offer'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedOfferMatch:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfferMatch'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedPosition:
+      type: object
+      properties:
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página siguiente (null si es la última).
+        previous:
+          type: string
+          format: uri
+          nullable: true
+          description: URL de la página anterior (null si es la primera).
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+        count:
+          type: integer
+          description: Cantidad total de elementos del listado.
+      required:
+      - count
+      - next
+      - previous
+      - results
     PatchedMeUpdate:
       type: object
       description: Campos del perfil que el usuario puede actualizar sobre sí mismo.

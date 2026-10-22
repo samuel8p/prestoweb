@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.openapi import paginated_response
 from apps.core.pagination import StandardPagination
 from apps.notifications.selectors import list_notifications_for_user
 from apps.notifications.serializers import (
@@ -28,7 +29,7 @@ class NotificationListView(APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: NotificationSerializer},
+        responses={200: paginated_response(NotificationSerializer)},
         summary='Listar los avisos propios',
         operation_id='notifications_list',
     )

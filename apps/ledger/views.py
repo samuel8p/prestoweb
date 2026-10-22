@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.exceptions import InsufficientFunds, InvalidAmount, KYCNotCompleted
+from apps.core.openapi import cursor_paginated_response, paginated_response
 from apps.core.pagination import StandardPagination
 from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.ledger.exceptions import (
@@ -108,7 +109,7 @@ class AccountListCreateView(APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: AccountSerializer},
+        responses={200: paginated_response(AccountSerializer)},
         summary='Listar las cuentas del usuario',
     )
     def get(self, request):
@@ -168,7 +169,7 @@ class TransactionListCreateView(KycApprovedForUnsafeMethods, APIView):
     pagination_class = TransactionCursorPagination
 
     @extend_schema(
-        responses={200: LedgerTransactionSerializer},
+        responses={200: cursor_paginated_response(LedgerTransactionSerializer)},
         summary='Listar los movimientos del usuario',
         operation_id='ledger_transactions_list',
     )

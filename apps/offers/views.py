@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.exceptions import InvalidAmount, KYCNotCompleted
+from apps.core.openapi import paginated_response
 from apps.core.pagination import StandardPagination
 from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.offers.exceptions import OfferNotEditable, OfferNotFound
@@ -29,7 +30,7 @@ class OfferListCreateView(KycApprovedForUnsafeMethods, APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: OfferSerializer},
+        responses={200: paginated_response(OfferSerializer)},
         summary='Listar las ofertas propias',
         operation_id='offers_list',
     )

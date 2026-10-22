@@ -46,6 +46,7 @@ from apps.budgets.serializers import (
     ExpenseSerializer,
 )
 from apps.budgets.services import categorize_movement, create_budget, create_category
+from apps.core.openapi import paginated_response
 from apps.core.pagination import StandardPagination
 
 
@@ -56,7 +57,7 @@ class CategoryListCreateView(APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: CategorySerializer},
+        responses={200: paginated_response(CategorySerializer)},
         summary='Listar las categorías propias',
         operation_id='budgets_categories_list',
     )
@@ -114,7 +115,7 @@ class BudgetListCreateView(APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: BudgetSerializer},
+        responses={200: paginated_response(BudgetSerializer)},
         summary='Listar los presupuestos propios',
         operation_id='budgets_list',
     )
@@ -202,7 +203,7 @@ class ExpenseListCreateView(APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: ExpenseSerializer},
+        responses={200: paginated_response(ExpenseSerializer)},
         summary='Listar los gastos propios',
         operation_id='budgets_expenses_list',
     )

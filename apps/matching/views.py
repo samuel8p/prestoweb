@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.openapi import paginated_response
 from apps.core.pagination import StandardPagination
 from apps.matching.exceptions import NotEnoughOffersToCompare, OfferNotFound
 from apps.matching.selectors import compare_offers, search_offers
@@ -26,7 +27,7 @@ class MatchingOfferListView(APIView):
 
     @extend_schema(
         parameters=[SearchOffersQuerySerializer],
-        responses={200: OfferMatchSerializer},
+        responses={200: paginated_response(OfferMatchSerializer)},
         summary='Buscar ofertas activas',
     )
     def get(self, request):
