@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run types:api",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
@@ -15,7 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "types:api": "openapi-typescript docs/openapi.yaml -o src/lib/api/schema.d.ts",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build"
+    "check": "npm run types:api && npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.2",
