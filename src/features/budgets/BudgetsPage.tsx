@@ -10,8 +10,8 @@ import { Modal } from '../../components/ui/Modal'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { ProgressBar } from '../../components/ui/ProgressBar'
-import { Select } from '../../components/ui/Select'
-import { Spinner } from '../../components/ui/Spinner'
+import { Segmented } from '../../components/ui/Segmented'
+import { SkeletonRows } from '../../components/ui/Skeleton'
 import { describeError } from '../../lib/api/errors'
 import { percentOf } from '../../lib/money/decimal'
 import { formatDateTime } from '../../lib/money/format'
@@ -23,8 +23,8 @@ import { CategoryForm } from './CategoryForm'
 import { ExpenseForm } from './ExpenseForm'
 
 const CURRENCY_OPTIONS = [
-  { value: 'ARS', label: 'Pesos (ARS)' },
-  { value: 'USD', label: 'Dólares (USD)' },
+  { value: 'ARS' as const, label: 'Pesos (ARS)' },
+  { value: 'USD' as const, label: 'Dólares (USD)' },
 ]
 
 /** Presupuestos: categorías, límites mensuales, estado y gastos categorizados. */
@@ -66,42 +66,149 @@ export function BudgetsPage() {
         title="Presupuestos"
         description="Categorizá tus gastos y controlá cuánto gastás por categoría."
         action={
-          <>
-            <Button variant="secondary" onClick={() => setCategoryOpen(true)}>
-              Nueva categoría
-            </Button>
-            <Button onClick={() => setBudgetOpen(true)} disabled={categoryList.length === 0}>
-              Nuevo presupuesto
-            </Button>
-          </>
+          <Button
+            icon="plus"
+            onClick={() => setBudgetOpen(true)}
+            disabled={categoryList.length === 0}
+          >
+            Nuevo presupuesto
+          </Button>
         }
       />
 
-      <div className="max-w-xs">
-        <Select
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-[13px] font-medium text-slate-700">Moneda</span>
+        <Segmented
           label="Moneda"
           value={currency}
           options={CURRENCY_OPTIONS}
-          onChange={(event) => setCurrency(event.target.value as Currency)}
+          onChange={setCurrency}
         />
       </div>
 
       {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
 
+      {/* Presupuestos del mes */}
+      <Card>
+        <CardHeader
+          title="Presupuestos del mes"
+          description={`Cuánto gastaste de cada límite en ${currency}.`}
+          icon="budget"
+        />
+
+        {budgets.isLoading ? <SkeletonRows rows={2} columns={4} /> : null}
+
+        {budgets.isError ? (
+          <div className="px-5 py-4">
+            <ErrorState
+              message={describeError(budgets.error).message}
+              onRetry={() => void budgets.refetch()}
+            />
+          </div>
+        ) : null}
+
+        {!budgets.isLoading && !budgets.isError && budgetList.length === 0 ? (
+          <EmptyState
+            title={`No tenés presupuestos en ${currency}`}
+            description="Creá un presupuesto mensual por categoría."
+            icon="budget"
+            action={
+              <Button size="sm" onClick={() => setBudgetOpen(true)}>
+                Crear presupuesto
+              </Button>
+            }
+          />
+        ) : null}
+
+        <ul className="divide-y divide-line">
+          {budgetList.map((budget) => {
+            const status = statuses.byBudget.get(budget.id)
+            const spent = status?.spent_amount ?? '0.00'
+            const percent = status ? percentOf(spent, status.limit_amount) : 0
+            const tone = status?.alert_triggered
+              ? 'danger'
+              : percent >= budget.alert_threshold
+                ? 'warning'
+                : 'ok'
+
+            return (
+              <li key={budget.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[15px] font-semibold text-slate-900">
+                      {budget.category.name}
+                    </p>
+                    <p className="mt-0.5 text-[13px] text-slate-500">
+                      Límite <MoneyAmount value={budget.limit_amount} currency={budget.currency} />{' '}
+                      · aviso al {budget.alert_threshold}%
+                    </p>
+                  </div>
+                  {status?.alert_triggered ? (
+                    <Badge tone="danger" dot>
+                      Alerta
+                    </Badge>
+                  ) : null}
+                </div>
+
+                {status ? (
+                  <>
+                    <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <dt className="text-xs text-slate-500">Gastado</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                          <MoneyAmount value={status.spent_amount} currency={currency} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-slate-500">Disponible</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                          <MoneyAmount value={status.remaining_amount} currency={currency} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-slate-500">Umbral</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                          <MoneyAmount value={status.threshold_amount} currency={currency} />
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <div className="mt-3 max-w-sm">
+                      <ProgressBar
+                        percent={percent}
+                        label={`Gastado de ${budget.category.name}`}
+                        tone={tone}
+                      />
+                    </div>
+                  </>
+                ) : statuses.isLoading ? (
+                  <div className="mt-4">
+                    <SkeletonRows rows={1} columns={3} />
+                  </div>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      </Card>
+
+      {/* Categorías */}
       <Card>
         <CardHeader
           title="Categorías"
           description="Las etiquetas que usás para ordenar tus gastos."
+          icon="offer"
+          action={
+            <Button size="sm" variant="secondary" onClick={() => setCategoryOpen(true)}>
+              Nueva categoría
+            </Button>
+          }
         />
 
-        {categories.isLoading ? (
-          <div className="flex justify-center px-4 py-10">
-            <Spinner label="Cargando las categorías" />
-          </div>
-        ) : null}
+        {categories.isLoading ? <SkeletonRows rows={2} columns={2} /> : null}
 
         {categories.isError ? (
-          <div className="px-4 py-4">
+          <div className="px-5 py-4">
             <ErrorState
               message={describeError(categories.error).message}
               onRetry={() => void categories.refetch()}
@@ -113,6 +220,7 @@ export function BudgetsPage() {
           <EmptyState
             title="Todavía no creaste categorías"
             description="Las categorías son las etiquetas de tus gastos."
+            icon="offer"
             action={
               <Button size="sm" onClick={() => setCategoryOpen(true)}>
                 Crear categoría
@@ -121,11 +229,11 @@ export function BudgetsPage() {
           />
         ) : null}
 
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-line">
           {categoryList.map((category) => (
             <li
               key={category.id}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5"
+              className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
             >
               {renaming === category.id ? (
                 <form
@@ -146,7 +254,7 @@ export function BudgetsPage() {
                       id={`rename-${category.id}`}
                       value={renameValue}
                       onChange={(event) => setRenameValue(event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+                      className="mt-1 w-full rounded-[var(--radius-control)] border border-line-strong px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                     />
                   </div>
                   <Button size="sm" type="submit" loading={renameCategory.isPending}>
@@ -176,109 +284,16 @@ export function BudgetsPage() {
         </ul>
       </Card>
 
-      <Card>
-        <CardHeader
-          title="Presupuestos del mes"
-          description={`Cuánto gastaste de cada límite en ${currency}.`}
-        />
-
-        {budgets.isLoading ? (
-          <div className="flex justify-center px-4 py-10">
-            <Spinner label="Cargando los presupuestos" />
-          </div>
-        ) : null}
-
-        {budgets.isError ? (
-          <div className="px-4 py-4">
-            <ErrorState
-              message={describeError(budgets.error).message}
-              onRetry={() => void budgets.refetch()}
-            />
-          </div>
-        ) : null}
-
-        {!budgets.isLoading && !budgets.isError && budgetList.length === 0 ? (
-          <EmptyState
-            title="No tenés presupuestos en esta moneda"
-            description="Creá un presupuesto mensual por categoría."
-            action={
-              <Button size="sm" onClick={() => setBudgetOpen(true)}>
-                Crear presupuesto
-              </Button>
-            }
-          />
-        ) : null}
-
-        <ul className="divide-y divide-slate-100">
-          {budgetList.map((budget) => {
-            const status = statuses.byBudget.get(budget.id)
-            const spent = status?.spent_amount ?? '0.00'
-            const percent = status ? percentOf(spent, status.limit_amount) : 0
-            const tone = status?.alert_triggered
-              ? 'danger'
-              : percent >= budget.alert_threshold
-                ? 'warning'
-                : 'ok'
-
-            return (
-              <li key={budget.id} className="px-4 py-4 sm:px-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{budget.category.name}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Límite <MoneyAmount value={budget.limit_amount} currency={budget.currency} />{' '}
-                      · aviso al {budget.alert_threshold}%
-                    </p>
-                  </div>
-                  {status?.alert_triggered ? <Badge tone="danger">Alerta</Badge> : null}
-                </div>
-
-                {status ? (
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <p className="text-xs text-slate-500">Gastado</p>
-                      <p className="text-sm font-semibold text-slate-900">
-                        <MoneyAmount value={status.spent_amount} currency={currency} />
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Disponible</p>
-                      <p className="text-sm font-semibold text-slate-900">
-                        <MoneyAmount value={status.remaining_amount} currency={currency} />
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Umbral</p>
-                      <p className="text-sm font-semibold text-slate-900">
-                        <MoneyAmount value={status.threshold_amount} currency={currency} />
-                      </p>
-                    </div>
-                    <div className="sm:col-span-3">
-                      <ProgressBar
-                        percent={percent}
-                        label={`Gastado de ${budget.category.name}`}
-                        tone={tone}
-                      />
-                    </div>
-                  </div>
-                ) : statuses.isLoading ? (
-                  <div className="mt-3">
-                    <Spinner label="Cargando el estado del presupuesto" />
-                  </div>
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
-      </Card>
-
+      {/* Gastos categorizados */}
       <Card>
         <CardHeader
           title="Gastos categorizados"
           description="Los movimientos que asignaste a una categoría."
+          icon="swap"
           action={
             <Button
               size="sm"
+              variant="secondary"
               onClick={() => setExpenseOpen(true)}
               disabled={movementList.length === 0}
             >
@@ -287,14 +302,10 @@ export function BudgetsPage() {
           }
         />
 
-        {expenses.isLoading ? (
-          <div className="flex justify-center px-4 py-10">
-            <Spinner label="Cargando los gastos" />
-          </div>
-        ) : null}
+        {expenses.isLoading ? <SkeletonRows rows={2} columns={2} /> : null}
 
         {expenses.isError ? (
-          <div className="px-4 py-4">
+          <div className="px-5 py-4">
             <ErrorState
               message={describeError(expenses.error).message}
               onRetry={() => void expenses.refetch()}
@@ -306,32 +317,41 @@ export function BudgetsPage() {
           <EmptyState
             title="Todavía no categorizaste ningún gasto"
             description="Elegí un movimiento del ledger y asignale una categoría."
+            icon="swap"
           />
         ) : null}
 
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-line">
           {expenseList.map((expense) => (
             <li
               key={expense.id}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5"
+              className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
             >
-              <div>
-                <p className="text-sm font-medium text-slate-900">{expense.category.name}</p>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Movimiento {expense.ledger_transaction_id.slice(0, 8)}… ·{' '}
-                  {formatDateTime(expense.created_at)}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-slate-900">{expense.category.name}</p>
+              <p className="text-xs text-slate-400 tabular">
+                Movimiento {expense.ledger_transaction_id.slice(0, 8)}… ·{' '}
+                {formatDateTime(expense.created_at)}
+              </p>
             </li>
           ))}
         </ul>
       </Card>
 
-      <Modal open={categoryOpen} title="Nueva categoría" onClose={() => setCategoryOpen(false)}>
+      <Modal
+        open={categoryOpen}
+        title="Nueva categoría"
+        description="La etiqueta con la que vas a agrupar tus gastos."
+        onClose={() => setCategoryOpen(false)}
+      >
         <CategoryForm onDone={() => setCategoryOpen(false)} />
       </Modal>
 
-      <Modal open={budgetOpen} title="Nuevo presupuesto" onClose={() => setBudgetOpen(false)}>
+      <Modal
+        open={budgetOpen}
+        title="Nuevo presupuesto"
+        description="Un límite mensual para una categoría y una moneda."
+        onClose={() => setBudgetOpen(false)}
+      >
         <BudgetForm
           categories={categoryList}
           defaultCurrency={currency}
@@ -342,6 +362,7 @@ export function BudgetsPage() {
       <Modal
         open={expenseOpen}
         title="Categorizar movimiento"
+        description="El importe sale del ledger: nunca se guarda una copia."
         onClose={() => setExpenseOpen(false)}
       >
         <ExpenseForm

@@ -121,7 +121,7 @@ export function BudgetForm({ categories, defaultCurrency, onDone }: BudgetFormPr
         {...register('alert_threshold')}
       />
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 border-t border-line pt-4">
         <Button variant="secondary" onClick={onDone}>
           Cancelar
         </Button>

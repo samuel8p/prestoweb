@@ -85,24 +85,33 @@ export function OpenPositionForm({ product, onDone }: OpenPositionFormProps) {
     <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       {formError ? <Alert tone="danger">{formError}</Alert> : null}
 
-      <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-        <p className="font-medium text-slate-900">
-          Plazo fijo a {product.term_days} días · {product.annual_rate_tna}% anual
-        </p>
-        <p className="mt-1">
-          Inversión mínima: {product.min_amount} {currency}
-        </p>
-      </div>
+      <dl className="grid grid-cols-2 gap-3 rounded-[--radius-control] bg-surface-muted p-4 text-[13px]">
+        <div>
+          <dt className="text-slate-500">Plazo</dt>
+          <dd className="font-medium text-slate-900">{product.term_days} días</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Tasa anual</dt>
+          <dd className="font-medium text-slate-900">{product.annual_rate_tna}%</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Inversión mínima</dt>
+          <dd className="font-medium text-slate-900 tabular">
+            {product.min_amount} {currency}
+          </dd>
+        </div>
+      </dl>
 
       <Input
         label="Importe a invertir"
         inputMode="decimal"
         placeholder="50000.00"
+        icon="wallet"
         error={errors.amount?.message}
         {...register('amount')}
       />
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 border-t border-line pt-4">
         <Button variant="secondary" onClick={onDone}>
           Cancelar
         </Button>

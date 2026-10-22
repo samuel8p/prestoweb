@@ -84,7 +84,7 @@ export function ExpenseForm({ categories, movements, onDone }: ExpenseFormProps)
         {...register('category_id')}
       />
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 border-t border-line pt-4">
         <Button variant="secondary" onClick={onDone}>
           Cancelar
         </Button>

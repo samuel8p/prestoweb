@@ -8,7 +8,15 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { Modal } from '../../components/ui/Modal'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
 import { PageHeader } from '../../components/ui/PageHeader'
-import { Spinner } from '../../components/ui/Spinner'
+import { SkeletonRows } from '../../components/ui/Skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table'
 import { describeError } from '../../lib/api/errors'
 import { formatDate } from '../../lib/money/format'
 import type { InvestmentProduct } from '../../lib/api/types'
@@ -31,20 +39,18 @@ export function InvestmentsPage() {
         description="Invertí tu saldo a plazo fijo y seguí cuánto rendiste."
       />
 
+      {/* Productos */}
       <Card>
         <CardHeader
-          title="Productos disponibles"
+          title="Productos de plazo fijo"
           description="Plazos fijos ofrecidos por la plataforma."
+          icon="trending"
         />
 
-        {products.isLoading ? (
-          <div className="flex justify-center px-4 py-10">
-            <Spinner label="Cargando los productos" />
-          </div>
-        ) : null}
+        {products.isLoading ? <SkeletonRows rows={2} columns={3} /> : null}
 
         {products.isError ? (
-          <div className="px-4 py-4">
+          <div className="px-5 py-4">
             <ErrorState
               message={describeError(products.error).message}
               onRetry={() => void products.refetch()}
@@ -56,27 +62,31 @@ export function InvestmentsPage() {
           <EmptyState
             title="No hay productos disponibles"
             description="Cuando haya productos de plazo fijo, los vas a ver acá."
+            icon="trending"
           />
         ) : null}
 
-        <ul className="divide-y divide-slate-100">
+        <ul className="grid gap-px bg-line sm:grid-cols-2">
           {productList.map((product) => {
             const currency = product.currency === 'USD' ? 'USD' : 'ARS'
+
             return (
-              <li
-                key={product.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5"
-              >
+              <li key={product.id} className="flex flex-col justify-between gap-4 bg-surface p-5">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    Plazo fijo de {product.term_days} días
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {product.annual_rate_tna}% anual · mínimo{' '}
-                    <MoneyAmount value={product.min_amount} currency={currency} />
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[15px] font-semibold text-slate-900">
+                      Plazo fijo de {product.term_days} días
+                    </p>
+                    <Badge tone="info" dot>
+                      {product.annual_rate_tna}% anual
+                    </Badge>
+                  </div>
+                  <p className="mt-1.5 text-[13px] text-slate-500">
+                    Inversión mínima: <MoneyAmount value={product.min_amount} currency={currency} />
                   </p>
                 </div>
-                <Button size="sm" onClick={() => setSelectedProduct(product)}>
+
+                <Button size="sm" icon="arrowUpRight" onClick={() => setSelectedProduct(product)}>
                   Invertir
                 </Button>
               </li>
@@ -85,17 +95,18 @@ export function InvestmentsPage() {
         </ul>
       </Card>
 
+      {/* Posiciones */}
       <Card>
-        <CardHeader title="Mis posiciones" description="El capital invertido y el interés." />
+        <CardHeader
+          title="Mis posiciones"
+          description="El capital invertido y el interés."
+          icon="coins"
+        />
 
-        {positions.isLoading ? (
-          <div className="flex justify-center px-4 py-10">
-            <Spinner label="Cargando las posiciones" />
-          </div>
-        ) : null}
+        {positions.isLoading ? <SkeletonRows rows={3} columns={4} /> : null}
 
         {positions.isError ? (
-          <div className="px-4 py-4">
+          <div className="px-5 py-4">
             <ErrorState
               message={describeError(positions.error).message}
               onRetry={() => void positions.refetch()}
@@ -107,53 +118,62 @@ export function InvestmentsPage() {
           <EmptyState
             title="Todavía no tenés inversiones"
             description="Elegí un producto y abrí tu primera posición."
+            icon="coins"
           />
         ) : null}
 
-        <ul className="divide-y divide-slate-100">
-          {positionList.map(({ position, detail }) => {
-            const currency = detail?.product_detail.currency === 'USD' ? 'USD' : 'ARS'
-            const matured = position.status === 'matured'
-            return (
-              <li
-                key={position.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5"
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">
-                      <MoneyAmount value={position.amount} currency={currency} />
-                    </p>
-                    <Badge tone={matured ? 'success' : 'info'}>
-                      {matured ? 'Liquidada' : 'Vigente'}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Vence el {formatDate(position.maturity_date)} · abierta el{' '}
-                    {formatDate(position.opened_at)}
-                    {detail
-                      ? ` · ${detail.product_detail.term_days} días al ${detail.product_detail.annual_rate_tna}%`
-                      : ''}
-                  </p>
-                </div>
+        {positionList.length > 0 ? (
+          <Table>
+            <TableHead>
+              <TableHeader>Capital invertido</TableHeader>
+              <TableHeader>Interés</TableHeader>
+              <TableHeader>Vencimiento</TableHeader>
+              <TableHeader align="right">Estado</TableHeader>
+            </TableHead>
+            <TableBody>
+              {positionList.map(({ position, detail }) => {
+                const currency = detail?.product_detail.currency === 'USD' ? 'USD' : 'ARS'
+                const matured = position.status === 'matured'
 
-                <div className="text-right">
-                  <p className="text-xs text-slate-500">
-                    {matured ? 'Interés ganado' : 'Interés esperado'}
-                  </p>
-                  <p className="text-sm font-semibold text-slate-900">
-                    <MoneyAmount value={position.interest_amount} currency={currency} />
-                  </p>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                return (
+                  <TableRow key={position.id}>
+                    <TableCell>
+                      <span className="font-medium text-slate-900 tabular">
+                        <MoneyAmount value={position.amount} currency={currency} />
+                      </span>
+                      <span className="block text-xs text-slate-400">
+                        Abierta el {formatDate(position.opened_at)}
+                        {detail
+                          ? ` · ${detail.product_detail.term_days} días al ${detail.product_detail.annual_rate_tna}%`
+                          : ''}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="block text-xs text-slate-500">
+                        {matured ? 'Interés ganado' : 'Interés esperado'}
+                      </span>
+                      <span className="font-medium text-slate-900 tabular">
+                        <MoneyAmount value={position.interest_amount} currency={currency} />
+                      </span>
+                    </TableCell>
+                    <TableCell className="tabular">{formatDate(position.maturity_date)}</TableCell>
+                    <TableCell align="right">
+                      <Badge tone={matured ? 'success' : 'info'} dot>
+                        {matured ? 'Liquidada' : 'Vigente'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        ) : null}
       </Card>
 
       <Modal
         open={selectedProduct !== null}
         title="Abrir inversión"
+        description="El capital se mueve a la cuenta del sistema hasta el vencimiento."
         onClose={() => setSelectedProduct(null)}
       >
         {selectedProduct ? (
