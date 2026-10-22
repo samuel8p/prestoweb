@@ -329,6 +329,13 @@ Además, por pedido explícito:
 la parte de `pip-audit` de D-2 y D-3) y quedaron resueltos ✓. Los demás siguen
 abiertos ✗.
 
+**Estado a 2026-10-22 (contrato del frontend):** el frontend mandó sus
+desviaciones del esquema (`docs/backend-contract.md`). Todas las que eran del
+**esquema** se corrigieron (paginación real, el header `Idempotency-Key`, los
+parámetros y el CSV de los reportes, los errores y el KYC nullable ✓). Las que
+son de **comportamiento** quedaron sin implementar (D-10, D-11 y D-12 ✗) y son
+las que el frontend tiene que confirmar.
+
 | # | Tema | Qué hay que decidir | Recomendación | Estado |
 |---|---|---|---|---|
 | D-1 | **AGENTS.md** | Registrar en §17 las decisiones D19-D48 y el modo demo, y actualizar §7 (modelos de `budgets`, `reports`, `notifications`) y §15 (numeración de bloques) | Adoptar el texto propuesto de `docs/agents-changelog-proposal.md` tal cual: es un registro de lo ya implementado y probado, sin cambiar reglas | ✅ **Resuelto**: el registro de la §17 quedó aplicado (commit `301beca`). Las §§7, 15 y 4 **no** se tocaron: no fueron autorizadas (siguen propuestas en `docs/agents-changelog-proposal.md`) |
@@ -340,6 +347,9 @@ abiertos ✗.
 | D-7 | **Negocio** | `payments` (O1: proveedor), custodia (O2), rendimiento de plazos fijos (O3), PLA/FT (O5) y CFT (O6) | Depende del cliente: sin O1 no se puede empezar el Bloque 7 | ⬜ Abierto |
 | D-8 | **CORS real** | Instalar `django-cors-headers` o resolver el CORS en el proxy inverso | Resolverlo en el proxy: menos dependencias y el front igual necesita el dominio configurado | ✅ **Resuelto** (2026-10-21): `django-cors-headers` es dependencia de producción, el middleware responde el preflight, `CORS_ALLOWED_ORIGINS` viene del entorno (sin `*`, vacío = ninguno) y no se permiten credenciales (la autenticación va en `Authorization`) |
 | D-9 | **Fijar imágenes a digest** | Fijar `postgres`, `redis` y `caddy` a un digest o a un parche exacto | Fijar a digest: el tag mayor deja entrar parches de seguridad sin control | ⬜ Abierto |
+| D-10 | **Los movimientos del ledger no traen importe ni moneda** | `GET /api/v1/ledger/transactions/` devuelve el tipo, la fecha, la descripción y la cuenta de destino, pero no el **importe** ni la **moneda** (el frontend los tiene que pedir en `GET /api/v1/reports/movements/`, que además pagina). ¿Se suman el importe y la moneda al listado de movimientos? | **Sí**: el historial de una billetera sin el importe es inservible y obliga al front a saltar a otro endpoint. El cambio es de **comportamiento** (agregar dos campos al serializer del listado) y no se hizo porque el frontend tiene que confirmar que no le rompe la paginación por cursor ni el formato de los importes (string decimal) |
+| D-11 | **Las posiciones de inversión no traen la moneda** | `GET /api/v1/investments/positions/` solo devuelve el `id` del producto: para saber la moneda hay que pedir el detalle (`product_detail`). ¿Se suma la moneda (y quizá el plazo y la tasa) al listado? | **Sí**, por el mismo motivo: el listado de posiciones es una pantalla del front y sin la moneda no se puede mostrar el importe. El detalle ya trae `product_detail` ✓, así que la opción menos invasiva es sumar `currency` (y no más) al listado |
+| D-12 | **`GET /api/v1/kyc/` responde el body vacío, no `null`** | Sin verificación el endpoint responde 200 con el body **vacío** (no la cadena `null`). El esquema ya lo declara nullable ✓ y el frontend lo lee como null ✓, así que no hay nada roto: alcanza con corregir la tabla del contrato | **Ninguna decisión**: es una aclaración del contrato (`docs/backend-contract.md` dice `null`; la API responde vacío). Lo que sí se puede decidir es si la API debería responder `null` explícito para que los dos clientes coincidan: **cambiarlo sería tocar el comportamiento** ✗, así que quedó como está |
 
 Además, el desarrollador autorizó el **`check --deploy` en la CI** (B-5): la CI
 corre `manage.py check --deploy --fail-level WARNING` con los settings de
@@ -347,3 +357,16 @@ producción y falla con cualquier aviso (commit `caac920`). El único aviso que
 queda (el preload del HSTS, `security.W021`) está silenciado en los settings de
 producción con la razón escrita al lado, porque el preload es irreversible y la
 decisión es del cliente.
+
+**Aclaraciones del contrato del frontend** (no son decisiones, son diferencias
+entre la tabla del contrato y lo que la API responde de verdad):
+
+- El **409** no se responde con el código genérico `conflict` ✗: la API responde
+  el código del dominio (`duplicate_category` para un presupuesto o una
+  categoría repetidos ✓, `idempotency_conflict` para la misma clave de
+  idempotencia con otro payload ✓). La tabla del contrato dice `conflict` ✗ →
+  hay que corregirla ✓.
+- `GET /api/v1/kyc/` responde el **body vacío** (no `null`) cuando el usuario
+  no pidió la verificación ✗ → ver D-12 ✓.
+- Los **importes** viajan como string decimal ✓ (`"1500.50"`) ✓ → el esquema
+  ya lo dice ✓ (no hubo que tocarlo ✓).
