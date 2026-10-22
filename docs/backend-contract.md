@@ -61,6 +61,27 @@ si fueran un objeto suelto (no es así):
 `next` y `previous` son URLs completas: para pedir la página siguiente hay que
 seguir la URL, no armar el query string a mano.
 
+**Ojo con los productos de inversión:** el esquema declara
+`GET /api/v1/investments/products/` como un array plano, pero el backend lo
+pags igual que a los demás y devuelve `{ count, next, previous, results }`. El
+frontend lo trata como una lista paginada.
+
+### 3.b Lo que el esquema no dice de los datos
+
+Verificado contra la API corriendo:
+
+- `GET /api/v1/ledger/transactions/` **no devuelve el importe ni la moneda**:
+  solo el tipo, la fecha, la descripción y la cuenta de destino. El importe y
+  la marca de revertido están en `GET /api/v1/reports/movements/` (que además
+  pagina y filtra por moneda y rango). Por eso el historial de movimientos de
+  la app usa ese endpoint.
+- `GET /api/v1/investments/positions/` **no devuelve la moneda** de la posición:
+  solo el `id` del producto. Para saber en qué moneda está hay que pedir
+  `GET /api/v1/investments/positions/{id}/`, que trae `product_detail` con la
+  moneda, el plazo y la tasa.
+- `GET /api/v1/kyc/` devuelve **`null`** cuando el usuario todavía no pidió la
+  verificación (el esquema no lo declara nullable).
+
 ## 4. Errores
 
 Formato único (AGENTS §8 del backend):

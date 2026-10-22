@@ -8,6 +8,21 @@ préstamos. Es una SPA que consume la API del backend Django (API-only, JWT).
   react-hook-form + zod.
 - Tests con Vitest + Testing Library + MSW (nunca pegan al backend real).
 
+## Pantallas
+
+| Ruta                           | Qué hace                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `/ingresar`, `/registro`       | Acceso y alta de cuenta (JWT con refresh rotativo)                                                   |
+| `/panel`                       | Saldos por moneda, últimos movimientos y avisos                                                      |
+| `/billetera`                   | Billeteras, depósito/retiro/transferencia simulados e historial paginado con los revertidos marcados |
+| `/ofertas`                     | Marketplace: buscar, filtrar, comparar, publicar oferta y ver las propias                            |
+| `/prestamos`, `/prestamos/:id` | Préstamos como prestatario y como prestamista, detalle con cuotas y pago de cuota                    |
+| `/inversiones`                 | Productos a plazo fijo, apertura de posición e interés esperado/ganado                               |
+| `/presupuestos`                | Categorías, presupuestos mensuales, estado (gastado, límite, alerta) y categorización de movimientos |
+| `/reportes`                    | Movimientos, gasto por categoría, préstamos e inversiones, con moneda, rango y descarga CSV          |
+| `/avisos`                      | Avisos paginados y preferencias por tipo de aviso                                                    |
+| `/perfil`                      | Datos de la cuenta, perfil y estado del KYC                                                          |
+
 ## Requisitos
 
 - Node.js 20 o superior.
@@ -98,6 +113,57 @@ Además:
   Si la renovación falla, se limpia la sesión y se vuelve al login.
 - El logout borra los dos tokens de la sesión local. El backend no expone un
   endpoint de revocación: el refresh token queda en blacklist cuando rota.
+
+## Despliegue en Vercel
+
+El repo ya viene con `vercel.json`: build de Vite (`npm run build`), salida en
+`dist` y la reescritura de SPA (todo lo que no sea un archivo existente cae en
+`index.html`, para que las rutas profundas como `/prestamos/{id}` funcionen con
+recarga directa).
+
+### Pasos
+
+1. **Importar el repo en Vercel** (Framework preset: _Vite_). Vercel detecta el
+   `vercel.json` y usa el build y el directorio de salida de ahí.
+
+2. **Definir la variable de entorno** `VITE_API_URL` en _Settings → Environment
+   Variables_, para **Production** (y Preview si querés probar los previews):
+
+   ```
+   VITE_API_URL=https://api.presto.example.com
+   ```
+
+   Sin barra final. Vite la compila dentro del bundle: si la cambiás, hay que
+   volver a desplegar.
+
+3. **Permitir el origen del front en el backend (CORS).** Es el paso que más se
+   olvida: sin esto, el navegador bloquea todas las peticiones.
+
+   En el backend (Django + `django-cors-headers`), la variable
+   `CORS_ALLOWED_ORIGINS` lleva los orígenes permitidos, separados por comas y
+   **sin `*`**:
+
+   ```sh
+   CORS_ALLOWED_ORIGINS=https://presto-front.vercel.app,https://tu-prueba.vercel.app
+   ```
+
+   En producción (`config/settings/production.py`) el CORS se configura con esa
+   variable; la lista vacía significa "ningún origen permitido". También
+   conviene agregar el dominio de Vercel al `CSRF_TRUSTED_ORIGINS` del backend.
+
+4. **Desplegar** y verificar:
+
+   - `https://<tu-deploy>.vercel.app/health/` no aplica (el backend tiene
+     `/health/`): probá `https://<tu-deploy>.vercel.app/` y que cargue la app.
+   - `GET https://<backend>/api/v1/meta/` tiene que responder `200` desde el
+     navegador (si el navegador lo bloquea, es el CORS).
+
+### La prueba de humo
+
+[`docs/smoke-test.md`](./docs/smoke-test.md) tiene el recorrido completo, paso
+por paso, para verificar el flujo contra el backend real: registro, KYC,
+billeteras, movimientos, ofertas, préstamos, inversiones, presupuestos, reportes
+con CSV, avisos y cierre de sesión.
 
 ## Reglas de la casa
 
