@@ -33,7 +33,7 @@ export function InvestmentsPage() {
   const positionList = positions.items
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Inversiones"
         description="Invertí tu saldo a plazo fijo y seguí cuánto rendiste."
@@ -62,11 +62,10 @@ export function InvestmentsPage() {
           <EmptyState
             title="No hay productos disponibles"
             description="Cuando haya productos de plazo fijo, los vas a ver acá."
-            icon="trending"
           />
         ) : null}
 
-        <ul className="grid gap-px bg-line sm:grid-cols-2">
+        <ul className="stagger grid gap-px bg-line sm:grid-cols-2">
           {productList.map((product) => {
             const currency = product.currency === 'USD' ? 'USD' : 'ARS'
 
@@ -74,14 +73,14 @@ export function InvestmentsPage() {
               <li key={product.id} className="flex flex-col justify-between gap-4 bg-surface p-5">
                 <div>
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[15px] font-semibold text-slate-900">
+                    <p className="text-[15px] font-semibold text-ink">
                       Plazo fijo de {product.term_days} días
                     </p>
                     <Badge tone="info" dot>
                       {product.annual_rate_tna}% anual
                     </Badge>
                   </div>
-                  <p className="mt-1.5 text-[13px] text-slate-500">
+                  <p className="mt-1.5 text-[13px] text-ink-muted">
                     Inversión mínima: <MoneyAmount value={product.min_amount} currency={currency} />
                   </p>
                 </div>
@@ -118,7 +117,6 @@ export function InvestmentsPage() {
           <EmptyState
             title="Todavía no tenés inversiones"
             description="Elegí un producto y abrí tu primera posición."
-            icon="coins"
           />
         ) : null}
 
@@ -138,10 +136,10 @@ export function InvestmentsPage() {
                 return (
                   <TableRow key={position.id}>
                     <TableCell>
-                      <span className="font-medium text-slate-900 tabular">
+                      <span className="font-medium text-ink tabular">
                         <MoneyAmount value={position.amount} currency={currency} />
                       </span>
-                      <span className="block text-xs text-slate-400">
+                      <span className="block text-xs text-ink-subtle">
                         Abierta el {formatDate(position.opened_at)}
                         {detail
                           ? ` · ${detail.product_detail.term_days} días al ${detail.product_detail.annual_rate_tna}%`
@@ -149,10 +147,10 @@ export function InvestmentsPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="block text-xs text-slate-500">
+                      <span className="block text-xs text-ink-muted">
                         {matured ? 'Interés ganado' : 'Interés esperado'}
                       </span>
-                      <span className="font-medium text-slate-900 tabular">
+                      <span className="font-medium text-ink tabular">
                         <MoneyAmount value={position.interest_amount} currency={currency} />
                       </span>
                     </TableCell>

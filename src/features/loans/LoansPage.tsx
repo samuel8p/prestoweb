@@ -33,7 +33,7 @@ export function LoansPage() {
   const items = loans.data?.results ?? []
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Préstamos"
         description="Los préstamos que tomaste y los que vos prestaste."
@@ -64,7 +64,6 @@ export function LoansPage() {
           <EmptyState
             title="Todavía no tenés préstamos"
             description="Aceptá una oferta del marketplace para recibir tu primer préstamo."
-            icon="loan"
             action={
               <Link to="/ofertas">
                 <Button size="sm">Ver ofertas</Button>
@@ -73,7 +72,7 @@ export function LoansPage() {
           />
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {items.map((loan) => {
             const asBorrower = loan.borrower_user_id === user?.id
             const currency = loan.currency === 'USD' ? 'USD' : 'ARS'
@@ -85,7 +84,7 @@ export function LoansPage() {
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-semibold text-slate-900 tabular">
+                    <p className="text-base font-semibold text-ink tabular">
                       <MoneyAmount value={loan.principal} currency={currency} />
                     </p>
                     <Badge tone={asBorrower ? 'info' : 'neutral'}>
@@ -95,7 +94,7 @@ export function LoansPage() {
                       {STATUS_LABEL[loan.status] ?? loan.status}
                     </Badge>
                   </div>
-                  <p className="mt-1 text-[13px] text-slate-500">
+                  <p className="mt-1 text-[13px] text-ink-muted">
                     {formatRate(loan.interest_rate)} anual · {loan.term_months} meses · aceptado el{' '}
                     {formatDate(loan.accepted_at)}
                   </p>

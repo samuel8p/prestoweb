@@ -104,7 +104,7 @@ export function MarketplacePage() {
   const comparison = compare.data
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Ofertas de préstamo"
         description="Buscá, compará y elegí la oferta que mejor te sirve."
@@ -159,11 +159,10 @@ export function MarketplacePage() {
           <EmptyState
             title="No hay ofertas con esos filtros"
             description="Probá con otro rango de importes o con otra tasa."
-            icon="offer"
           />
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {results.map((offer) => {
             const currency = offer.currency === 'USD' ? 'USD' : 'ARS'
 
@@ -171,26 +170,26 @@ export function MarketplacePage() {
               <li key={offer.id} className="px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="text-lg font-semibold tracking-tight text-slate-900 tabular">
+                    <p className="text-lg font-semibold tracking-tight text-ink tabular">
                       <MoneyAmount value={offer.amount} currency={currency} />
                     </p>
-                    <p className="mt-1 text-[13px] text-slate-600">
+                    <p className="mt-1 text-[13px] text-ink-muted">
                       {formatRate(offer.interest_rate)} anual · {offer.term_months} meses
                     </p>
                     {offer.requirements ? (
-                      <p className="mt-1.5 max-w-xl truncate-1 text-[13px] text-slate-500">
+                      <p className="mt-1.5 max-w-xl truncate-1 text-[13px] text-ink-muted">
                         {offer.requirements}
                       </p>
                     ) : null}
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3">
-                    <label className="flex cursor-pointer items-center gap-2 text-[13px] text-slate-600">
+                    <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-muted">
                       <input
                         type="checkbox"
                         checked={selected.includes(offer.id)}
                         onChange={() => toggleSelection(offer.id)}
-                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+                        className="h-4 w-4 rounded border-line-strong text-teal focus:ring-teal"
                       />
                       Comparar
                     </label>
@@ -235,7 +234,6 @@ export function MarketplacePage() {
           <EmptyState
             title="Todavía no publicaste ofertas"
             description="Publicá una oferta para prestar tu dinero."
-            icon="offer"
             action={
               <Button size="sm" onClick={() => setOfferFormOpen(true)}>
                 Publicar oferta
@@ -244,7 +242,7 @@ export function MarketplacePage() {
           />
         ) : null}
 
-        <ul className="divide-y divide-line">
+        <ul className="stagger divide-y divide-line">
           {(myOffers.data?.results ?? []).map((offer) => {
             const currency = offer.currency === 'USD' ? 'USD' : 'ARS'
 
@@ -254,10 +252,10 @@ export function MarketplacePage() {
                 className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
               >
                 <div>
-                  <p className="text-sm font-medium text-slate-900 tabular">
+                  <p className="text-sm font-medium text-ink tabular">
                     <MoneyAmount value={offer.amount} currency={currency} />
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-ink-muted">
                     {formatRate(offer.interest_rate)} anual · {offer.term_months} meses · publicada
                     el {formatDate(offer.created_at)}
                   </p>
@@ -291,13 +289,13 @@ export function MarketplacePage() {
         {accepting ? (
           <div className="flex flex-col gap-4">
             <div className="rounded-[--radius-control] bg-surface-muted p-4">
-              <p className="text-lg font-semibold text-slate-900 tabular">
+              <p className="text-lg font-semibold text-ink tabular">
                 <MoneyAmount
                   value={accepting.amount}
                   currency={accepting.currency === 'USD' ? 'USD' : 'ARS'}
                 />
               </p>
-              <p className="mt-1 text-[13px] text-slate-600">
+              <p className="mt-1 text-[13px] text-ink-muted">
                 {formatRate(accepting.interest_rate)} anual a {accepting.term_months} meses
               </p>
             </div>
@@ -340,7 +338,7 @@ export function MarketplacePage() {
 
                 return (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium text-slate-900">
+                    <TableCell className="font-medium text-ink">
                       <MoneyAmount value={item.amount} currency={currency} />
                     </TableCell>
                     <TableCell>{formatRate(item.interest_rate)}</TableCell>
@@ -351,7 +349,7 @@ export function MarketplacePage() {
                     <TableCell align="right">
                       <MoneyAmount value={item.total_interest} currency={currency} />
                     </TableCell>
-                    <TableCell align="right" className="font-medium text-slate-900">
+                    <TableCell align="right" className="font-medium text-ink">
                       <MoneyAmount value={item.total_cost} currency={currency} />
                     </TableCell>
                   </TableRow>
@@ -360,7 +358,7 @@ export function MarketplacePage() {
             </TableBody>
           </Table>
         ) : (
-          <EmptyState title="No hay nada para comparar todavía" icon="sliders" />
+          <EmptyState title="No hay nada para comparar todavía" />
         )}
       </Modal>
     </div>

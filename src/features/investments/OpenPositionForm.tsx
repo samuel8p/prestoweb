@@ -87,16 +87,16 @@ export function OpenPositionForm({ product, onDone }: OpenPositionFormProps) {
 
       <dl className="grid grid-cols-2 gap-3 rounded-[--radius-control] bg-surface-muted p-4 text-[13px]">
         <div>
-          <dt className="text-slate-500">Plazo</dt>
-          <dd className="font-medium text-slate-900">{product.term_days} días</dd>
+          <dt className="text-ink-muted">Plazo</dt>
+          <dd className="font-medium text-ink">{product.term_days} días</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Tasa anual</dt>
-          <dd className="font-medium text-slate-900">{product.annual_rate_tna}%</dd>
+          <dt className="text-ink-muted">Tasa anual</dt>
+          <dd className="font-medium text-ink">{product.annual_rate_tna}%</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Inversión mínima</dt>
-          <dd className="font-medium text-slate-900 tabular">
+          <dt className="text-ink-muted">Inversión mínima</dt>
+          <dd className="font-medium text-ink tabular">
             {product.min_amount} {currency}
           </dd>
         </div>

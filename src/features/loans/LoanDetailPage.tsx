@@ -80,7 +80,7 @@ export function LoanDetailPage() {
           message={describeError(loan.error).message}
           onRetry={() => void loan.refetch()}
         />
-        <Link to="/prestamos" className="text-[13px] font-medium text-brand-700 hover:underline">
+        <Link to="/prestamos" className="text-[13px] font-medium text-teal hover:underline">
           Volver a mis préstamos
         </Link>
       </div>
@@ -97,7 +97,7 @@ export function LoanDetailPage() {
   const installments = detail.installments
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex animate-fade-up flex-col gap-6">
       <PageHeader
         title="Detalle del préstamo"
         description={`Aceptado el ${formatDate(detail.accepted_at)}`}
@@ -115,25 +115,23 @@ export function LoanDetailPage() {
         <CardHeader title="Condiciones" icon="loan" />
         <dl className="grid gap-5 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <dt className="text-[13px] text-slate-500">Capital</dt>
-            <dd className="mt-1 text-lg font-semibold text-slate-900 tabular">
+            <dt className="label-caps text-ink-subtle">Capital</dt>
+            <dd className="mt-1 text-lg font-semibold text-ink tabular">
               <MoneyAmount value={detail.principal} currency={currency} />
             </dd>
           </div>
           <div>
-            <dt className="text-[13px] text-slate-500">Tasa anual</dt>
-            <dd className="mt-1 text-lg font-semibold text-slate-900">
+            <dt className="label-caps text-ink-subtle">Tasa anual</dt>
+            <dd className="mt-1 text-lg font-semibold text-ink">
               {formatRate(detail.interest_rate)}
             </dd>
           </div>
           <div>
-            <dt className="text-[13px] text-slate-500">Plazo</dt>
-            <dd className="mt-1 text-lg font-semibold text-slate-900">
-              {detail.term_months} meses
-            </dd>
+            <dt className="label-caps text-ink-subtle">Plazo</dt>
+            <dd className="mt-1 text-lg font-semibold text-ink">{detail.term_months} meses</dd>
           </div>
           <div>
-            <dt className="text-[13px] text-slate-500">Estado</dt>
+            <dt className="label-caps text-ink-subtle">Estado</dt>
             <dd className="mt-1.5">
               <Badge tone={STATUS_TONE[detail.status] ?? 'neutral'} dot>
                 {STATUS_LABEL[detail.status] ?? detail.status}
@@ -141,7 +139,7 @@ export function LoanDetailPage() {
             </dd>
           </div>
         </dl>
-        <p className="border-t border-line px-5 py-3 text-xs text-slate-500">
+        <p className="border-t border-line px-5 py-3 text-xs text-ink-muted">
           Las condiciones quedan congeladas en un snapshot: editar la oferta no cambia este
           préstamo.
         </p>
@@ -158,7 +156,7 @@ export function LoanDetailPage() {
         />
 
         {installments.length === 0 ? (
-          <EmptyState title="Este préstamo no tiene cuotas cargadas." icon="calendar" />
+          <EmptyState title="Este préstamo no tiene cuotas cargadas." />
         ) : (
           <Table>
             <TableHead>
@@ -172,13 +170,13 @@ export function LoanDetailPage() {
             <TableBody>
               {installments.map((installment) => (
                 <TableRow key={installment.id}>
-                  <TableCell className="font-medium text-slate-900 tabular">
+                  <TableCell className="font-medium text-ink tabular">
                     {installment.number}
                   </TableCell>
                   <TableCell>
                     {formatDate(installment.due_date)}
                     {installment.paid_at ? (
-                      <span className="block text-xs text-slate-400">
+                      <span className="block text-xs text-ink-subtle">
                         Pagada el {formatDate(installment.paid_at)}
                       </span>
                     ) : null}
@@ -189,7 +187,7 @@ export function LoanDetailPage() {
                   <TableCell align="right" className="tabular">
                     <MoneyAmount value={installment.interest_amount} currency={currency} />
                   </TableCell>
-                  <TableCell align="right" className="font-semibold text-slate-900 tabular">
+                  <TableCell align="right" className="font-semibold text-ink tabular">
                     <MoneyAmount value={installment.amount} currency={currency} />
                   </TableCell>
                   <TableCell align="right">
