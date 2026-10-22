@@ -1,6 +1,9 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
 import { apiPaths } from '../../lib/config'
 import { postPublic } from '../../lib/api/http'
 import type { LoginResponse, User } from '../../lib/api/types'
+import { useApiClient } from './auth-context'
 
 /** Respuesta del refresh: el backend rota los dos tokens. */
 export interface RefreshResponse {
@@ -38,4 +41,27 @@ export function registerRequest(email: string, password: string): Promise<User> 
  */
 export function refreshRequest(refresh: string): Promise<RefreshResponse> {
   return postPublic<RefreshResponse>(apiPaths.refresh, { refresh })
+}
+
+/** El alias público del usuario (null si todavía no se puso uno). */
+export function useMyAlias() {
+  const client = useApiClient()
+
+  return useQuery({
+    queryKey: ['identity', 'alias'],
+    queryFn: () => client.get<{ alias: string | null }>(apiPaths.myAlias),
+  })
+}
+
+/** Pone o cambia el alias público del usuario. */
+export function useSetAlias() {
+  const client = useApiClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (alias: string) => client.put<{ alias: string }>(apiPaths.myAlias, { alias }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['identity', 'alias'] })
+    },
+  })
 }

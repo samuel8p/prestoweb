@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { AvatarMenu } from './AvatarMenu'
-import { NotificationsPanel } from './NotificationsPanel'
 import { SearchDialog } from './SearchDialog'
 import { Icon } from '../ui/Icon'
 import { Logo } from '../ui/Logo'
 import { MOBILE_EXTRA_SECTIONS, MOBILE_SECTIONS, NAV_SECTIONS } from '../../app/navigation'
+import { useActions } from '../../app/action-context'
 import { DemoBanner } from '../../features/meta/DemoBanner'
 import { useDismissable } from '../../lib/useDismissable'
 
@@ -18,18 +18,15 @@ import { useDismissable } from '../../lib/useDismissable'
  * cinco destinos.
  */
 export function AppShell() {
+  const { register } = useActions()
   const [searchOpen, setSearchOpen] = useState(false)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const { pathname } = useLocation()
-  const notificationsRef = useRef<HTMLDivElement>(null)
   const avatarRef = useRef<HTMLDivElement>(null)
 
-  const closeNotifications = useCallback(() => setNotificationsOpen(false), [])
   const closeAvatar = useCallback(() => setAvatarOpen(false), [])
 
-  useDismissable(notificationsOpen, closeNotifications)
   useDismissable(avatarOpen, closeAvatar)
   useDismissable(moreOpen, () => setMoreOpen(false))
 
@@ -45,12 +42,16 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  // La lupa de Inicio abre el mismo buscador.
+  useEffect(() => {
+    return register('buscar', () => setSearchOpen(true))
+  }, [register])
+
   // Al cambiar de ruta se cierran los paneles abiertos (ajuste durante el
   // render, sin setState dentro de un efecto).
   const [lastPath, setLastPath] = useState(pathname)
   if (pathname !== lastPath) {
     setLastPath(pathname)
-    setNotificationsOpen(false)
     setAvatarOpen(false)
     setMoreOpen(false)
   }
@@ -83,42 +84,11 @@ export function AppShell() {
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              aria-label="Buscar"
-              aria-haspopup="dialog"
-              className="flex h-9 items-center gap-2 rounded-[var(--radius-control)] px-2.5 text-white/75 transition-colors duration-200 hover:bg-white/10 hover:text-white sm:w-56 sm:justify-start"
-            >
-              <Icon name="search" size={17} />
-              <span className="hidden text-[13px] sm:inline">Buscar…</span>
-              <kbd className="ml-auto hidden rounded border border-white/20 px-1.5 py-0.5 text-[10px] font-semibold text-white/60 sm:block">
-                ⌘K
-              </kbd>
-            </button>
-
-            <div className="relative" ref={notificationsRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setNotificationsOpen((open) => !open)
-                  setAvatarOpen(false)
-                }}
-                aria-label="Avisos"
-                aria-expanded={notificationsOpen}
-                className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] text-white/75 transition-colors duration-200 hover:bg-white/10 hover:text-white"
-              >
-                <Icon name="bell" size={18} />
-              </button>
-              <NotificationsPanel open={notificationsOpen} onClose={closeNotifications} />
-            </div>
-
             <div className="relative" ref={avatarRef}>
               <button
                 type="button"
                 onClick={() => {
                   setAvatarOpen((open) => !open)
-                  setNotificationsOpen(false)
                 }}
                 aria-label="Mi cuenta"
                 aria-expanded={avatarOpen}

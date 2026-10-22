@@ -8,21 +8,62 @@ import { server } from '../../test/msw/server'
 import { renderWithProviders } from '../../test/render'
 
 describe('InicioPage', () => {
-  it('saluda con el nombre y muestra los saldos de las dos monedas', async () => {
+  it('saluda con el nombre y muestra el saldo de la moneda activa', async () => {
+    const user = userEvent.setup()
     renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
     })
 
-    await waitFor(() => {
-      expect(screen.getAllByText('ARS 1.500,50').length).toBeGreaterThan(0)
-    })
-    expect(screen.getAllByText('USD 250,00').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('ARS 1.500,50').length).toBeGreaterThan(0)
     expect(screen.getByRole('tab', { name: 'Pesos' })).toHaveAttribute('aria-selected', 'true')
+
+    // La otra moneda aparece al cambiar de pestaña.
+    await user.click(screen.getByRole('tab', { name: 'Dólares' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('USD 250,00').length).toBeGreaterThan(0)
+    })
   })
 
-  it('puede ocultar los saldos', async () => {
+  it('armá la superficie en L: saludo, pestañas y saldo en el mismo bloque', async () => {
+    renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
+    })
+
+    const surface = screen.getByRole('region', { name: 'Saldo y accesos' })
+
+    // Saludo, pestañas y saldo viven en la misma superficie.
+    expect(within(surface).getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
+    expect(within(surface).getByRole('tab', { name: 'Pesos' })).toBeInTheDocument()
+    expect(within(surface).getByRole('tab', { name: 'Dólares' })).toBeInTheDocument()
+    expect(within(surface).getByText('Saldo disponible')).toBeInTheDocument()
+    // La lupa y la campana están en la misma superficie.
+    expect(within(surface).getByRole('button', { name: 'Buscar' })).toBeInTheDocument()
+    expect(within(surface).getByRole('button', { name: 'Avisos' })).toBeInTheDocument()
+  })
+
+  it('cambia de moneda con las pestañas y con las flechas', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
+    })
+
+    const pesos = screen.getByRole('tab', { name: 'Pesos' })
+    pesos.focus()
+    await user.keyboard('{ArrowRight}')
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Dólares' })).toHaveAttribute('aria-selected', 'true')
+    })
+  })
+
+  it('puede ocultar el saldo', async () => {
     const user = userEvent.setup()
     renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
 
@@ -30,14 +71,26 @@ describe('InicioPage', () => {
       expect(screen.getAllByText('ARS 1.500,50').length).toBeGreaterThan(0)
     })
 
-    await user.click(screen.getByRole('button', { name: 'Ocultar los saldos' }))
+    const surface = screen.getByRole('region', { name: 'Saldo y accesos' })
+    await user.click(within(surface).getByRole('button', { name: 'Ocultar el saldo' }))
 
-    // Solo se tapan los saldos: los movimientos siguen mostrando el importe.
-    const balance = screen.getByRole('region', { name: 'Saldo en Pesos' })
     await waitFor(() => {
-      expect(within(balance).getByText('••••••')).toBeInTheDocument()
+      expect(within(surface).getByText('••••••')).toBeInTheDocument()
     })
-    expect(screen.getByRole('button', { name: 'Mostrar los saldos' })).toBeInTheDocument()
+  })
+
+  it('tiene las tres acciones y ninguna de Retirar', async () => {
+    renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
+    })
+
+    const surface = screen.getByRole('region', { name: 'Saldo y accesos' })
+    expect(within(surface).getByRole('button', { name: /Ingresar/ })).toBeInTheDocument()
+    expect(within(surface).getByRole('button', { name: /Transferir/ })).toBeInTheDocument()
+    expect(within(surface).getByRole('button', { name: /Tu billetera/ })).toBeInTheDocument()
+    expect(within(surface).queryByRole('button', { name: /Retirar/ })).not.toBeInTheDocument()
   })
 
   it('la ficha "Ingresar" abre el modal de depósito', async () => {
@@ -48,14 +101,15 @@ describe('InicioPage', () => {
       expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: /Ingresar/ }))
+    const surface = screen.getByRole('region', { name: 'Saldo y accesos' })
+    await user.click(within(surface).getByRole('button', { name: /Ingresar/ }))
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByRole('heading', { name: 'Ingresar dinero' })).toBeInTheDocument()
     expect(within(dialog).getByLabelText('Tipo de movimiento')).toHaveValue('deposit')
   })
 
-  it('la ficha "Transferir" abre el modal de transferencia', async () => {
+  it('la ficha "Transferir" abre el modal con el buscador por alias', async () => {
     const user = userEvent.setup()
     renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
 
@@ -63,13 +117,19 @@ describe('InicioPage', () => {
       expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: /Transferir/ }))
+    const surface = screen.getByRole('region', { name: 'Saldo y accesos' })
+    await user.click(within(surface).getByRole('button', { name: /Transferir/ }))
 
     const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByLabelText('Tipo de movimiento')).toHaveValue('transfer')
+    expect(within(dialog).getByRole('heading', { name: 'Transferir dinero' })).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Alias del destinatario')).toBeInTheDocument()
   })
 
-  it('la ficha "Retirar" abre el modal de retiro', async () => {
+  it('la ficha "Tu billetera" muestra el alias y el identificador con copiar', async () => {
+    server.use(
+      http.get('*/api/v1/identity/alias/', () => HttpResponse.json({ alias: 'ana.presto' })),
+    )
+
     const user = userEvent.setup()
     renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
 
@@ -77,26 +137,13 @@ describe('InicioPage', () => {
       expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: /Retirar/ }))
+    const surface = screen.getByRole('region', { name: 'Saldo y accesos' })
+    await user.click(within(surface).getByRole('button', { name: /Tu billetera/ }))
 
     const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByLabelText('Tipo de movimiento')).toHaveValue('withdrawal')
-  })
-
-  it('la ficha "Tu billetera" muestra el identificador para copiar', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<AppRoutes />, { route: '/', session: 'authenticated' })
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /Tu billetera/ }))
-
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByRole('heading', { name: 'Tu billetera' })).toBeInTheDocument()
+    expect(within(dialog).getByText('@ana.presto')).toBeInTheDocument()
     expect(within(dialog).getByText('22222222-2222-4222-8222-222222222222')).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: 'Copiar identificador' })).toBeInTheDocument()
+    expect(within(dialog).getAllByRole('button', { name: /Copiar/ }).length).toBeGreaterThan(0)
   })
 
   it('ofrece abrir una billetera en la moneda que falta', async () => {
@@ -131,7 +178,7 @@ describe('InicioPage', () => {
     await user.click(await screen.findByRole('tab', { name: 'Dólares' }))
 
     expect(
-      await screen.findByRole('button', { name: 'Abrir billetera en Dólares' }),
+      await screen.findByRole('button', { name: 'Abrir billetera en dólares' }),
     ).toBeInTheDocument()
   })
 

@@ -137,14 +137,6 @@ export const SEARCH_ENTRIES: SearchEntry[] = [
     action: 'transferir',
   },
   {
-    id: 'accion-retirar',
-    label: 'Retirar',
-    hint: 'Abrir el movimiento de retiro',
-    icon: 'arrowUpRight',
-    group: 'Acciones',
-    action: 'retirar',
-  },
-  {
     id: 'accion-nueva-oferta',
     label: 'Publicar una oferta',
     hint: 'Abrir el formulario de oferta',

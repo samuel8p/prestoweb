@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { Alert } from '../../components/ui/Alert'
-import { Button } from '../../components/ui/Button'
 import { Card, CardHeader } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Modal } from '../../components/ui/Modal'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { SkeletonRows } from '../../components/ui/Skeleton'
 import { useActions } from '../../app/action-context'
 import type { Currency } from '../../lib/money/format'
@@ -19,20 +16,12 @@ import { CreateWalletForm } from '../ledger/CreateWalletForm'
 import { MovementForm } from '../ledger/MovementForm'
 import { MovementList } from '../ledger/MovementList'
 import { useMovements } from '../ledger/useMovements'
-import { BalanceCards } from './BalanceCards'
-import { QuickActions } from './QuickActions'
+import { NotificationsPanel } from '../../components/layout/NotificationsPanel'
+import { BalanceSurface } from './BalanceSurface'
 import { Shortcuts } from './Shortcuts'
 import { nextInstallmentShortcut } from './nextInstallmentShortcut'
 import type { Shortcut } from './Shortcuts'
-
-type QuickActionId = 'ingresar' | 'transferir' | 'retirar' | 'billetera'
-
-const MOVEMENT_TYPE: Record<QuickActionId, 'deposit' | 'withdrawal' | 'transfer' | null> = {
-  ingresar: 'deposit',
-  transferir: 'transfer',
-  retirar: 'withdrawal',
-  billetera: null,
-}
+import { WalletPanel } from './WalletPanel'
 
 /**
  * Inicio: saldos, accesos rápidos, movimientos recientes y accesos compactos.
@@ -49,24 +38,21 @@ export function InicioPage() {
   const investments = useInvestmentsReport('ARS')
 
   const [currency, setCurrency] = useState<Currency>('ARS')
-  const [movementType, setMovementType] = useState<'deposit' | 'withdrawal' | 'transfer' | null>(
-    null,
-  )
+  const [movementType, setMovementType] = useState<'deposit' | 'transfer' | null>(null)
   const [walletCurrency, setWalletCurrency] = useState<Currency | null>(null)
-  const [walletId, setWalletId] = useState<string | null>(null)
+  const [walletOpen, setWalletOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   const movements = useMovements({ currency })
   const rows = movements.data?.pages.flatMap((page) => page.results) ?? []
 
   const wallets = accounts.data?.results ?? []
-  const activeAccount = wallets.find((account) => account.currency === currency)
 
   // Las fichas abren los mismos formularios que usaba Billetera.
   useEffect(() => {
     const unregister = [
       register('ingresar', () => setMovementType('deposit')),
       register('transferir', () => setMovementType('transfer')),
-      register('retirar', () => setMovementType('withdrawal')),
     ]
     return () => unregister.forEach((off) => off())
   }, [register])
@@ -107,51 +93,33 @@ export function InicioPage() {
     return list
   }, [budgets.data, currency, investments.data, loansReport.data])
 
-  function handleQuickAction(id: string) {
-    if (id === 'billetera') {
-      setWalletId(activeAccount?.id ?? null)
-      return
-    }
-
-    const type = MOVEMENT_TYPE[id as QuickActionId]
-    if (type) {
-      setMovementType(type)
-      return
-    }
-
-    run(id)
-  }
-
   const firstName = user?.first_name?.trim()
 
   return (
     <div className="flex animate-fade-up flex-col gap-6">
-      <PageHeader
-        title={firstName ? `Hola, ${firstName}` : 'Hola'}
-        description="Tus saldos, tus accesos y lo que viene."
-      />
-
-      {accounts.isError ? (
-        <Alert tone="danger">No pudimos cargar tus billeteras. Probá de nuevo en un momento.</Alert>
-      ) : null}
-
-      {/* Saldos */}
+      {/* Superficie en L: saludo, pestañas, lupa, campana, saldo y acciones */}
       {accounts.isLoading ? (
-        <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <div className="h-56 animate-pulse rounded-[1.25rem] bg-chrome/20" />
-          <div className="h-40 animate-pulse rounded-[1.25rem] bg-line/60" />
-        </div>
+        <div className="h-72 animate-pulse rounded-[24px] bg-line/60" />
       ) : (
-        <BalanceCards
+        <BalanceSurface
           accounts={wallets}
           currency={currency}
           onCurrencyChange={setCurrency}
+          greeting={firstName ? `Hola, ${firstName}` : 'Hola'}
+          onSearch={() => run('buscar')}
+          onNotifications={() => setNotificationsOpen((open) => !open)}
+          notificationsPanel={
+            <NotificationsPanel
+              open={notificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+            />
+          }
+          onDeposit={() => setMovementType('deposit')}
+          onTransfer={() => setMovementType('transfer')}
+          onWallet={() => setWalletOpen(true)}
           onCreateWallet={setWalletCurrency}
         />
       )}
-
-      {/* Acciones rápidas */}
-      <QuickActions onAction={handleQuickAction} />
 
       {/* Movimientos y accesos */}
       <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
@@ -205,13 +173,7 @@ export function InicioPage() {
       {/* Modales */}
       <Modal
         open={movementType !== null}
-        title={
-          movementType === 'deposit'
-            ? 'Ingresar dinero'
-            : movementType === 'withdrawal'
-              ? 'Retirar dinero'
-              : 'Transferir dinero'
-        }
+        title={movementType === 'deposit' ? 'Ingresar dinero' : 'Transferir dinero'}
         description="El movimiento queda registrado en el libro mayor."
         onClose={() => setMovementType(null)}
       >
@@ -222,6 +184,15 @@ export function InicioPage() {
             onDone={() => setMovementType(null)}
           />
         ) : null}
+      </Modal>
+
+      <Modal
+        open={walletOpen}
+        title="Tu billetera"
+        description="Tu alias y los identificadores de tus cuentas."
+        onClose={() => setWalletOpen(false)}
+      >
+        <WalletPanel accounts={wallets} onDone={() => setWalletOpen(false)} />
       </Modal>
 
       <Modal
@@ -236,35 +207,6 @@ export function InicioPage() {
             onDone={() => setWalletCurrency(null)}
           />
         ) : null}
-      </Modal>
-
-      {/* Identificador de la billetera: el backend no expone alias */}
-      <Modal
-        open={walletId !== null}
-        title="Tu billetera"
-        description="Compartí este identificador para recibir transferencias."
-        onClose={() => setWalletId(null)}
-      >
-        <div className="flex flex-col gap-4">
-          <p className="rounded-[var(--radius-control)] bg-surface-muted p-4 text-center text-sm font-semibold text-ink tabular">
-            {walletId}
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setWalletId(null)}>
-              Cerrar
-            </Button>
-            <Button
-              icon="wallet"
-              onClick={() => {
-                if (walletId) {
-                  void navigator.clipboard?.writeText(walletId)
-                }
-              }}
-            >
-              Copiar identificador
-            </Button>
-          </div>
-        </div>
       </Modal>
     </div>
   )

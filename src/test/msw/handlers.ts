@@ -156,6 +156,24 @@ export const handlers: HttpHandler[] = [
     return HttpResponse.json(state.user)
   }),
 
+  http.get(`${API}/identity/alias/`, () => HttpResponse.json({ alias: 'ana.presto' })),
+
+  http.put(`${API}/identity/alias/`, async ({ request }) => {
+    const body = (await request.json()) as { alias: string }
+    return HttpResponse.json({ alias: body.alias })
+  }),
+
+  http.get(`${API}/ledger/accounts/by-alias/:alias/`, ({ params }) =>
+    HttpResponse.json({
+      alias: String(params.alias),
+      name: 'Ana G.',
+      wallets: [
+        { currency: 'ARS', account_id: '22222222-2222-4222-8222-222222222222' },
+        { currency: 'USD', account_id: '33333333-3333-4333-8333-333333333333' },
+      ],
+    }),
+  ),
+
   http.get(`${API}/kyc/`, () => HttpResponse.json(state.kyc)),
 
   http.post(`${API}/kyc/`, async ({ request }) => {

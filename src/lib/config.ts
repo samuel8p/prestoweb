@@ -21,10 +21,13 @@ export const apiPaths = {
   register: '/api/v1/auth/register/',
   refresh: '/api/v1/auth/token/refresh/',
   me: '/api/v1/auth/me/',
+  myAlias: '/api/v1/identity/alias/',
   kyc: '/api/v1/kyc/',
   kycDetail: (id: string) => `/api/v1/kyc/${id}/`,
   accounts: '/api/v1/ledger/accounts/',
   accountBalance: (id: string) => `/api/v1/ledger/accounts/${id}/balance/`,
+  accountByAlias: (alias: string) =>
+    `/api/v1/ledger/accounts/by-alias/${encodeURIComponent(alias)}/`,
   transactions: '/api/v1/ledger/transactions/',
   transaction: (id: string) => `/api/v1/ledger/transactions/${id}/`,
   offers: '/api/v1/offers/',
