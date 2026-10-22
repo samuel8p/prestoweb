@@ -63,7 +63,7 @@ export function CreateWalletForm({ onDone, existingCurrency }: CreateWalletFormP
         {...register('currency')}
       />
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 border-t border-line pt-4">
         <Button variant="secondary" onClick={onDone}>
           Cancelar
         </Button>

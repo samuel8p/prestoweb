@@ -43,6 +43,7 @@ export type IconName =
   | 'send'
   | 'bank'
   | 'sliders'
+  | 'phone'
 
 const PATHS: Record<IconName, string[]> = {
   dashboard: ['M3 3h7v7H3z', 'M14 3h7v4h-7z', 'M14 11h7v10h-7z', 'M3 14h7v7H3z'],
@@ -115,6 +116,9 @@ const PATHS: Record<IconName, string[]> = {
     'M1 14h6',
     'M9 8h6',
     'M17 16h6',
+  ],
+  phone: [
+    'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-3.1-8.7A2 2 0 0 1 10.1 3h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1l-1.2 1.2a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.4c.9.2 1.8.5 2.8.6a2 2 0 0 1 1.8 2z',
   ],
 }
 

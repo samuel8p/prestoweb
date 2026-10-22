@@ -95,7 +95,7 @@ export function ProfilePage() {
     return undefined
   }, [saved])
 
-  async function onSubmit(values: ProfileValues) {
+  function onSubmit(values: ProfileValues) {
     setFormError(null)
     setSaved(false)
     updateProfile.mutate(values)
@@ -119,42 +119,40 @@ export function ProfilePage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Mi perfil" description="Tus datos y el estado de tu cuenta." />
 
+      {/* Datos de la cuenta */}
       <Card>
-        <CardHeader title="Datos de la cuenta" />
-        <dl className="grid gap-3 px-4 py-4 text-sm sm:grid-cols-2 sm:px-5">
+        <CardHeader title="Datos de la cuenta" icon="user" />
+        <dl className="grid gap-5 px-5 py-4 sm:grid-cols-2">
           <div>
-            <dt className="text-slate-500">Email</dt>
-            <dd className="font-medium text-slate-900">{user?.email ?? '—'}</dd>
+            <dt className="text-[13px] text-slate-500">Email</dt>
+            <dd className="mt-0.5 text-sm font-medium text-slate-900">{user?.email ?? '—'}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Nombre</dt>
-            <dd className="font-medium text-slate-900">
+            <dt className="text-[13px] text-slate-500">Nombre</dt>
+            <dd className="mt-0.5 text-sm font-medium text-slate-900">
               {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || '—'}
             </dd>
           </div>
         </dl>
       </Card>
 
+      {/* KYC */}
       <Card>
         <CardHeader
           title="Verificación KYC"
           description="Necesitás estar verificado para mover dinero."
+          icon="shield"
+          action={
+            kycLoading ? null : (
+              <Badge tone={kyc ? (KYC_TONE[kyc.status] ?? 'neutral') : 'neutral'} dot>
+                {kyc ? (KYC_LABEL[kyc.status] ?? kyc.status) : 'Sin verificar'}
+              </Badge>
+            )
+          }
         />
-        <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
-          {kycLoading ? (
-            <Spinner label="Cargando el estado de la verificación" />
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">Estado:</span>
-              {kyc ? (
-                <Badge tone={KYC_TONE[kyc.status] ?? 'neutral'}>
-                  {KYC_LABEL[kyc.status] ?? kyc.status}
-                </Badge>
-              ) : (
-                <Badge tone="neutral">Sin verificar</Badge>
-              )}
-            </div>
-          )}
+
+        <div className="flex flex-col gap-4 px-5 py-4">
+          {kycLoading ? <Spinner label="Cargando el estado de la verificación" /> : null}
 
           {kyc?.status === 'approved' ? (
             <Alert tone="success">Tu cuenta está verificada. Ya podés mover dinero.</Alert>
@@ -173,7 +171,7 @@ export function ProfilePage() {
           ) : null}
 
           {!kyc || kyc.status === 'rejected' ? (
-            <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={onSubmitKyc}>
+            <form className="flex flex-col gap-4 sm:flex-row sm:items-end" onSubmit={onSubmitKyc}>
               <div className="flex-1">
                 <Select
                   label="Tipo de documento"
@@ -206,10 +204,15 @@ export function ProfilePage() {
         </div>
       </Card>
 
+      {/* Datos de contacto */}
       <Card>
-        <CardHeader title="Datos de contacto" description="Opcionales, nos ayudan a contactarte." />
+        <CardHeader
+          title="Datos de contacto"
+          description="Opcionales, nos ayudan a contactarte."
+          icon="mail"
+        />
         <form
-          className="flex flex-col gap-4 px-4 py-4 sm:px-5"
+          className="flex flex-col gap-4 px-5 py-4"
           onSubmit={handleSubmit(onSubmit)}
           noValidate
         >
@@ -222,12 +225,14 @@ export function ProfilePage() {
               type="tel"
               autoComplete="tel"
               placeholder="+54 9 11 1234 5678"
+              icon="phone"
               error={errors.phone_number?.message}
               {...register('phone_number')}
             />
             <Input
               label="Fecha de nacimiento"
               type="date"
+              icon="calendar"
               error={errors.date_of_birth?.message}
               {...register('date_of_birth')}
             />
@@ -241,7 +246,7 @@ export function ProfilePage() {
             {...register('country')}
           />
 
-          <div>
+          <div className="border-t border-line pt-4">
             <Button type="submit" loading={isSubmitting || updateProfile.isPending}>
               Guardar cambios
             </Button>
