@@ -1,7 +1,8 @@
+import { Icon } from '../../components/ui/Icon'
 import { useMeta } from './useMeta'
 
 /**
- * Cartel fijo de modo demo.
+ * Aviso de modo demo.
  *
  * Aparece cuando la instancia corre en modo demo (`mode: "demo"`). Si el
  * endpoint no responde, no se muestra nada: la app sigue funcionando.
@@ -16,9 +17,16 @@ export function DemoBanner() {
   return (
     <div
       role="status"
-      className="fixed inset-x-0 top-0 z-50 bg-amber-400 px-4 py-2 text-center text-sm font-semibold text-amber-950"
+      className="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-[12px] font-medium text-amber-900"
     >
-      Demo: el dinero es simulado
+      <Icon name="info" size={14} className="text-amber-600" />
+      <span>
+        Demo: el dinero es simulado
+        <span className="hidden font-normal text-amber-800 sm:inline">
+          {' '}
+          · los saldos y los movimientos son de prueba
+        </span>
+      </span>
     </div>
   )
 }

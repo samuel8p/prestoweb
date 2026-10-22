@@ -74,6 +74,7 @@ export function LoginPage() {
           type="email"
           autoComplete="email"
           placeholder="ana@example.com"
+          icon="mail"
           error={errors.email?.message}
           {...register('email')}
         />
@@ -82,11 +83,12 @@ export function LoginPage() {
           label="Contraseña"
           type="password"
           autoComplete="current-password"
+          icon="lock"
           error={errors.password?.message}
           {...register('password')}
         />
 
-        <Button type="submit" loading={isSubmitting} className="w-full">
+        <Button type="submit" loading={isSubmitting} className="mt-1 w-full">
           Ingresar
         </Button>
       </form>

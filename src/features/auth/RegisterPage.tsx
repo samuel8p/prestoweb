@@ -81,6 +81,7 @@ export function RegisterPage() {
           type="email"
           autoComplete="email"
           placeholder="ana@example.com"
+          icon="mail"
           error={errors.email?.message}
           {...register('email')}
         />
@@ -89,6 +90,7 @@ export function RegisterPage() {
           label="Contraseña"
           type="password"
           autoComplete="new-password"
+          icon="lock"
           hint="Mínimo 8 caracteres, con al menos una letra y un número."
           error={errors.password?.message}
           {...register('password')}
@@ -98,11 +100,12 @@ export function RegisterPage() {
           label="Repetí la contraseña"
           type="password"
           autoComplete="new-password"
+          icon="lock"
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
         />
 
-        <Button type="submit" loading={isSubmitting} className="w-full">
+        <Button type="submit" loading={isSubmitting} className="mt-1 w-full">
           Crear cuenta
         </Button>
       </form>
