@@ -9,7 +9,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.exceptions import InsufficientFunds, InvalidAmount, KYCNotCompleted
-from apps.core.openapi import cursor_paginated_response, paginated_response
+from apps.core.openapi import (
+    IDEMPOTENCY_KEY_PARAMETER,
+    cursor_paginated_response,
+    paginated_response,
+)
 from apps.core.pagination import StandardPagination
 from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.ledger.exceptions import (
@@ -182,6 +186,7 @@ class TransactionListCreateView(KycApprovedForUnsafeMethods, APIView):
 
     @extend_schema(
         request=CreateTransactionSerializer,
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
         responses={201: LedgerTransactionSerializer},
         summary='Crear un movimiento de dinero',
     )

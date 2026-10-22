@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.exceptions import InsufficientFunds, KYCNotCompleted
-from apps.core.openapi import paginated_response
+from apps.core.openapi import IDEMPOTENCY_KEY_PARAMETER, paginated_response
 from apps.core.pagination import StandardPagination
 from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.investments.exceptions import (
@@ -69,6 +69,7 @@ class PositionListCreateView(KycApprovedForUnsafeMethods, APIView):
 
     @extend_schema(
         request=OpenPositionSerializer,
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
         responses={201: PositionSerializer},
         summary='Abrir una inversión a plazo fijo',
     )

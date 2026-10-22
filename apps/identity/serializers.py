@@ -23,6 +23,14 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
 
+class TokenRefreshSerializer(serializers.Serializer):
+    """Body del refresh: el token que se quiere rotar."""
+
+    refresh = serializers.CharField(
+        help_text='El refresh token que se renueva (queda en blacklist).',
+    )
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Datos públicos de un usuario."""
 

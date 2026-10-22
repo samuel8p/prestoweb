@@ -153,3 +153,75 @@ def test_the_movements_report_is_paginated(schema, api):
 
     assert response.status_code == 200
     assert set(response.json().keys()) == {'count', 'next', 'previous', 'results'}
+
+
+# --- El header Idempotency-Key ---
+
+IDEMPOTENT_OPERATIONS = [
+    ('/api/v1/ledger/transactions/', 'post'),
+    ('/api/v1/loans/', 'post'),
+    ('/api/v1/investments/positions/', 'post'),
+]
+
+IDEMPOTENCY_PAYLOADS = [
+    (
+        '/api/v1/ledger/transactions/',
+        'post',
+        {'type': 'deposit', 'currency': 'ARS', 'amount': '10.00'},
+    ),
+    (
+        '/api/v1/loans/',
+        'post',
+        {'offer_id': '00000000-0000-0000-0000-000000000000'},
+    ),
+    (
+        '/api/v1/investments/positions/',
+        'post',
+        {
+            'product_id': '00000000-0000-0000-0000-000000000000',
+            'amount': '10.00',
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    'path,method',
+    IDEMPOTENT_OPERATIONS,
+    ids=[f'{method} {path}' for path, method in IDEMPOTENT_OPERATIONS],
+)
+def test_the_idempotency_key_is_declared_as_required(schema, path, method):
+    """El header `Idempotency-Key` está declarado y es obligatorio."""
+    parameters = schema['paths'][path][method].get('parameters', [])
+    headers = [
+        parameter
+        for parameter in parameters
+        if parameter['in'] == 'header' and parameter['name'] == 'Idempotency-Key'
+    ]
+
+    assert len(headers) == 1
+    assert headers[0]['required'] is True
+
+
+@pytest.mark.parametrize(
+    'path,method,payload',
+    IDEMPOTENCY_PAYLOADS,
+    ids=[f'{path}' for path, _, _ in IDEMPOTENCY_PAYLOADS],
+)
+def test_the_api_really_asks_for_the_idempotency_key(api, path, method, payload):
+    """Sin el header la API responde 400 (lo que el esquema declara)."""
+    response = api.post(path, payload, format='json')
+
+    assert response.status_code == 400
+    assert response.json()['error']['code'] == 'validation_error'
+    assert 'idempotency_key' in response.json()['error']['details']
+
+
+def test_the_refresh_declares_its_body(schema):
+    """El refresh declara el body con el token."""
+    operation = schema['paths']['/api/v1/auth/token/refresh/']['post']
+    content = operation['requestBody']['content']
+    reference = content['application/json']['schema']['$ref']
+    name = reference.rsplit('/', 1)[-1]
+
+    assert 'refresh' in schema['components']['schemas'][name]['properties']

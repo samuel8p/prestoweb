@@ -112,6 +112,18 @@ paths:
       summary: Renovar el access token rotando el refresh token
       tags:
       - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
       responses:
         '200':
           content:
@@ -337,6 +349,15 @@ paths:
       operationId: investments_positions_create
       description: Abre una posición de inversión a plazo fijo.
       summary: Abrir una inversión a plazo fijo
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: Clave de idempotencia, única por usuario. Con la misma clave
+          y el mismo payload la API devuelve la operación original; con la misma clave
+          y otro payload responde 409 (`idempotency_conflict`).
+        required: true
       tags:
       - investments
       requestBody:
@@ -552,6 +573,15 @@ paths:
       operationId: ledger_transactions_create
       description: Crea un depósito, retiro o transferencia con idempotencia.
       summary: Crear un movimiento de dinero
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: Clave de idempotencia, única por usuario. Con la misma clave
+          y el mismo payload la API devuelve la operación original; con la misma clave
+          y otro payload responde 409 (`idempotency_conflict`).
+        required: true
       tags:
       - ledger
       requestBody:
@@ -618,6 +648,15 @@ paths:
       operationId: loans_create
       description: Acepta una oferta y devuelve el préstamo creado.
       summary: Aceptar una oferta y recibir el préstamo
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: Clave de idempotencia, única por usuario. Con la misma clave
+          y el mismo payload la API devuelve la operación original; con la misma clave
+          y otro payload responde 409 (`idempotency_conflict`).
+        required: true
       tags:
       - loans
       requestBody:
@@ -2689,6 +2728,15 @@ components:
       - from_date
       - to_date
       - total
+    TokenRefresh:
+      type: object
+      description: 'Body del refresh: el token que se quiere rotar.'
+      properties:
+        refresh:
+          type: string
+          description: El refresh token que se renueva (queda en blacklist).
+      required:
+      - refresh
     UpdateOfferStatusEnum:
       enum:
       - expired

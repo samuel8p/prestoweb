@@ -21,6 +21,7 @@ from apps.identity.serializers import (
     MeUpdateSerializer,
     ProfileSerializer,
     RegisterSerializer,
+    TokenRefreshSerializer,
     UserSerializer,
 )
 from apps.identity.services import register_user, submit_kyc, update_profile
@@ -99,7 +100,7 @@ class TokenRefreshView(SimpleJWTTokenRefreshView):
     """Renueva el access token rotando el refresh token."""
 
     @extend_schema(
-        request=None,
+        request=TokenRefreshSerializer,
         responses={200: LoginResponseSerializer},
         summary='Renovar el access token rotando el refresh token',
     )

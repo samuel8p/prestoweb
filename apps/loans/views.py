@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.exceptions import InsufficientFunds, KYCNotCompleted
-from apps.core.openapi import paginated_response
+from apps.core.openapi import IDEMPOTENCY_KEY_PARAMETER, paginated_response
 from apps.core.pagination import StandardPagination
 from apps.identity.permissions import KycApprovedForUnsafeMethods
 from apps.ledger.exceptions import IdempotencyConflict, IdempotencyKeyConflict
@@ -53,6 +53,7 @@ class LoanListCreateView(KycApprovedForUnsafeMethods, APIView):
 
     @extend_schema(
         request=AcceptOfferSerializer,
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
         responses={201: LoanSerializer},
         summary='Aceptar una oferta y recibir el préstamo',
     )
