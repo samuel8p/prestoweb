@@ -20,7 +20,11 @@ CSV_SCHEMA = {'type': 'string', 'format': 'binary'}
 # Las respuestas que pueden venir `null` (el componente al que se le suma
 # el "null" del JSON Schema).
 NULLABLE_RESPONSES = {
-    ('/api/v1/kyc/', 'get'): '#/components/schemas/KYCVerification',
+    ('/api/v1/kyc/', 'get'): (
+        '#/components/schemas/KYCVerification',
+        'La verificación KYC vigente del usuario. Si el usuario todavía no '
+        'pidió la verificación, el body viene **vacío** (no `null`).',
+    ),
 }
 
 
@@ -49,10 +53,13 @@ def add_nullable_responses(result, generator, request, public):
     """
     for path, operations in result.get('paths', {}).items():
         for method, operation in operations.items():
-            reference = NULLABLE_RESPONSES.get((path, method))
-            if reference is None:
+            values = NULLABLE_RESPONSES.get((path, method))
+            if values is None:
                 continue
-            content = operation['responses']['200']['content']
+            reference, description = values
+            response = operation['responses']['200']
+            response['description'] = description
+            content = response['content']
             content['application/json']['schema'] = {
                 # OpenAPI 3.0: la forma nullable es "nullable: true".
                 'allOf': [{'$ref': reference}],

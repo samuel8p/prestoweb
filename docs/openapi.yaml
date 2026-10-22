@@ -1828,7 +1828,8 @@ paths:
                 allOf:
                 - $ref: '#/components/schemas/KYCVerification'
                 nullable: true
-          description: ''
+          description: La verificación KYC vigente del usuario. Si el usuario todavía
+            no pidió la verificación, el body viene **vacío** (no `null`).
           headers:
             X-Presto-Mode:
               description: Vale `demo` cuando la aplicación corre en modo demo.

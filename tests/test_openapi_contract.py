@@ -366,11 +366,16 @@ def test_the_kyc_error_is_the_permission_denied_of_the_kyc(schema):
 
 
 def test_the_kyc_status_can_be_null(schema):
-    """`GET /api/v1/kyc/` declara que puede venir null."""
-    content = schema['paths']['/api/v1/kyc/']['get']['responses']['200']['content']
-    schema_ = content['application/json']['schema']
+    """`GET /api/v1/kyc/` declara que puede venir sin contenido.
+
+    La API responde el body **vacío** (no `null`) cuando el usuario no pidió
+    la verificación: el esquema lo dice en la descripción.
+    """
+    response = schema['paths']['/api/v1/kyc/']['get']['responses']['200']
+    schema_ = response['content']['application/json']['schema']
 
     assert schema_['nullable'] is True
+    assert 'vacío' in response['description']
 
 
 def test_the_api_really_answers_null_when_there_is_no_kyc():
