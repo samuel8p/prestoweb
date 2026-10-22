@@ -33,11 +33,17 @@ RUN pip install --no-cache-dir \
     "celery>=5.3.0" \
     "redis>=5.0.0" \
     "django-cors-headers>=4.4" \
+    "whitenoise>=6.6" \
     "pip-audit>=2.7"
 
 # The beat writes its schedule file here. Creating the directory with the
 # right owner makes the named volume inherit that ownership.
 RUN mkdir -p /var/celerybeat && chown presto:presto /var/celerybeat
+
+# Los archivos estáticos (los del admin) se recolectan en la imagen: el
+# contenedor no necesita escribir en ningún lado para servirlos.
+RUN DJANGO_SETTINGS_MODULE=config.settings.local python manage.py collectstatic --noinput \
+    && chown -R presto:presto /app/config/staticfiles
 
 # In development the code arrives as a volume owned by the host user, so the
 # container keeps every write (bytecode, pytest cache, coverage, linters) out

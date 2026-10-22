@@ -115,6 +115,10 @@ MIDDLEWARE = [
     # las plataformas lo llaman con la IP interna del servicio.
     'apps.core.middleware.HealthCheckMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # whitenoise sirve los archivos estáticos (el admin) desde la propia
+    # aplicación: sin un servidor de estáticos aparte, el admin salía sin
+    # estilos.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -247,8 +251,26 @@ CORS_ALLOW_HEADERS = [
 CORS_EXPOSE_HEADERS = ['Content-Type']
 
 # Static files (CSS, JavaScript, Images)
+# Los sirve la propia aplicación con whitenoise (no hay nginx delante): sin
+# esto, el admin del Django salía sin estilos en producción.
 STATIC_URL = '/static/'
 STATIC_ROOT = str(BASE_DIR / 'staticfiles')
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        # Comprimidos y sin manifiesto: el manifiesto exige que los estáticos
+        # estén recolectados, y sin ellos (desarrollo, tests) rompe las
+        # páginas del admin. La imagen de producción sí los recolecta.
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
+WHITENOISE_MAX_AGE = 3600
+WHITENOISE_AUTOREFRESH = True
+# En desarrollo los estáticos no están recolectados: whitenoise los busca en
+# las apps (igual que hacía el runserver).
+WHITENOISE_USE_FINDERS = True
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

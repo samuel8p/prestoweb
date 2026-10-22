@@ -53,6 +53,7 @@ jobs:
             "celery>=5.3.0" \
             "redis>=5.0.0" \
             "django-cors-headers>=4.4" \
+            "whitenoise>=6.6" \
             "pip-audit>=2.7"
 
       - name: Run ruff check
@@ -111,7 +112,8 @@ jobs:
             "gunicorn>=22.0.0" \
             "celery>=5.3.0" \
             "redis>=5.0.0" \
-            "django-cors-headers>=4.4"
+            "django-cors-headers>=4.4" \
+            "whitenoise>=6.6"
 
       - name: Check for missing migrations
         run: python manage.py makemigrations --check --dry-run
@@ -166,7 +168,8 @@ jobs:
             "gunicorn>=22.0.0" \
             "celery>=5.3.0" \
             "redis>=5.0.0" \
-            "django-cors-headers>=4.4"
+            "django-cors-headers>=4.4" \
+            "whitenoise>=6.6"
 
       - name: Run migrations
         run: python manage.py migrate

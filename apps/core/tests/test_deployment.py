@@ -241,3 +241,22 @@ def test_the_web_role_applies_the_migrations_when_asked(tmp_path):
     )
 
     assert 'python manage.py migrate --noinput' in output
+
+
+def test_the_static_files_are_served_by_the_application():
+    """Los estáticos (los del admin) los sirve la propia aplicación.
+
+    Sin un servidor de estáticos aparte, el admin del Django salía sin
+    estilos en producción.
+    """
+    from django.conf import settings
+
+    assert 'whitenoise.middleware.WhiteNoiseMiddleware' in settings.MIDDLEWARE
+    assert settings.STORAGES['staticfiles']['BACKEND'].startswith('whitenoise.')
+
+
+def test_the_image_collects_the_static_files():
+    """La imagen recolecta los estáticos: el contenedor no escribe nada."""
+    dockerfile = (ROOT / 'Dockerfile').read_text(encoding='utf-8')
+
+    assert 'collectstatic' in dockerfile
