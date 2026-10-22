@@ -3,6 +3,9 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { LoginPage } from '../features/auth/LoginPage'
+import { LoanDetailPage } from '../features/loans/LoanDetailPage'
+import { LoansPage } from '../features/loans/LoansPage'
+import { MarketplacePage } from '../features/offers/MarketplacePage'
 import { ProfilePage } from '../features/auth/ProfilePage'
 import { RegisterPage } from '../features/auth/RegisterPage'
 import { RedirectIfAuthenticated, RequireAuth } from '../features/auth/guards'
@@ -42,8 +45,9 @@ export function AppRoutes() {
       >
         <Route path="/panel" element={<DashboardPage />} />
         <Route path="/billetera" element={<WalletsPage />} />
-        <Route path="/ofertas" element={<PendingPage title="Ofertas" />} />
-        <Route path="/prestamos" element={<PendingPage title="Préstamos" />} />
+        <Route path="/ofertas" element={<MarketplacePage />} />
+        <Route path="/prestamos" element={<LoansPage />} />
+        <Route path="/prestamos/:loanId" element={<LoanDetailPage />} />
         <Route path="/inversiones" element={<PendingPage title="Inversiones" />} />
         <Route path="/presupuestos" element={<PendingPage title="Presupuestos" />} />
         <Route path="/reportes" element={<PendingPage title="Reportes" />} />

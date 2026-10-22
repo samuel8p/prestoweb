@@ -86,7 +86,7 @@ export function createState(): TestState {
   return {
     accounts: [createAccount(), createUsdAccount()],
     transactions: [createTransaction()],
-    offers: [createOffer()],
+    offers: [createOffer({ lender_user_id: testUser.id, amount: '75000.00' })],
     loans: [createLoanDetail()],
     positions: [createPosition()],
     categories: [createCategory()],

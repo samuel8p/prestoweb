@@ -12,7 +12,10 @@ beforeAll(() => {
 
 afterEach(() => {
   cleanup()
-  server.restoreHandlers()
+  // `resetHandlers` y no `restoreHandlers`: en MSW 3.0.3 `restoreHandlers` no
+  // saca los handlers agregados con `server.use` y el override de un test se
+  // filtraba al siguiente.
+  server.resetHandlers()
   resetState()
 })
 

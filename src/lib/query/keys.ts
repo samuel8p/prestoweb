@@ -13,7 +13,7 @@ export const queryKeys = {
   transactions: ['ledger', 'transactions'] as const,
   offers: ['offers'] as const,
   offer: (id: string) => ['offers', id] as const,
-  matchingOffers: (filters: Record<string, unknown>) => ['matching', 'offers', filters] as const,
+  matchingOffers: (filters: object) => ['matching', 'offers', filters] as const,
   comparisons: ['matching', 'comparisons'] as const,
   loans: ['loans'] as const,
   loan: (id: string) => ['loans', id] as const,
