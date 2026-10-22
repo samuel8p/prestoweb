@@ -6403,8 +6403,13 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
           readOnly: true
+        currency:
+          type: string
+          description: La moneda del producto de la posición.
+          readOnly: true
       required:
       - amount
+      - currency
       - id
       - interest_amount
       - maturity_date
@@ -6445,12 +6450,17 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
           readOnly: true
+        currency:
+          type: string
+          description: La moneda del producto de la posición.
+          readOnly: true
         product_detail:
           allOf:
           - $ref: '#/components/schemas/InvestmentProduct'
           readOnly: true
       required:
       - amount
+      - currency
       - id
       - interest_amount
       - maturity_date

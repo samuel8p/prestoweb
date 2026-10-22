@@ -26,6 +26,8 @@ class InvestmentProductSerializer(serializers.ModelSerializer):
 class PositionSerializer(serializers.ModelSerializer):
     """Datos de una posición de inversión."""
 
+    currency = serializers.SerializerMethodField()
+
     class Meta:
         model = Position
         fields = [
@@ -36,8 +38,13 @@ class PositionSerializer(serializers.ModelSerializer):
             'opened_at',
             'maturity_date',
             'interest_amount',
+            'currency',
         ]
         read_only_fields = fields
+
+    def get_currency(self, obj) -> str:
+        """La moneda del producto de la posición."""
+        return obj.product.currency
 
 
 class PositionDetailSerializer(PositionSerializer):
