@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppShell } from '../components/layout/AppShell'
+import { BudgetsPage } from '../features/budgets/BudgetsPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { LoanDetailPage } from '../features/loans/LoanDetailPage'
@@ -50,7 +51,7 @@ export function AppRoutes() {
         <Route path="/prestamos" element={<LoansPage />} />
         <Route path="/prestamos/:loanId" element={<LoanDetailPage />} />
         <Route path="/inversiones" element={<InvestmentsPage />} />
-        <Route path="/presupuestos" element={<PendingPage title="Presupuestos" />} />
+        <Route path="/presupuestos" element={<BudgetsPage />} />
         <Route path="/reportes" element={<PendingPage title="Reportes" />} />
         <Route path="/avisos" element={<PendingPage title="Avisos" />} />
         <Route path="/perfil" element={<ProfilePage />} />

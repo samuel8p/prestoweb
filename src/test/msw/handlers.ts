@@ -381,32 +381,6 @@ export const handlers: HttpHandler[] = [
     return HttpResponse.json(budget, { status: 201 })
   }),
 
-  http.get(`${API}/budgets/:budgetId`, ({ params }) => {
-    const budget = state.budgets.find((item) => item.id === params.budgetId)
-    if (!budget) {
-      return errorResponse(404, 'not_found', 'No encontramos lo que estabas buscando.')
-    }
-    return HttpResponse.json(budget)
-  }),
-
-  http.patch(`${API}/budgets/:budgetId`, async ({ request, params }) => {
-    const body = (await request.json()) as Record<string, unknown>
-    const budget = state.budgets.find((item) => item.id === params.budgetId)
-    if (!budget) {
-      return errorResponse(404, 'not_found', 'No encontramos lo que estabas buscando.')
-    }
-    Object.assign(budget, body)
-    return HttpResponse.json(budget)
-  }),
-
-  http.get(`${API}/budgets/:budgetId/status/`, ({ params }) => {
-    const budget = state.budgets.find((item) => item.id === params.budgetId)
-    if (!budget) {
-      return errorResponse(404, 'not_found', 'No encontramos lo que estabas buscando.')
-    }
-    return HttpResponse.json(createBudgetStatus({ budget_id: budget.id }))
-  }),
-
   http.get(`${API}/budgets/categories/`, () => HttpResponse.json(paginated(state.categories))),
 
   http.post(`${API}/budgets/categories/`, async ({ request }) => {
@@ -450,6 +424,32 @@ export const handlers: HttpHandler[] = [
     })
     state.expenses.push(expense)
     return HttpResponse.json(expense, { status: 201 })
+  }),
+
+  http.get(`${API}/budgets/:budgetId`, ({ params }) => {
+    const budget = state.budgets.find((item) => item.id === params.budgetId)
+    if (!budget) {
+      return errorResponse(404, 'not_found', 'No encontramos lo que estabas buscando.')
+    }
+    return HttpResponse.json(budget)
+  }),
+
+  http.patch(`${API}/budgets/:budgetId`, async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>
+    const budget = state.budgets.find((item) => item.id === params.budgetId)
+    if (!budget) {
+      return errorResponse(404, 'not_found', 'No encontramos lo que estabas buscando.')
+    }
+    Object.assign(budget, body)
+    return HttpResponse.json(budget)
+  }),
+
+  http.get(`${API}/budgets/:budgetId/status/`, ({ params }) => {
+    const budget = state.budgets.find((item) => item.id === params.budgetId)
+    if (!budget) {
+      return errorResponse(404, 'not_found', 'No encontramos lo que estabas buscando.')
+    }
+    return HttpResponse.json(createBudgetStatus({ budget_id: budget.id }))
   }),
 
   // --- reportes ---
