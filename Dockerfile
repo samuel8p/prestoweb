@@ -32,7 +32,6 @@ RUN pip install --no-cache-dir \
     "gunicorn>=22.2.0" \
     "celery>=5.3.0" \
     "redis>=5.0.0" \
-    "dj-database-url>=2.2.0" \
     "django-cors-headers>=4.4" \
     "pip-audit>=2.7"
 

@@ -3,6 +3,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from apps.core.connections import parse_database_url, parse_redis_url
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
@@ -23,9 +25,10 @@ ALLOWED_HOSTS = (
 DATABASES = {}
 db_url = os.getenv('DATABASE_URL')
 if db_url:
-    import dj_database_url
-
-    DATABASES['default'] = dj_database_url.parse(db_url)
+    DATABASES['default'] = parse_database_url(
+        db_url,
+        sslmode=os.getenv('DB_SSLMODE') or None,
+    )
 else:
     # Fallback to PostgreSQL using environment variables
     DATABASES['default'] = {
@@ -165,8 +168,10 @@ USE_TZ = True
 # Environment marker used by the system checks (never rely on DEBUG)
 DJANGO_ENV = os.getenv('DJANGO_ENV', 'local')
 
-# Redis: broker de Celery (el servicio redis ya existe en docker-compose.yml)
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# Redis: broker de Celery (el servicio redis ya existe en docker-compose.yml).
+# La URL se normaliza (puerto y base por defecto) para que la que dan las
+# plataformas administradas sirva tal cual.
+REDIS_URL = parse_redis_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'))
 
 # Email: las notificaciones se envían por email. En desarrollo el backend es
 # de consola; en producción, SMTP configurado por variables de entorno.
