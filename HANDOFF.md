@@ -70,6 +70,7 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
 ├── docker-compose.yml            # db, redis, web, worker, beat (localhost only, DEMO_MODE)
 ├── deploy/
 │   ├── Caddyfile                  # proxy inverso con TLS automático (perfil proxy)
+│   ├── entrypoint.sh              # roles `web` y `worker` de la misma imagen
 │   └── backup-postgres.sh         # backup diario de PostgreSQL con rotación
 ├── docker-compose.prod.yml        # producción: sin puertos de db/redis, secretos por env
 ├── Dockerfile                    # python:3.12-slim + deps + usuario `presto` sin root
@@ -121,6 +122,7 @@ Sin dependencias agregadas desde el Bloque 5: `celery` y `redis` ya estaban en
     ├── audit-final.md              # auditoría final: hallazgos y "requiere decisión"
     ├── agents-changelog-proposal.md  # texto propuesto para AGENTS.md §17 (sin aplicarlo)
     ├── deploy-demo.md              # modo demo: email por consola (logs del worker)
+    ├── deploy-northflank.md        # Northflank (plan gratuito) + Vercel
     └── adr/
         ├── 0001-celery-redis-cola-y-scheduler.md
         ├── 0002-budgets-derivacion-del-gasto.md
@@ -440,7 +442,7 @@ contra el código de este bloque):
 
 | Chequeo | Comando | Resultado |
 |---|---|---|
-| Tests | `docker compose run --rm web python -m pytest -q` | **662 passed** |
+| Tests | `docker compose run --rm web python -m pytest -q` | **700 passed** |
 | Cobertura total | `... pytest --cov=apps --cov-report=term` | **99%** (`ledger/services.py` 93%, `budgets/services.py` 99%, `loans/services.py` 99%, `investments/services.py` 99%, `offers/services.py` 97%, `notifications/*` 100%, `reports/selectors.py` 98%) |
 | Cobertura de budgets | `... pytest apps/budgets --cov=apps.budgets.services --cov-fail-under=90` | **99%** en `budgets/services.py` (umbral de la CI: 90%) |
 | Lint | `ruff check .` | All checks passed |
@@ -645,7 +647,7 @@ docker compose ps
 make test      # docker compose run --rm web python -m pytest -v
 ```
 
-Resultado esperado: **655 passed**. Con cobertura:
+Resultado esperado: **700 passed**. Con cobertura:
 
 ```sh
 docker compose run --rm web python -m pytest -v --cov=apps --cov-report=term-missing
