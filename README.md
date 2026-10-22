@@ -108,6 +108,89 @@ Los errores usan un formato uniforme:
 { "error": { "code": "validation_error", "message": "...", "details": {} } }
 ```
 
+## Correr en local (demo)
+
+El stack de desarrollo levanta todo (PostgreSQL, Redis, el web, el worker y el
+beat) con el **modo demo** activator: el dinero es simulado y los avisos salen
+por consola, en los logs del worker.
+
+### 1. Clonar y configurar
+
+```sh
+git clone https://github.com/samuel8p/prestoweb.git
+cd prestoweb
+cp .env.example .env
+```
+
+El `.env` es opcional: el compose de desarrollo ya viene con `DEMO_MODE=true` y
+los valores por defecto. Sirve para cambiar el puerto o el origen del front.
+
+Si el front (Vercel) tiene que llamar a la API, poné su URL en
+`CORS_ALLOWED_ORIGINS` (separada por comas, **sin `*`**):
+
+```sh
+CORS_ALLOWED_ORIGINS=http://localhost:8000,https://tu-front.vercel.app
+```
+
+### 2. Levantar
+
+```sh
+docker compose up -d --build
+docker compose ps          # db, redis, web, worker y beat
+```
+
+El servicio `web` aplica las migraciones al arrancar ✓.
+
+### 3. Superusuario
+
+```sh
+docker compose exec web python manage.py createsuperuser
+```
+
+### 4. Datos de prueba
+
+Los dos management commands que existen (no hay comando de seed):
+
+```sh
+docker compose exec web python manage.py mark_overdue_loans
+docker compose exec web python manage.py settle_investments
+```
+
+Para tener datos de verdad hay que **aprobar el KYC** y **cargar los productos
+de inversión** desde el admin (son cosas de staff por diseño):
+
+- KYC: <http://127.0.0.1:8000/admin/identity/kycverification/> → aprobar la
+  verificación del usuario.
+- Productos: <http://127.0.0.1:8000/admin/investments/investmentproduct/> →
+  crear uno de plazo fijo (por ejemplo `ARS`, 30 días, 12% anual, mínimo
+  1000).
+
+### 5. Verificar
+
+```sh
+curl -s http://127.0.0.1:8000/health/
+# {"status": "ok"}
+
+curl -s http://127.0.0.1:8000/api/v1/meta/
+# {"mode":"demo","simulated_money":true}
+```
+
+Un depósito simulado (con el token de un usuario con el KYC aprobado):
+
+```sh
+curl -s -X POST http://127.0.0.1:8000/api/v1/ledger/transactions/ \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Idempotency-Key: primer-deposito" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"deposit","currency":"ARS","amount":"1000.00"}'
+```
+
+Los avisos de las notificaciones salen en los logs del worker:
+
+```sh
+docker compose logs -f worker | grep -A 10 "Subject:"
+```
+
 ## Desarrollo
 
 ```sh
