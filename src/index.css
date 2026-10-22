@@ -1,39 +1,134 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/manrope/wght.css';
 
 @theme {
+  /* ── Tipografía ──────────────────────────────────────────────
+     Variable autohospedada (Manrope). El subconjunto latino pesa
+     25 kB y el navegador solo descarga el que necesita. */
   --font-sans:
-    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
+    'Manrope Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Azul corporativo: escala única. 900/950 son el azul marino de la marca,
-     500/600 los azules de acción. */
-  --color-brand-50: oklch(0.972 0.014 255);
-  --color-brand-100: oklch(0.936 0.032 255);
-  --color-brand-200: oklch(0.878 0.056 255);
-  --color-brand-300: oklch(0.796 0.082 255);
-  --color-brand-400: oklch(0.688 0.115 255);
-  --color-brand-500: oklch(0.585 0.145 255);
-  --color-brand-600: oklch(0.508 0.158 255);
-  --color-brand-700: oklch(0.438 0.148 255);
-  --color-brand-800: oklch(0.362 0.118 255);
-  --color-brand-900: oklch(0.302 0.088 255);
-  --color-brand-950: oklch(0.236 0.064 255);
+  /* ── Arena: fondos, superficies y bordes ──────────────────── */
+  --color-canvas: #fbf8f3;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f6f2ea;
+  --color-line: #e7e0d4;
+  --color-line-strong: #96876e;
 
-  /* Fondos y líneas */
-  --color-canvas: oklch(0.977 0.003 255);
-  --color-surface: oklch(1 0 0);
-  --color-surface-muted: oklch(0.968 0.004 255);
-  --color-line: oklch(0.916 0.005 255);
-  --color-line-strong: oklch(0.862 0.008 255);
+  /* ── Tinta: texto ─────────────────────────────────────────── */
+  --color-ink: #0b2530;
+  --color-ink-muted: #4a6470;
+  --color-ink-subtle: #6b818b;
 
-  /* Radios consistentes */
-  --radius-card: 0.75rem;
-  --radius-control: 0.5rem;
+  /* ── Océano: barra lateral y bloque de saldo ─────────────── */
+  --color-ocean: #06303a;
+  --color-ocean-800: #0b4a57;
+  --color-ocean-700: #12596a;
+  --color-ocean-600: #1b6b7d;
 
-  /* Sombras mínimas: apenas separan la superficie del fondo */
-  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04);
-  --shadow-raised: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.04);
+  /* ── Teal: acción (botones, enlaces, foco) ────────────────── */
+  --color-teal: #0e7c86;
+  --color-teal-dark: #0a6670;
+  --color-teal-deep: #085a61;
+  --color-teal-tint: #e4f0f1;
+
+  /* ── Turquesa: acento SOLO sobre fondo oscuro ────────────── */
+  --color-turquoise: #2dd4bf;
+
+  /* ── Estados (contraste AA verificado en el informe) ───────── */
+  --color-success: #117635;
+  --color-success-bg: #e7f5ec;
+  --color-danger: #b53624;
+  --color-danger-bg: #fcece8;
+  --color-warning: #8f5c11;
+  --color-warning-bg: #fbf1dc;
+
+  /* ── Coral: detalle decorativo ───────────────────────────── */
+  --color-coral: #ff8a5b;
+
+  /* ── Radios y sombras ────────────────────────────────────── */
+  --radius-card: 0.875rem;
+  --radius-control: 0.625rem;
+  --shadow-card: 0 1px 2px 0 rgb(6 48 58 / 0.04);
+  --shadow-raised: 0 16px 40px -12px rgb(6 48 58 / 0.24);
+
+  /* ── Movimiento (solo transform y opacity) ────────────────── */
+  --animate-fade-in: fade-in 180ms ease-out both;
+  --animate-fade-up: fade-up 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-scale-in: scale-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-left: slide-left 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-grow-x: grow-x 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-draw: draw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale3d(0.97, 0.97, 1);
+  }
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes slide-left {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -180% 0;
+  }
+  to {
+    background-position: 180% 0;
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @layer base {
@@ -43,37 +138,86 @@
 
   body {
     background-color: var(--color-canvas);
-    color: var(--color-slate-900);
+    color: var(--color-ink);
     font-family: var(--font-sans);
-    font-feature-settings:
-      'cv05' 1,
-      'ss01' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Foco visible y consistente en toda la app (accesibilidad). */
+  /* Foco visible sobre fondos claros (teal) y oscuros (turquesa). */
   :focus-visible {
-    outline: 2px solid var(--color-brand-600);
+    outline: 2px solid var(--color-teal);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
-  /* Los números de dinero y las fechas siempre alineados. */
+  .on-dark :focus-visible {
+    outline-color: var(--color-turquoise);
+  }
+
+  /* Números tabulares para importes, fechas y porcentajes. */
   .tabular {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Los encabezados de tabla no deben partirse a lo largo de varias líneas. */
   th {
     text-wrap: nowrap;
   }
 
-  /* En los textos largos (descripciones, requisitos) se corta con puntos suspensivos
-     en una sola línea. */
+  /* Etiquetas en mayúsculas pequeñas: un solo estilo para todo el producto. */
+  .label-caps {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
   .truncate-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Patrón de olas para el bloque oscuro: líneas finas, muy sutiles. */
+  .wave-pattern {
+    background-image:
+      radial-gradient(circle at 12% 18%, rgb(45 212 191 / 0.16) 0 1px, transparent 1px),
+      radial-gradient(circle at 68% 62%, rgb(45 212 191 / 0.12) 0 1px, transparent 1px);
+    background-size:
+      22px 22px,
+      34px 34px;
+  }
+}
+
+@layer utilities {
+  /* Barra con relleno que se dibuja al montar (transform, sin layout shift). */
+  .bar-fill {
+    transform-origin: left center;
+    animation: var(--animate-grow-x);
+  }
+
+  /* Skeletons con shimmer. */
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      rgb(6 48 58 / 0.06) 0%,
+      rgb(6 48 58 / 0.12) 45%,
+      rgb(6 48 58 / 0.06) 90%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+}
+
+/* Respeta la preferencia del sistema: sin animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
