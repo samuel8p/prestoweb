@@ -216,10 +216,16 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 Los commits anteriores de este mismo `HANDOFF.md` están listados; este commit no
 puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**144**).
+**150**).
 
 | Commit | Asunto |
 |---|---|
+| `1923169` | chore(config): the development env example comes in demo mode |
+| `72f299f` | docs: add OpenAPI schema |
+| `ee198e0` | docs: add how to run the demo locally to the readme |
+| `595f567` | docs: fix the stale numbers and the tree of the handoff |
+| `33e415d` | chore: ignore logs, dumps, backups and key files |
+| `87d55ff` | docs(handoff): register the northflank delivery |
 | `b5d14fd` | docs(deploy): guide for northflank and the vercel front |
 | `86f3aca` | fix(deploy): write the beat schedule where the container can |
 | `8b50de8` | feat(core): serve the admin static files from the application |
