@@ -36,8 +36,30 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name']
-        read_only_fields = ['id', 'email']
+        fields = ['id', 'email', 'first_name', 'last_name', 'alias']
+        read_only_fields = ['id', 'email', 'alias']
+
+
+class AliasSerializer(serializers.Serializer):
+    """El alias que el usuario se pone o cambia."""
+
+    alias = serializers.CharField(
+        max_length=20,
+        help_text=(
+            'Identificador público: 6 a 20 caracteres, minúsculas, dígitos, '
+            'punto, guion o guion bajo; empieza y termina con letra o dígito.'
+        ),
+    )
+
+
+class AliasResponseSerializer(serializers.Serializer):
+    """El alias del usuario (null si no tiene)."""
+
+    alias = serializers.CharField(
+        allow_null=True,
+        required=False,
+        help_text='El alias del usuario, o null si todavía no tiene.',
+    )
 
 
 class ProfileSerializer(serializers.ModelSerializer):

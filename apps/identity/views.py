@@ -10,10 +10,19 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView as SimpleJWTTokenRefreshView
 
-from apps.identity.exceptions import EmailAlreadyRegistered, PendingKYCExists, WeakPassword
+from apps.identity.exceptions import (
+    AliasConflict,
+    AliasTaken,
+    EmailAlreadyRegistered,
+    InvalidAlias,
+    PendingKYCExists,
+    WeakPassword,
+)
 from apps.identity.permissions import LoginThrottle, RegisterThrottle
 from apps.identity.selectors import get_kyc_by_id, get_kyc_for_user, get_profile
 from apps.identity.serializers import (
+    AliasResponseSerializer,
+    AliasSerializer,
     KYCRequestSerializer,
     KYCVerificationSerializer,
     LoginResponseSerializer,
@@ -24,7 +33,7 @@ from apps.identity.serializers import (
     TokenRefreshSerializer,
     UserSerializer,
 )
-from apps.identity.services import register_user, submit_kyc, update_profile
+from apps.identity.services import register_user, set_alias, submit_kyc, update_profile
 
 
 def build_me_payload(user) -> dict:
@@ -130,6 +139,39 @@ class MeView(APIView):
         serializer.is_valid(raise_exception=True)
         update_profile(user=request.user, changes=serializer.validated_data)
         return Response(build_me_payload(request.user))
+
+
+class AliasView(APIView):
+    """Alias público del usuario autenticado."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: AliasResponseSerializer},
+        summary='Ver el alias propio',
+        operation_id='identity_alias_retrieve',
+    )
+    def get(self, request):
+        """Devuelve el alias del usuario (null si todavía no tiene uno)."""
+        return Response({'alias': request.user.alias})
+
+    @extend_schema(
+        request=AliasSerializer,
+        responses={200: AliasResponseSerializer},
+        summary='Poner o cambiar el alias propio',
+        operation_id='identity_alias_update',
+    )
+    def put(self, request):
+        """Pone o cambia el alias del usuario."""
+        serializer = AliasSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = set_alias(user=request.user, alias=serializer.validated_data['alias'])
+        except InvalidAlias as exc:
+            raise ValidationError({'alias': [str(exc)]}) from exc
+        except AliasTaken as exc:
+            raise AliasConflict(str(exc)) from exc
+        return Response({'alias': user.alias})
 
 
 class KycView(APIView):

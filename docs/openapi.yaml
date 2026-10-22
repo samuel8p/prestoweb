@@ -1410,6 +1410,204 @@ paths:
               description: Vale `demo` cuando la aplicación corre en modo demo.
               schema:
                 type: string
+  /api/v1/identity/alias/:
+    get:
+      operationId: identity_alias_retrieve
+      description: Devuelve el alias del usuario (null si todavía no tiene uno).
+      summary: Ver el alias propio
+      tags:
+      - identity
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AliasResponse'
+          description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+    put:
+      operationId: identity_alias_update
+      description: Pone o cambia el alias del usuario.
+      summary: Poner o cambiar el alias propio
+      tags:
+      - identity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Alias'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Alias'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Alias'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AliasResponse'
+          description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '400':
+          description: Los datos enviados no son válidos (el `details` dice el campo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: validation_error
+                  message: Los datos enviados no son válidos.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '409':
+          description: Conflicto con el estado actual (por ejemplo, la misma clave
+            de idempotencia con otro payload).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: conflict
+                  message: La solicitud entra en conflicto con el estado actual.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/investments/positions/:
     get:
       operationId: investments_positions_list
@@ -4841,6 +5039,25 @@ components:
       - id
       - kind
       - user_id
+    Alias:
+      type: object
+      description: El alias que el usuario se pone o cambia.
+      properties:
+        alias:
+          type: string
+          description: 'Identificador público: 6 a 20 caracteres, minúsculas, dígitos,
+            punto, guion o guion bajo; empieza y termina con letra o dígito.'
+          maxLength: 20
+      required:
+      - alias
+    AliasResponse:
+      type: object
+      description: El alias del usuario (null si no tiene).
+      properties:
+        alias:
+          type: string
+          nullable: true
+          description: El alias del usuario, o null si todavía no tiene.
     Balance:
       type: object
       description: Saldo de una cuenta.
@@ -6567,7 +6784,13 @@ components:
         last_name:
           type: string
           maxLength: 150
+        alias:
+          type: string
+          readOnly: true
+          nullable: true
+          description: Identificador público del usuario (único, en minúsculas).
       required:
+      - alias
       - email
       - id
   securitySchemes:

@@ -4,6 +4,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils import timezone
 
 from apps.core.models import BaseModel
@@ -59,6 +60,23 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    alias = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text='Identificador público del usuario (único, en minúsculas).',
+    )
+
+    class Meta:
+        constraints = [
+            # El alias es único sin distinguir mayúsculas (PostgreSQL trata los
+            # NULL como distintos: varios usuarios pueden no tener alias).
+            models.UniqueConstraint(
+                Lower('alias'),
+                name='identity_user_alias_unique_ignoring_case',
+            ),
+        ]
 
     def __str__(self):
         return self.email

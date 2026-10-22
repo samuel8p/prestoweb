@@ -9,7 +9,9 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.identity.alias import validate_alias
 from apps.identity.exceptions import (
+    AliasTaken,
     EmailAlreadyRegistered,
     InvalidDocuments,
     InvalidKYCResolution,
@@ -19,6 +21,7 @@ from apps.identity.exceptions import (
     WeakPassword,
 )
 from apps.identity.models import KYCVerification, Profile, User
+from apps.identity.selectors import get_user_id_by_alias
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +122,34 @@ def resolve_kyc(
         resolved_by_user_id,
     )
     return verification
+
+
+def set_alias(user: User, alias: str) -> User:
+    """Pone o cambia el alias público de un usuario.
+
+    Args:
+        user: usuario dueño del alias.
+        alias: el alias elegido.
+
+    Returns:
+        El usuario con el alias puesto.
+
+    Raises:
+        InvalidAlias: si el alias no cumple el formato o está reservado.
+        AliasTaken: si otro usuario ya tiene ese alias.
+    """
+    normalized = validate_alias(alias)
+    owner = get_user_id_by_alias(normalized)
+    if owner is not None and owner != user.id:
+        raise AliasTaken('Ese alias ya está en uso.')
+    user.alias = normalized
+    try:
+        with transaction.atomic():
+            user.save(update_fields=['alias'])
+    except IntegrityError as exc:
+        # Ganó otra-request con el mismo alias (la base es la que manda).
+        raise AliasTaken('Ese alias ya está en uso.') from exc
+    return user
 
 
 def update_profile(user: User, changes: dict[str, Any]) -> Profile:

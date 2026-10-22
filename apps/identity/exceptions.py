@@ -1,5 +1,8 @@
 """Excepciones de dominio de la app identity."""
 
+from rest_framework import status
+from rest_framework.exceptions import APIException
+
 from apps.core.exceptions import DomainError
 
 
@@ -33,3 +36,19 @@ class InvalidProfileField(IdentityError):
 
 class WeakPassword(IdentityError):
     """La contraseña no pasa los validadores de Django."""
+
+
+class InvalidAlias(IdentityError):
+    """El alias no cumple el formato o está reservado."""
+
+
+class AliasTaken(IdentityError):
+    """El alias ya lo tiene otro usuario."""
+
+
+class AliasConflict(APIException):
+    """HTTP 409: el alias ya lo tiene otro usuario."""
+
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = 'Ese alias ya está en uso.'
+    default_code = 'alias_taken'

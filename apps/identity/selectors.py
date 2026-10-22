@@ -55,6 +55,25 @@ def is_kyc_approved(user_id: uuid.UUID) -> bool:
     return verification is not None and verification.status == KYCVerification.Status.APPROVED
 
 
+def get_user_id_by_alias(alias: str) -> uuid.UUID | None:
+    """Devuelve el id del usuario con ese alias, o None si no tiene.
+
+    La búsqueda no distingue mayúsculas (el alias siempre se guarda en
+    minúsculas).
+
+    Args:
+        alias: el alias buscado.
+
+    Returns:
+        El id del usuario o None.
+    """
+    normalized = (alias or '').strip().lower()
+    if not normalized:
+        return None
+    query = User.objects.filter(alias__iexact=normalized)
+    return query.values_list('id', flat=True).first()
+
+
 def get_user_email(user_id: uuid.UUID) -> str | None:
     """Devuelve el email del usuario, o None si no tiene.
 
