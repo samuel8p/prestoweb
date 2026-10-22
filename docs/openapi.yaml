@@ -10,7 +10,7 @@ paths:
       description: Valida las credenciales y devuelve access y refresh tokens.
       summary: Iniciar sesión y obtener tokens JWT
       tags:
-        - auth
+      - auth
       requestBody:
         content:
           application/json:
@@ -24,8 +24,8 @@ paths:
               $ref: '#/components/schemas/Login'
         required: true
       security:
-        - jwtAuth: []
-        - {}
+      - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -39,9 +39,9 @@ paths:
       description: Devuelve los datos del usuario autenticado y su perfil.
       summary: Ver el propio perfil
       tags:
-        - auth
+      - auth
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -54,7 +54,7 @@ paths:
       description: Actualiza los datos del perfil del usuario autenticado.
       summary: Actualizar el propio perfil
       tags:
-        - auth
+      - auth
       requestBody:
         content:
           application/json:
@@ -67,7 +67,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedMeUpdate'
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -81,7 +81,7 @@ paths:
       description: Registra un usuario nuevo y devuelve sus datos.
       summary: Registrar un usuario
       tags:
-        - auth
+      - auth
       requestBody:
         content:
           application/json:
@@ -95,8 +95,8 @@ paths:
               $ref: '#/components/schemas/Register'
         required: true
       security:
-        - jwtAuth: []
-        - {}
+      - jwtAuth: []
+      - {}
       responses:
         '201':
           content:
@@ -111,7 +111,7 @@ paths:
         tokens.
       summary: Renovar el access token rotando el refresh token
       tags:
-        - auth
+      - auth
       responses:
         '200':
           content:
@@ -125,9 +125,9 @@ paths:
       description: Lista los presupuestos del usuario.
       summary: Listar los presupuestos propios
       tags:
-        - budgets
+      - budgets
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -140,7 +140,7 @@ paths:
       description: Crea el presupuesto mensual de una categoría y moneda.
       summary: Crear un presupuesto mensual
       tags:
-        - budgets
+      - budgets
       requestBody:
         content:
           application/json:
@@ -154,7 +154,7 @@ paths:
               $ref: '#/components/schemas/CreateBudget'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -168,16 +168,16 @@ paths:
       description: Devuelve el presupuesto del usuario.
       summary: Ver un presupuesto propio
       parameters:
-        - in: path
-          name: budget_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: budget_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - budgets
+      - budgets
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -191,16 +191,16 @@ paths:
       description: Devuelve el gastado, el límite y la alerta del presupuesto.
       summary: Ver el estado del presupuesto
       parameters:
-        - in: path
-          name: budget_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: budget_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - budgets
+      - budgets
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -214,9 +214,9 @@ paths:
       description: Lista las categorías de gasto del usuario.
       summary: Listar las categorías propias
       tags:
-        - budgets
+      - budgets
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -229,7 +229,7 @@ paths:
       description: Crea una categoría de gasto para el usuario.
       summary: Crear una categoría de gasto
       tags:
-        - budgets
+      - budgets
       requestBody:
         content:
           application/json:
@@ -243,7 +243,7 @@ paths:
               $ref: '#/components/schemas/CreateCategory'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -257,16 +257,16 @@ paths:
       description: Devuelve la categoría del usuario.
       summary: Ver una categoría propia
       parameters:
-        - in: path
-          name: category_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: category_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - budgets
+      - budgets
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -280,9 +280,9 @@ paths:
       description: Lista los gastos categorizados del usuario.
       summary: Listar los gastos propios
       tags:
-        - budgets
+      - budgets
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -295,7 +295,7 @@ paths:
       description: Categoriza un movimiento del ledger como gasto del usuario.
       summary: Categorizar un movimiento como gasto
       tags:
-        - budgets
+      - budgets
       requestBody:
         content:
           application/json:
@@ -309,7 +309,7 @@ paths:
               $ref: '#/components/schemas/CreateExpense'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -323,9 +323,9 @@ paths:
       description: Lista las posiciones de inversión del usuario.
       summary: Listar las posiciones propias
       tags:
-        - investments
+      - investments
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -338,7 +338,7 @@ paths:
       description: Abre una posición de inversión a plazo fijo.
       summary: Abrir una inversión a plazo fijo
       tags:
-        - investments
+      - investments
       requestBody:
         content:
           application/json:
@@ -352,7 +352,7 @@ paths:
               $ref: '#/components/schemas/OpenPosition'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -366,16 +366,16 @@ paths:
       description: Devuelve la posición del usuario con el detalle del producto.
       summary: Ver una posición de inversión propia
       parameters:
-        - in: path
-          name: position_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: position_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - investments
+      - investments
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -389,9 +389,9 @@ paths:
       description: Lista los productos de inversión disponibles.
       summary: Listar los productos de inversión activos
       tags:
-        - investments
+      - investments
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -406,9 +406,9 @@ paths:
         tiene.
       summary: Ver el estado KYC propio
       tags:
-        - kyc
+      - kyc
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -421,7 +421,7 @@ paths:
       description: Crea una solicitud de verificación KYC en estado pending.
       summary: Solicitar la verificación KYC
       tags:
-        - kyc
+      - kyc
       requestBody:
         content:
           application/json:
@@ -435,7 +435,7 @@ paths:
               $ref: '#/components/schemas/KYCRequest'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -449,16 +449,16 @@ paths:
       description: Devuelve la verificación KYC indicada si pertenece al usuario.
       summary: Ver una verificación KYC propia
       parameters:
-        - in: path
-          name: verification_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: verification_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - kyc
+      - kyc
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -472,9 +472,9 @@ paths:
       description: Lista las billeteras del usuario autenticado.
       summary: Listar las cuentas del usuario
       tags:
-        - ledger
+      - ledger
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -487,7 +487,7 @@ paths:
       description: Crea la billetera del usuario para la moneda indicada.
       summary: Crear la billetera del usuario en una moneda
       tags:
-        - ledger
+      - ledger
       requestBody:
         content:
           application/json:
@@ -501,7 +501,7 @@ paths:
               $ref: '#/components/schemas/CreateAccount'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -515,16 +515,16 @@ paths:
       description: Devuelve el saldo de la cuenta del usuario autenticado.
       summary: Ver el saldo de una cuenta propia
       parameters:
-        - in: path
-          name: account_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: account_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - ledger
+      - ledger
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -538,9 +538,9 @@ paths:
       description: Lista los movimientos creados por el usuario autenticado.
       summary: Listar los movimientos del usuario
       tags:
-        - ledger
+      - ledger
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -553,7 +553,7 @@ paths:
       description: Crea un depósito, retiro o transferencia con idempotencia.
       summary: Crear un movimiento de dinero
       tags:
-        - ledger
+      - ledger
       requestBody:
         content:
           application/json:
@@ -567,7 +567,7 @@ paths:
               $ref: '#/components/schemas/CreateTransaction'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -581,16 +581,16 @@ paths:
       description: Devuelve el movimiento indicado si pertenece al usuario.
       summary: Ver un movimiento propio
       parameters:
-        - in: path
-          name: transaction_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: transaction_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - ledger
+      - ledger
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -604,9 +604,9 @@ paths:
       description: Lista los préstamos del usuario como prestatario o prestamista.
       summary: Listar los préstamos propios
       tags:
-        - loans
+      - loans
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -619,7 +619,7 @@ paths:
       description: Acepta una oferta y devuelve el préstamo creado.
       summary: Aceptar una oferta y recibir el préstamo
       tags:
-        - loans
+      - loans
       requestBody:
         content:
           application/json:
@@ -633,7 +633,7 @@ paths:
               $ref: '#/components/schemas/AcceptOffer'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -647,16 +647,16 @@ paths:
       description: Devuelve el préstamo con su snapshot y sus cuotas.
       summary: Ver un préstamo propio con snapshot y cuotas
       parameters:
-        - in: path
-          name: loan_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: loan_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - loans
+      - loans
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -670,21 +670,21 @@ paths:
       description: Paga la cuota indicada del préstamo.
       summary: Pagar una cuota del préstamo
       parameters:
-        - in: path
-          name: loan_id
-          schema:
-            type: string
-            format: uuid
-          required: true
-        - in: path
-          name: number
-          schema:
-            type: integer
-          required: true
+      - in: path
+        name: loan_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: number
+        schema:
+          type: integer
+        required: true
       tags:
-        - loans
+      - loans
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -698,7 +698,7 @@ paths:
       description: Compara las ofertas indicadas y devuelve sus números.
       summary: Comparar ofertas
       tags:
-        - matching
+      - matching
       requestBody:
         content:
           application/json:
@@ -712,7 +712,7 @@ paths:
               $ref: '#/components/schemas/CompareOffers'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -726,57 +726,57 @@ paths:
       description: Busca ofertas activas con los filtros de la query string.
       summary: Buscar ofertas activas
       parameters:
-        - in: query
-          name: amount_max
-          schema:
-            type: string
-            format: decimal
-            pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
-        - in: query
-          name: amount_min
-          schema:
-            type: string
-            format: decimal
-            pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
-        - in: query
-          name: currency
-          schema:
-            enum:
-              - ARS
-              - USD
-            type: string
-            minLength: 1
-          description: |-
-            * `ARS` - ARS
-            * `USD` - USD
-        - in: query
-          name: max_rate
-          schema:
-            type: string
-            format: decimal
-            pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
-        - in: query
-          name: ordering
-          schema:
-            enum:
-              - rate
-              - term
-              - amount
-            type: string
-            minLength: 1
-          description: |-
-            * `rate` - rate
-            * `term` - term
-            * `amount` - amount
-        - in: query
-          name: term_months
-          schema:
-            type: integer
-            minimum: 1
+      - in: query
+        name: amount_max
+        schema:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      - in: query
+        name: amount_min
+        schema:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      - in: query
+        name: currency
+        schema:
+          enum:
+          - ARS
+          - USD
+          type: string
+          minLength: 1
+        description: |-
+          * `ARS` - ARS
+          * `USD` - USD
+      - in: query
+        name: max_rate
+        schema:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+      - in: query
+        name: ordering
+        schema:
+          enum:
+          - rate
+          - term
+          - amount
+          type: string
+          minLength: 1
+        description: |-
+          * `rate` - rate
+          * `term` - term
+          * `amount` - amount
+      - in: query
+        name: term_months
+        schema:
+          type: integer
+          minimum: 1
       tags:
-        - matching
+      - matching
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -790,9 +790,9 @@ paths:
       description: Devuelve el modo de la aplicación y si el dinero es simulado.
       summary: Ver el modo de la aplicación
       tags:
-        - meta
+      - meta
       security:
-        - {}
+      - {}
       responses:
         '200':
           content:
@@ -806,9 +806,9 @@ paths:
       description: Lista los avisos del usuario, del más nuevo al más viejo.
       summary: Listar los avisos propios
       tags:
-        - notifications
+      - notifications
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -822,9 +822,9 @@ paths:
       description: Devuelve las preferencias del usuario con todos los eventos.
       summary: Ver las preferencias de avisos
       tags:
-        - notifications
+      - notifications
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -837,7 +837,7 @@ paths:
       description: Guarda si el usuario quiere recibir un tipo de aviso.
       summary: Activar o desactivar un tipo de aviso
       tags:
-        - notifications
+      - notifications
       requestBody:
         content:
           application/json:
@@ -851,7 +851,7 @@ paths:
               $ref: '#/components/schemas/NotificationPreference'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -865,9 +865,9 @@ paths:
       description: Lista las ofertas publicadas por el usuario autenticado.
       summary: Listar las ofertas propias
       tags:
-        - offers
+      - offers
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -880,7 +880,7 @@ paths:
       description: Publica una oferta de préstamo. No reserva fondos.
       summary: Publicar una oferta de préstamo
       tags:
-        - offers
+      - offers
       requestBody:
         content:
           application/json:
@@ -894,7 +894,7 @@ paths:
               $ref: '#/components/schemas/CreateOffer'
         required: true
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -908,16 +908,16 @@ paths:
       description: Devuelve la oferta del prestamista autenticado.
       summary: Ver una oferta propia
       parameters:
-        - in: path
-          name: offer_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: offer_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - offers
+      - offers
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -930,14 +930,14 @@ paths:
       description: Actualiza los datos de la oferta o la expira.
       summary: Actualizar o expirar una oferta propia
       parameters:
-        - in: path
-          name: offer_id
-          schema:
-            type: string
-            format: uuid
-          required: true
+      - in: path
+        name: offer_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       tags:
-        - offers
+      - offers
       requestBody:
         content:
           application/json:
@@ -950,7 +950,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedUpdateOffer'
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -964,9 +964,9 @@ paths:
       description: Devuelve el resumen de las posiciones de inversión del usuario.
       summary: Ver el resumen de inversiones
       tags:
-        - reports
+      - reports
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -980,9 +980,9 @@ paths:
       description: Devuelve el resumen de los préstamos del usuario en la moneda pedida.
       summary: Ver el resumen de préstamos
       tags:
-        - reports
+      - reports
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -996,9 +996,9 @@ paths:
       description: Devuelve los movimientos del usuario en el rango y la moneda pedidos.
       summary: Ver los movimientos del usuario en el período
       tags:
-        - reports
+      - reports
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -1013,9 +1013,9 @@ paths:
         pedidos.
       summary: Ver el gasto por categoría del período
       tags:
-        - reports
+      - reports
       security:
-        - jwtAuth: []
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -1033,7 +1033,7 @@ components:
           type: string
           format: uuid
       required:
-        - offer_id
+      - offer_id
     Account:
       type: object
       description: Datos de una cuenta y su saldo.
@@ -1049,11 +1049,11 @@ components:
           nullable: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyEnum'
+          - $ref: '#/components/schemas/CurrencyEnum'
           readOnly: true
         kind:
           allOf:
-            - $ref: '#/components/schemas/KindEnum'
+          - $ref: '#/components/schemas/KindEnum'
           readOnly: true
         balance:
           type: string
@@ -1065,12 +1065,12 @@ components:
           format: date-time
           readOnly: true
       required:
-        - balance
-        - created_at
-        - currency
-        - id
-        - kind
-        - user_id
+      - balance
+      - created_at
+      - currency
+      - id
+      - kind
+      - user_id
     Balance:
       type: object
       description: Saldo de una cuenta.
@@ -1085,9 +1085,9 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
       required:
-        - account_id
-        - balance
-        - currency
+      - account_id
+      - balance
+      - currency
     Budget:
       type: object
       description: Presupuesto mensual de una categoría.
@@ -1098,11 +1098,11 @@ components:
           readOnly: true
         category:
           allOf:
-            - $ref: '#/components/schemas/Category'
+          - $ref: '#/components/schemas/Category'
           readOnly: true
         period:
           allOf:
-            - $ref: '#/components/schemas/PeriodEnum'
+          - $ref: '#/components/schemas/PeriodEnum'
           readOnly: true
         limit_amount:
           type: string
@@ -1111,7 +1111,7 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyEnum'
+          - $ref: '#/components/schemas/CurrencyEnum'
           readOnly: true
         alert_threshold:
           type: integer
@@ -1121,13 +1121,13 @@ components:
           format: date-time
           readOnly: true
       required:
-        - alert_threshold
-        - category
-        - created_at
-        - currency
-        - id
-        - limit_amount
-        - period
+      - alert_threshold
+      - category
+      - created_at
+      - currency
+      - id
+      - limit_amount
+      - period
     BudgetStatus:
       type: object
       description: Estado del presupuesto en un período.
@@ -1165,17 +1165,17 @@ components:
         alert_triggered:
           type: boolean
       required:
-        - alert_triggered
-        - budget_id
-        - category_id
-        - currency
-        - limit_amount
-        - month
-        - period
-        - remaining_amount
-        - spent_amount
-        - threshold_amount
-        - year
+      - alert_triggered
+      - budget_id
+      - category_id
+      - currency
+      - limit_amount
+      - month
+      - period
+      - remaining_amount
+      - spent_amount
+      - threshold_amount
+      - year
     Category:
       type: object
       description: Categoría de gasto del usuario.
@@ -1192,9 +1192,9 @@ components:
           format: date-time
           readOnly: true
       required:
-        - created_at
-        - id
-        - name
+      - created_at
+      - id
+      - name
     CompareOffers:
       type: object
       description: Identificadores de las ofertas a comparar.
@@ -1206,7 +1206,7 @@ components:
             format: uuid
           minItems: 2
       required:
-        - offer_ids
+      - offer_ids
     CreateAccount:
       type: object
       description: Datos para crear la billetera del usuario en una moneda.
@@ -1214,7 +1214,7 @@ components:
         currency:
           $ref: '#/components/schemas/CurrencyEnum'
       required:
-        - currency
+      - currency
     CreateBudget:
       type: object
       description: Datos para crear un presupuesto.
@@ -1233,10 +1233,10 @@ components:
           maximum: 100
           minimum: 0
       required:
-        - alert_threshold
-        - category_id
-        - currency
-        - limit_amount
+      - alert_threshold
+      - category_id
+      - currency
+      - limit_amount
     CreateCategory:
       type: object
       description: Datos para crear una categoría de gasto.
@@ -1245,7 +1245,7 @@ components:
           type: string
           maxLength: 100
       required:
-        - name
+      - name
     CreateExpense:
       type: object
       description: Datos para categorizar un movimiento del ledger como gasto.
@@ -1257,8 +1257,8 @@ components:
           type: string
           format: uuid
       required:
-        - category_id
-        - ledger_transaction_id
+      - category_id
+      - ledger_transaction_id
     CreateOffer:
       type: object
       description: Datos para publicar una oferta.
@@ -1280,10 +1280,10 @@ components:
           type: string
           maxLength: 2000
       required:
-        - amount
-        - currency
-        - interest_rate
-        - term_months
+      - amount
+      - currency
+      - interest_rate
+      - term_months
     CreateTransaction:
       type: object
       description: Datos para crear un movimiento de dinero.
@@ -1304,14 +1304,14 @@ components:
           type: string
           maxLength: 255
       required:
-        - amount
-        - currency
-        - type
+      - amount
+      - currency
+      - type
     CreateTransactionTypeEnum:
       enum:
-        - deposit
-        - withdrawal
-        - transfer
+      - deposit
+      - withdrawal
+      - transfer
       type: string
       description: |-
         * `deposit` - deposit
@@ -1319,18 +1319,18 @@ components:
         * `transfer` - transfer
     CurrencyEnum:
       enum:
-        - ARS
-        - USD
+      - ARS
+      - USD
       type: string
       description: |-
         * `ARS` - Peso argentino
         * `USD` - Dólar
     EventTypeEnum:
       enum:
-        - installment_due_soon
-        - installment_overdue
-        - investment_settled
-        - budget_alert
+      - installment_due_soon
+      - installment_overdue
+      - investment_settled
+      - budget_alert
       type: string
       description: |-
         * `installment_due_soon` - Cuota por vencer
@@ -1347,7 +1347,7 @@ components:
           readOnly: true
         category:
           allOf:
-            - $ref: '#/components/schemas/Category'
+          - $ref: '#/components/schemas/Category'
           readOnly: true
         ledger_transaction_id:
           type: string
@@ -1358,10 +1358,10 @@ components:
           format: date-time
           readOnly: true
       required:
-        - category
-        - created_at
-        - id
-        - ledger_transaction_id
+      - category
+      - created_at
+      - id
+      - ledger_transaction_id
     Installment:
       type: object
       description: Cuota de un préstamo.
@@ -1394,7 +1394,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/InstallmentStatusEnum'
+          - $ref: '#/components/schemas/InstallmentStatusEnum'
           readOnly: true
         paid_at:
           type: string
@@ -1402,19 +1402,19 @@ components:
           readOnly: true
           nullable: true
       required:
-        - amount
-        - due_date
-        - id
-        - interest_amount
-        - number
-        - paid_at
-        - principal_amount
-        - status
+      - amount
+      - due_date
+      - id
+      - interest_amount
+      - number
+      - paid_at
+      - principal_amount
+      - status
     InstallmentStatusEnum:
       enum:
-        - pending
-        - paid
-        - overdue
+      - pending
+      - paid
+      - overdue
       type: string
       description: |-
         * `pending` - Pendiente
@@ -1447,13 +1447,13 @@ components:
           type: string
           format: date
       required:
-        - amount
-        - interest_amount
-        - maturity_date
-        - opened_at
-        - position_id
-        - product_id
-        - status
+      - amount
+      - interest_amount
+      - maturity_date
+      - opened_at
+      - position_id
+      - product_id
+      - status
     InvestmentProduct:
       type: object
       description: Datos de un producto de inversión.
@@ -1464,11 +1464,11 @@ components:
           readOnly: true
         type:
           allOf:
-            - $ref: '#/components/schemas/InvestmentProductTypeEnum'
+          - $ref: '#/components/schemas/InvestmentProductTypeEnum'
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyEnum'
+          - $ref: '#/components/schemas/CurrencyEnum'
           readOnly: true
         term_days:
           type: integer
@@ -1486,26 +1486,26 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/InvestmentProductStatusEnum'
+          - $ref: '#/components/schemas/InvestmentProductStatusEnum'
           readOnly: true
         created_at:
           type: string
           format: date-time
           readOnly: true
       required:
-        - annual_rate_tna
-        - created_at
-        - currency
-        - id
-        - min_amount
-        - status
-        - term_days
-        - type
+      - annual_rate_tna
+      - created_at
+      - currency
+      - id
+      - min_amount
+      - status
+      - term_days
+      - type
     InvestmentProductStatusEnum:
       enum:
-        - active
-        - matured
-        - cancelled
+      - active
+      - matured
+      - cancelled
       type: string
       description: |-
         * `active` - Activo
@@ -1513,7 +1513,7 @@ components:
         * `cancelled` - Cancelado
     InvestmentProductTypeEnum:
       enum:
-        - fixed_term
+      - fixed_term
       type: string
       description: '* `fixed_term` - Plazo fijo'
     InvestmentsReport:
@@ -1539,18 +1539,18 @@ components:
           items:
             $ref: '#/components/schemas/InvestmentPosition'
       required:
-        - currency
-        - interest_earned
-        - interest_expected
-        - positions
-        - total_invested
+      - currency
+      - interest_earned
+      - interest_expected
+      - positions
+      - total_invested
     KYCRequest:
       type: object
       description: Metadata de documentos para solicitar la verificación KYC.
       properties:
         documents: {}
       required:
-        - documents
+      - documents
     KYCVerification:
       type: object
       description: Estado de una verificación KYC.
@@ -1561,7 +1561,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/KYCVerificationStatusEnum'
+          - $ref: '#/components/schemas/KYCVerificationStatusEnum'
           readOnly: true
         requested_at:
           type: string
@@ -1580,17 +1580,17 @@ components:
         documents:
           readOnly: true
       required:
-        - documents
-        - id
-        - requested_at
-        - resolved_at
-        - resolved_by_user_id
-        - status
+      - documents
+      - id
+      - requested_at
+      - resolved_at
+      - resolved_by_user_id
+      - status
     KYCVerificationStatusEnum:
       enum:
-        - pending
-        - approved
-        - rejected
+      - pending
+      - approved
+      - rejected
       type: string
       description: |-
         * `pending` - Pendiente
@@ -1598,9 +1598,9 @@ components:
         * `rejected` - Rechazada
     KindEnum:
       enum:
-        - user_wallet
-        - custody
-        - system
+      - user_wallet
+      - custody
+      - system
       type: string
       description: |-
         * `user_wallet` - Billetera de usuario
@@ -1616,7 +1616,7 @@ components:
           readOnly: true
         type:
           allOf:
-            - $ref: '#/components/schemas/LedgerTransactionTypeEnum'
+          - $ref: '#/components/schemas/LedgerTransactionTypeEnum'
           readOnly: true
         idempotency_key:
           type: string
@@ -1647,23 +1647,23 @@ components:
           format: date-time
           readOnly: true
       required:
-        - created_at
-        - created_by_user_id
-        - description
-        - destination_account_id
-        - id
-        - idempotency_key
-        - occurred_at
-        - reverses
-        - type
+      - created_at
+      - created_by_user_id
+      - description
+      - destination_account_id
+      - id
+      - idempotency_key
+      - occurred_at
+      - reverses
+      - type
     LedgerTransactionTypeEnum:
       enum:
-        - deposit
-        - withdrawal
-        - transfer
-        - interest
-        - fee
-        - reversal
+      - deposit
+      - withdrawal
+      - transfer
+      - interest
+      - fee
+      - reversal
       type: string
       description: |-
         * `deposit` - Depósito
@@ -1699,7 +1699,7 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyEnum'
+          - $ref: '#/components/schemas/CurrencyEnum'
           readOnly: true
         interest_rate:
           type: string
@@ -1712,23 +1712,23 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/LoanStatusEnum'
+          - $ref: '#/components/schemas/LoanStatusEnum'
           readOnly: true
         accepted_at:
           type: string
           format: date-time
           readOnly: true
       required:
-        - accepted_at
-        - borrower_user_id
-        - currency
-        - id
-        - interest_rate
-        - lender_user_id
-        - offer_id
-        - principal
-        - status
-        - term_months
+      - accepted_at
+      - borrower_user_id
+      - currency
+      - id
+      - interest_rate
+      - lender_user_id
+      - offer_id
+      - principal
+      - status
+      - term_months
     LoanDetail:
       type: object
       description: Préstamo con su snapshot de términos y sus cuotas.
@@ -1756,7 +1756,7 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyEnum'
+          - $ref: '#/components/schemas/CurrencyEnum'
           readOnly: true
         interest_rate:
           type: string
@@ -1769,7 +1769,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/LoanStatusEnum'
+          - $ref: '#/components/schemas/LoanStatusEnum'
           readOnly: true
         accepted_at:
           type: string
@@ -1777,7 +1777,7 @@ components:
           readOnly: true
         terms_snapshot:
           allOf:
-            - $ref: '#/components/schemas/OfferTermsSnapshot'
+          - $ref: '#/components/schemas/OfferTermsSnapshot'
           readOnly: true
         installments:
           type: array
@@ -1785,23 +1785,23 @@ components:
             $ref: '#/components/schemas/Installment'
           readOnly: true
       required:
-        - accepted_at
-        - borrower_user_id
-        - currency
-        - id
-        - installments
-        - interest_rate
-        - lender_user_id
-        - offer_id
-        - principal
-        - status
-        - term_months
-        - terms_snapshot
+      - accepted_at
+      - borrower_user_id
+      - currency
+      - id
+      - installments
+      - interest_rate
+      - lender_user_id
+      - offer_id
+      - principal
+      - status
+      - term_months
+      - terms_snapshot
     LoanStatusEnum:
       enum:
-        - active
-        - paid
-        - defaulted
+      - active
+      - paid
+      - defaulted
       type: string
       description: |-
         * `active` - Activo
@@ -1818,9 +1818,9 @@ components:
         as_lender:
           $ref: '#/components/schemas/LoansRoleSummary'
       required:
-        - as_borrower
-        - as_lender
-        - currency
+      - as_borrower
+      - as_lender
+      - currency
     LoansRoleSummary:
       type: object
       description: El resumen de los préstamos del usuario en un rol.
@@ -1840,10 +1840,10 @@ components:
           items:
             $ref: '#/components/schemas/NextInstallment'
       required:
-        - active_loans
-        - interest_amount
-        - next_installments
-        - outstanding_amount
+      - active_loans
+      - interest_amount
+      - next_installments
+      - outstanding_amount
     Login:
       type: object
       description: Credenciales de acceso.
@@ -1855,8 +1855,8 @@ components:
           type: string
           writeOnly: true
       required:
-        - email
-        - password
+      - email
+      - password
     LoginResponse:
       type: object
       description: Respuesta del login con tokens y datos del usuario.
@@ -1868,9 +1868,9 @@ components:
         user:
           $ref: '#/components/schemas/User'
       required:
-        - access
-        - refresh
-        - user
+      - access
+      - refresh
+      - user
     Meta:
       type: object
       description: Información pública del modo en que corre la aplicación.
@@ -1880,8 +1880,8 @@ components:
         simulated_money:
           type: boolean
       required:
-        - mode
-        - simulated_money
+      - mode
+      - simulated_money
     MovementReportRow:
       type: object
       description: Un movimiento del ledger dentro del reporte.
@@ -1905,13 +1905,13 @@ components:
         is_reversed:
           type: boolean
       required:
-        - amount
-        - currency
-        - description
-        - id
-        - is_reversed
-        - occurred_at
-        - type
+      - amount
+      - currency
+      - description
+      - id
+      - is_reversed
+      - occurred_at
+      - type
     NextInstallment:
       type: object
       description: La próxima cuota a pagar de un préstamo.
@@ -1929,10 +1929,10 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
       required:
-        - amount
-        - due_date
-        - loan_id
-        - number
+      - amount
+      - due_date
+      - loan_id
+      - number
     Notification:
       type: object
       description: Un aviso del usuario.
@@ -1947,7 +1947,7 @@ components:
           readOnly: true
         event_type:
           allOf:
-            - $ref: '#/components/schemas/EventTypeEnum'
+          - $ref: '#/components/schemas/EventTypeEnum'
           readOnly: true
         reference_id:
           type: string
@@ -1955,7 +1955,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/NotificationStatusEnum'
+          - $ref: '#/components/schemas/NotificationStatusEnum'
           readOnly: true
         created_at:
           type: string
@@ -1970,14 +1970,14 @@ components:
           type: string
           readOnly: true
       required:
-        - created_at
-        - error
-        - event_type
-        - id
-        - reference_id
-        - sent_at
-        - status
-        - user_id
+      - created_at
+      - error
+      - event_type
+      - id
+      - reference_id
+      - sent_at
+      - status
+      - user_id
     NotificationPreference:
       type: object
       description: La preferencia de un tipo de evento.
@@ -1987,8 +1987,8 @@ components:
         enabled:
           type: boolean
       required:
-        - enabled
-        - event_type
+      - enabled
+      - event_type
     NotificationPreferenceList:
       type: object
       description: Las preferencias del usuario con todos los eventos.
@@ -1998,12 +1998,12 @@ components:
           items:
             $ref: '#/components/schemas/NotificationPreference'
       required:
-        - preferences
+      - preferences
     NotificationStatusEnum:
       enum:
-        - pending
-        - sent
-        - failed
+      - pending
+      - sent
+      - failed
       type: string
       description: |-
         * `pending` - Pendiente
@@ -2028,7 +2028,7 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyEnum'
+          - $ref: '#/components/schemas/CurrencyEnum'
           readOnly: true
         interest_rate:
           type: string
@@ -2044,22 +2044,22 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/OfferStatusEnum'
+          - $ref: '#/components/schemas/OfferStatusEnum'
           readOnly: true
         created_at:
           type: string
           format: date-time
           readOnly: true
       required:
-        - amount
-        - created_at
-        - currency
-        - id
-        - interest_rate
-        - lender_user_id
-        - requirements
-        - status
-        - term_months
+      - amount
+      - created_at
+      - currency
+      - id
+      - interest_rate
+      - lender_user_id
+      - requirements
+      - status
+      - term_months
     OfferComparison:
       type: object
       description: Oferta comparada con su cuota, interés total y costo total.
@@ -2097,16 +2097,16 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
       required:
-        - amount
-        - currency
-        - id
-        - installment
-        - interest_rate
-        - lender_user_id
-        - requirements
-        - term_months
-        - total_cost
-        - total_interest
+      - amount
+      - currency
+      - id
+      - installment
+      - interest_rate
+      - lender_user_id
+      - requirements
+      - term_months
+      - total_cost
+      - total_interest
     OfferMatch:
       type: object
       description: Oferta que coincide con la búsqueda.
@@ -2132,18 +2132,18 @@ components:
         requirements:
           type: string
       required:
-        - amount
-        - currency
-        - id
-        - interest_rate
-        - lender_user_id
-        - requirements
-        - term_months
+      - amount
+      - currency
+      - id
+      - interest_rate
+      - lender_user_id
+      - requirements
+      - term_months
     OfferStatusEnum:
       enum:
-        - active
-        - expired
-        - accepted
+      - active
+      - expired
+      - accepted
       type: string
       description: |-
         * `active` - Activa
@@ -2171,11 +2171,11 @@ components:
           type: boolean
           readOnly: true
       required:
-        - accepted_at
-        - accepted_by_user_id
-        - id
-        - is_immutable
-        - snapshot_data
+      - accepted_at
+      - accepted_by_user_id
+      - id
+      - is_immutable
+      - snapshot_data
     OpenPosition:
       type: object
       description: Datos para abrir una posición de inversión.
@@ -2191,8 +2191,8 @@ components:
           type: string
           maxLength: 3
       required:
-        - amount
-        - product_id
+      - amount
+      - product_id
     PatchedMeUpdate:
       type: object
       description: Campos del perfil que el usuario puede actualizar sobre sí mismo.
@@ -2206,11 +2206,11 @@ components:
           nullable: true
         country:
           oneOf:
-            - type: string
-              pattern: ^[A-Z]{2}$
-              maxLength: 2
-            - type: string
-              maxLength: 0
+          - type: string
+            pattern: ^[A-Z]{2}$
+            maxLength: 2
+          - type: string
+            maxLength: 0
     PatchedUpdateOffer:
       type: object
       description: Datos que el prestamista puede modificar en su oferta.
@@ -2235,7 +2235,7 @@ components:
           $ref: '#/components/schemas/UpdateOfferStatusEnum'
     PeriodEnum:
       enum:
-        - monthly
+      - monthly
       type: string
       description: '* `monthly` - Mensual'
     Position:
@@ -2257,7 +2257,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/PositionStatusEnum'
+          - $ref: '#/components/schemas/PositionStatusEnum'
           readOnly: true
         opened_at:
           type: string
@@ -2273,13 +2273,13 @@ components:
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
           readOnly: true
       required:
-        - amount
-        - id
-        - interest_amount
-        - maturity_date
-        - opened_at
-        - product
-        - status
+      - amount
+      - id
+      - interest_amount
+      - maturity_date
+      - opened_at
+      - product
+      - status
     PositionDetail:
       type: object
       description: Posición de inversión con el detalle del producto.
@@ -2299,7 +2299,7 @@ components:
           readOnly: true
         status:
           allOf:
-            - $ref: '#/components/schemas/PositionStatusEnum'
+          - $ref: '#/components/schemas/PositionStatusEnum'
           readOnly: true
         opened_at:
           type: string
@@ -2316,21 +2316,21 @@ components:
           readOnly: true
         product_detail:
           allOf:
-            - $ref: '#/components/schemas/InvestmentProduct'
+          - $ref: '#/components/schemas/InvestmentProduct'
           readOnly: true
       required:
-        - amount
-        - id
-        - interest_amount
-        - maturity_date
-        - opened_at
-        - product
-        - product_detail
-        - status
+      - amount
+      - id
+      - interest_amount
+      - maturity_date
+      - opened_at
+      - product
+      - product_detail
+      - status
     PositionStatusEnum:
       enum:
-        - active
-        - matured
+      - active
+      - matured
       type: string
       description: |-
         * `active` - Activa
@@ -2347,8 +2347,8 @@ components:
           writeOnly: true
           minLength: 8
       required:
-        - email
-        - password
+      - email
+      - password
     SpendingCategory:
       type: object
       description: El gasto acumulado de una categoría en el período.
@@ -2365,10 +2365,10 @@ components:
         movements:
           type: integer
       required:
-        - amount
-        - category_id
-        - category_name
-        - movements
+      - amount
+      - category_id
+      - category_name
+      - movements
     SpendingReport:
       type: object
       description: El reporte de gasto por categoría.
@@ -2388,14 +2388,14 @@ components:
           items:
             $ref: '#/components/schemas/SpendingCategory'
       required:
-        - categories
-        - currency
-        - from_date
-        - to_date
-        - total
+      - categories
+      - currency
+      - from_date
+      - to_date
+      - total
     UpdateOfferStatusEnum:
       enum:
-        - expired
+      - expired
       type: string
       description: '* `expired` - expired'
     User:
@@ -2417,8 +2417,8 @@ components:
           type: string
           maxLength: 150
       required:
-        - email
-        - id
+      - email
+      - id
   securitySchemes:
     jwtAuth:
       type: http
