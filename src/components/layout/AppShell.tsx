@@ -1,289 +1,205 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
-import { Button } from '../ui/Button'
+import { AvatarMenu } from './AvatarMenu'
+import { NotificationsPanel } from './NotificationsPanel'
+import { SearchDialog } from './SearchDialog'
 import { Icon } from '../ui/Icon'
-import type { IconName } from '../ui/Icon'
 import { Logo } from '../ui/Logo'
+import { MOBILE_EXTRA_SECTIONS, MOBILE_SECTIONS, NAV_SECTIONS } from '../../app/navigation'
 import { DemoBanner } from '../../features/meta/DemoBanner'
-import { useAuth } from '../../features/auth/auth-context'
-
-interface NavItem {
-  to: string
-  label: string
-  icon: IconName
-}
-
-interface NavGroup {
-  label: string
-  items: NavItem[]
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Dinero',
-    items: [
-      { to: '/panel', label: 'Panel', icon: 'dashboard' },
-      { to: '/billetera', label: 'Billetera', icon: 'wallet' },
-    ],
-  },
-  {
-    label: 'Préstamos',
-    items: [
-      { to: '/ofertas', label: 'Ofertas', icon: 'offer' },
-      { to: '/prestamos', label: 'Préstamos', icon: 'loan' },
-    ],
-  },
-  {
-    label: 'Planificación',
-    items: [
-      { to: '/inversiones', label: 'Inversiones', icon: 'trending' },
-      { to: '/presupuestos', label: 'Presupuestos', icon: 'budget' },
-      { to: '/reportes', label: 'Reportes', icon: 'report' },
-    ],
-  },
-  {
-    label: 'Cuenta',
-    items: [
-      { to: '/avisos', label: 'Avisos', icon: 'bell' },
-      { to: '/perfil', label: 'Perfil', icon: 'user' },
-    ],
-  },
-]
-
-/** Rutas que tienen una entrada en la navegación. */
-const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
-
-/** Navegación del océano, con el indicador de ruta activa que se desliza. */
-function Navigation({
-  onNavigate,
-  itemRefs,
-}: {
-  onNavigate?: () => void
-  itemRefs: React.MutableRefObject<Record<string, HTMLLIElement | null>>
-}) {
-  const { pathname } = useLocation()
-  const listRef = useRef<HTMLUListElement>(null)
-  const [indicatorTop, setIndicatorTop] = useState<number | null>(null)
-
-  const activePath = NAV_ITEMS.find((item) => pathname.startsWith(item.to))?.to ?? null
-
-  useLayoutEffect(() => {
-    function update() {
-      if (!activePath) {
-        setIndicatorTop(null)
-        return
-      }
-      const element = itemRefs.current[activePath]
-      if (element) {
-        setIndicatorTop(element.offsetTop)
-      }
-    }
-
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [activePath, itemRefs])
-
-  return (
-    <nav aria-label="Principal" className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-5">
-      {NAV_GROUPS.map((group) => (
-        <div key={group.label}>
-          <p className="px-2.5 pb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">
-            {group.label}
-          </p>
-          <ul ref={listRef} className="relative space-y-0.5">
-            {indicatorTop !== null ? (
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[38px] rounded-[var(--radius-control)] bg-white/10 transition-transform duration-200 ease-out"
-                style={{ transform: `translate3d(0, ${indicatorTop}px, 0)` }}
-              />
-            ) : null}
-
-            {group.items.map((item) => (
-              <li
-                key={item.to}
-                ref={(element) => {
-                  itemRefs.current[item.to] = element
-                }}
-                className="relative"
-              >
-                <NavLink
-                  to={item.to}
-                  onClick={onNavigate}
-                  className={({ isActive }) =>
-                    `relative flex items-center gap-3 rounded-[var(--radius-control)] px-2.5 py-2 text-[13.5px] font-semibold transition-colors duration-200 ${
-                      isActive ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <span
-                        aria-hidden="true"
-                        className={`absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-turquoise transition-opacity duration-200 ${
-                          isActive ? 'opacity-100' : 'opacity-0'
-                        }`}
-                      />
-                      <Icon
-                        name={item.icon}
-                        size={17}
-                        className={isActive ? 'text-turquoise' : 'text-white/50'}
-                      />
-                      {item.label}
-                    </>
-                  )}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </nav>
-  )
-}
-
-/** Pie de la barra lateral: la cuenta y la salida. */
-function AccountFooter({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-
-  function handleLogout() {
-    logout()
-    navigate('/ingresar', { replace: true })
-    onNavigate?.()
-  }
-
-  return (
-    <div className="border-t border-white/10 px-3 py-3">
-      <NavLink
-        to="/perfil"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-[var(--radius-control)] px-2.5 py-2 transition-colors hover:bg-white/5"
-      >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-turquoise/15 text-[12px] font-bold text-turquoise">
-          {(user?.first_name?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-semibold text-white">
-            {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Mi cuenta'}
-          </span>
-          <span className="block truncate text-xs text-white/50">{user?.email}</span>
-        </span>
-      </NavLink>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        icon="logout"
-        className="mt-1 w-full justify-start text-white/60 hover:bg-white/5 hover:text-white"
-        onClick={handleLogout}
-      >
-        Cerrar sesión
-      </Button>
-    </div>
-  )
-}
+import { useDismissable } from '../../lib/useDismissable'
 
 /**
  * Estructura de la aplicación.
  *
- * Barra lateral en azul marino con la navegación agrupada y un indicador de
- * ruta que se desliza; en pantallas chicas, un menú lateral desplegable.
+ * Encabezado con la navegación del escritorio y, a la derecha, el buscador,
+ * la campana de avisos y el menú del avatar. En el móvil, barra inferior con
+ * cinco destinos.
  */
 export function AppShell() {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [avatarOpen, setAvatarOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const { pathname } = useLocation()
-  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({})
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const avatarRef = useRef<HTMLDivElement>(null)
 
-  const section = NAV_GROUPS.find((group) =>
-    group.items.some((item) => pathname.startsWith(item.to)),
-  )?.label
+  const closeNotifications = useCallback(() => setNotificationsOpen(false), [])
+  const closeAvatar = useCallback(() => setAvatarOpen(false), [])
+
+  useDismissable(notificationsOpen, closeNotifications)
+  useDismissable(avatarOpen, closeAvatar)
+  useDismissable(moreOpen, () => setMoreOpen(false))
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Al cambiar de ruta se cierran los paneles abiertos (ajuste durante el
+  // render, sin setState dentro de un efecto).
+  const [lastPath, setLastPath] = useState(pathname)
+  if (pathname !== lastPath) {
+    setLastPath(pathname)
+    setNotificationsOpen(false)
+    setAvatarOpen(false)
+    setMoreOpen(false)
+  }
 
   return (
-    <div className="min-h-screen bg-canvas">
-      {/* Barra lateral (pantallas grandes) */}
-      <aside className="on-dark fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-ocean lg:flex">
-        <div className="flex h-16 items-center px-5">
+    <div className="min-h-screen bg-canvas pb-20 lg:pb-0">
+      <header className="sticky top-0 z-30 bg-ocean text-white on-dark">
+        <DemoBanner />
+
+        <div className="mx-auto flex h-16 max-w-[92rem] items-center gap-3 px-4 sm:px-6 lg:px-8">
           <Logo variant="dark" />
-        </div>
-        <Navigation itemRefs={itemRefs} />
-        <AccountFooter />
-      </aside>
 
-      <div className="lg:pl-64">
-        {/* Encabezado fijo */}
-        <header className="sticky top-0 z-20 border-b border-line bg-canvas/90 backdrop-blur">
-          <DemoBanner />
-
-          <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                icon="menu"
-                className="lg:hidden"
-                aria-expanded={menuOpen}
-                aria-controls="menu-lateral"
-                onClick={() => setMenuOpen((open) => !open)}
+          <nav aria-label="Principal" className="ml-6 hidden items-center gap-1 lg:flex">
+            {NAV_SECTIONS.map((section) => (
+              <NavLink
+                key={section.id}
+                to={section.to}
+                end={section.to === '/'}
+                className={({ isActive }) =>
+                  `rounded-[var(--radius-control)] px-3 py-2 text-[13.5px] font-semibold transition-colors duration-200 ${
+                    isActive
+                      ? 'bg-white/12 text-white'
+                      : 'text-white/65 hover:bg-white/5 hover:text-white'
+                  }`
+                }
               >
-                <span className="sr-only">Abrir el menú</span>
-              </Button>
+                {section.label}
+              </NavLink>
+            ))}
+          </nav>
 
-              <span className="label-caps text-ink-subtle">{section ?? 'Presto'}</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Buscar"
+              aria-haspopup="dialog"
+              className="flex h-9 items-center gap-2 rounded-[var(--radius-control)] px-2.5 text-white/75 transition-colors duration-200 hover:bg-white/10 hover:text-white sm:w-56 sm:justify-start"
+            >
+              <Icon name="search" size={17} />
+              <span className="hidden text-[13px] sm:inline">Buscar…</span>
+              <kbd className="ml-auto hidden rounded border border-white/20 px-1.5 py-0.5 text-[10px] font-semibold text-white/60 sm:block">
+                ⌘K
+              </kbd>
+            </button>
 
-              <span className="lg:hidden">
-                <Logo compact />
-              </span>
+            <div className="relative" ref={notificationsRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setNotificationsOpen((open) => !open)
+                  setAvatarOpen(false)
+                }}
+                aria-label="Avisos"
+                aria-expanded={notificationsOpen}
+                className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] text-white/75 transition-colors duration-200 hover:bg-white/10 hover:text-white"
+              >
+                <Icon name="bell" size={18} />
+              </button>
+              <NotificationsPanel open={notificationsOpen} onClose={closeNotifications} />
             </div>
 
-            <p className="hidden text-[13px] text-ink-muted sm:block">
-              {section ? `Finanzas entre personas · ${section}` : 'Finanzas entre personas'}
-            </p>
+            <div className="relative" ref={avatarRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setAvatarOpen((open) => !open)
+                  setNotificationsOpen(false)
+                }}
+                aria-label="Mi cuenta"
+                aria-expanded={avatarOpen}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-turquoise/20 text-[13px] font-bold text-turquoise transition-colors duration-200 hover:bg-turquoise/30"
+              >
+                <span aria-hidden="true">P</span>
+              </button>
+              <AvatarMenu open={avatarOpen} onClose={closeAvatar} />
+            </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-          <div className="mx-auto max-w-[92rem]">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+      <main className="mx-auto max-w-[92rem] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <Outlet />
+      </main>
 
-      {/* Menú lateral (pantallas chicas) */}
-      {menuOpen ? (
+      {/* Barra inferior del móvil */}
+      <nav
+        aria-label="Navegación móvil"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur lg:hidden"
+      >
+        <ul className="grid grid-cols-5">
+          {MOBILE_SECTIONS.map((section) => (
+            <li key={section.id}>
+              <NavLink
+                to={section.to}
+                end={section.to === '/'}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-1 px-1 py-2.5 text-[10.5px] font-semibold transition-colors duration-200 ${
+                    isActive ? 'text-teal' : 'text-ink-muted'
+                  }`
+                }
+              >
+                <Icon name={section.icon} size={20} />
+                {section.label}
+              </NavLink>
+            </li>
+          ))}
+          <li>
+            <button
+              type="button"
+              onClick={() => setMoreOpen(true)}
+              aria-expanded={moreOpen}
+              className="flex w-full flex-col items-center gap-1 px-1 py-2.5 text-[10.5px] font-semibold text-ink-muted transition-colors duration-200"
+            >
+              <Icon name="menu" size={20} />
+              Más
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      {moreOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
           <button
             type="button"
-            aria-label="Cerrar el menú"
-            onClick={() => setMenuOpen(false)}
+            aria-label="Cerrar"
+            onClick={() => setMoreOpen(false)}
             className="absolute inset-0 cursor-default bg-ocean/50 animate-fade-in"
           />
-
-          <div
-            id="menu-lateral"
-            className="on-dark absolute inset-y-0 left-0 flex w-72 max-w-[85%] flex-col bg-ocean shadow-raised animate-slide-left"
-          >
-            <div className="flex h-16 items-center justify-between px-5">
-              <div onClick={() => setMenuOpen(false)}>
-                <Logo variant="dark" />
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon="x"
-                className="text-white/70 hover:bg-white/10 hover:text-white"
-                aria-label="Cerrar el menú"
-                onClick={() => setMenuOpen(false)}
-              />
-            </div>
-
-            <Navigation itemRefs={itemRefs} onNavigate={() => setMenuOpen(false)} />
-            <AccountFooter onNavigate={() => setMenuOpen(false)} />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-line bg-surface p-4 shadow-raised animate-fade-up">
+            <ul className="space-y-1">
+              {MOBILE_EXTRA_SECTIONS.map((section) => (
+                <li key={section.id}>
+                  <NavLink
+                    to={section.to}
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-muted"
+                  >
+                    <Icon name={section.icon} size={18} className="text-ink-subtle" />
+                    {section.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       ) : null}
+
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }
