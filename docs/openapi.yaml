@@ -2571,6 +2571,141 @@ paths:
               description: Vale `demo` cuando la aplicación corre en modo demo.
               schema:
                 type: string
+  /api/v1/ledger/accounts/by-alias/{alias}/:
+    get:
+      operationId: ledger_accounts_by_alias
+      description: Devuelve los datos públicos del usuario con ese alias.
+      summary: Buscar un usuario por su alias
+      parameters:
+      - in: path
+        name: alias
+        schema:
+          type: string
+        required: true
+      tags:
+      - ledger
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AliasLookup'
+          description: ''
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '401':
+          description: Falta el token o venció.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_authenticated
+                  message: Debés autenticarte para acceder a este recurso.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '404':
+          description: El recurso no existe o no es del usuario.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: not_found
+                  message: El recurso solicitado no existe.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
+        '429':
+          description: Demasiados intentos (throttle).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: validation_error
+                      message:
+                        type: string
+                        example: Los datos enviados no son válidos.
+                      details:
+                        type: object
+                        example:
+                          amount:
+                          - A valid number is required.
+                    required:
+                    - code
+                    - message
+                required:
+                - error
+              example:
+                error:
+                  code: throttled
+                  message: Demasiadas solicitudes. Intentá de nuevo más tarde.
+                  details: {}
+          headers:
+            X-Presto-Mode:
+              description: Vale `demo` cuando la aplicación corre en modo demo.
+              schema:
+                type: string
   /api/v1/ledger/transactions/:
     get:
       operationId: ledger_transactions_list
@@ -5050,6 +5185,25 @@ components:
           maxLength: 20
       required:
       - alias
+    AliasLookup:
+      type: object
+      description: Lo mínimo para poder pagarle a un usuario por su alias.
+      properties:
+        alias:
+          type: string
+          description: El alias público del usuario.
+        name:
+          type: string
+          description: 'Nombre reducido: el nombre y la inicial del apellido.'
+        wallets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AliasWallet'
+          description: Las billeteras del usuario, por moneda (sin saldos).
+      required:
+      - alias
+      - name
+      - wallets
     AliasResponse:
       type: object
       description: El alias del usuario (null si no tiene).
@@ -5058,6 +5212,21 @@ components:
           type: string
           nullable: true
           description: El alias del usuario, o null si todavía no tiene.
+    AliasWallet:
+      type: object
+      description: |-
+        Una billetera del usuario buscado: la moneda y el id de la cuenta.
+
+        **No** incluye el saldo: el que busca no tiene por qué verlo.
+      properties:
+        currency:
+          type: string
+        account_id:
+          type: string
+          format: uuid
+      required:
+      - account_id
+      - currency
     Balance:
       type: object
       description: Saldo de una cuenta.

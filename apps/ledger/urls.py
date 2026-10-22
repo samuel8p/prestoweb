@@ -7,6 +7,11 @@ from apps.ledger import views
 urlpatterns = [
     path('ledger/accounts/', views.AccountListCreateView.as_view(), name='ledger-accounts'),
     path(
+        'ledger/accounts/by-alias/<str:alias>/',
+        views.AccountByAliasView.as_view(),
+        name='ledger-accounts-by-alias',
+    ),
+    path(
         'ledger/accounts/<uuid:account_id>/balance/',
         views.AccountBalanceView.as_view(),
         name='ledger-account-balance',

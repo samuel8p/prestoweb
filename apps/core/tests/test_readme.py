@@ -22,6 +22,11 @@ def api_endpoints() -> list[str]:
                 continue
             route = re.sub(r'<uuid:[a-z_]+>', '{id}', route)
             route = re.sub(r'<int:[a-z_]+>', '{number}', route)
+            route = re.sub(
+                r'<str:([a-z_]+)>',
+                lambda match: '{' + match.group(1) + '}',
+                route,
+            )
             endpoints.append('/' + route)
 
     walk(get_resolver())

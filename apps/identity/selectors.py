@@ -74,6 +74,35 @@ def get_user_id_by_alias(alias: str) -> uuid.UUID | None:
     return query.values_list('id', flat=True).first()
 
 
+def get_public_user_by_alias(alias: str) -> dict | None:
+    """Devuelve los datos públicos del usuario con ese alias, o None.
+
+    Solo lo que se puede mostrar a un tercero: el id, el nombre y el
+    apellido. El email y los saldos no se cruzan.
+
+    Args:
+        alias: el alias buscado.
+
+    Returns:
+        Dict con `user_id`, `first_name` y `last_name`, o None.
+    """
+    normalized = (alias or '').strip().lower()
+    if not normalized:
+        return None
+    row = (
+        User.objects.filter(alias__iexact=normalized)
+        .values('id', 'first_name', 'last_name')
+        .first()
+    )
+    if row is None:
+        return None
+    return {
+        'user_id': row['id'],
+        'first_name': row['first_name'] or '',
+        'last_name': row['last_name'] or '',
+    }
+
+
 def get_user_email(user_id: uuid.UUID) -> str | None:
     """Devuelve el email del usuario, o None si no tiene.
 

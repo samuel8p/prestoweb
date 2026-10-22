@@ -16,6 +16,7 @@ from apps.core.openapi import (
 )
 from apps.core.pagination import StandardPagination
 from apps.identity.permissions import KycApprovedForUnsafeMethods
+from apps.identity.selectors import get_public_user_by_alias
 from apps.ledger.exceptions import (
     AccountKindNotAllowed,
     AccountNotFound,
@@ -26,6 +27,7 @@ from apps.ledger.exceptions import (
     SimulatedDepositsDisabled,
 )
 from apps.ledger.models import Account, LedgerTransaction
+from apps.ledger.permissions import AliasLookupThrottle
 from apps.ledger.selectors import (
     get_balance,
     get_transaction,
@@ -35,6 +37,7 @@ from apps.ledger.selectors import (
 )
 from apps.ledger.serializers import (
     AccountSerializer,
+    AliasLookupSerializer,
     BalanceSerializer,
     CreateAccountSerializer,
     CreateTransactionSerializer,
@@ -108,6 +111,24 @@ def create_transaction(request, data, idempotency_key):
         raise ValidationError({'detail': [str(exc)]}) from exc
 
 
+def reduced_name(first_name: str, last_name: str) -> str:
+    """Arma el nombre reducido de un usuario: nombre e inicial del apellido.
+
+    Args:
+        first_name: el nombre del usuario.
+        last_name: el apellido del usuario.
+
+    Returns:
+        El nombre reducido (por ejemplo, "Juan P.").
+    """
+    name = (first_name or '').strip()
+    surname = (last_name or '').strip()
+    if not surname:
+        return name
+    initial = surname[0].upper()
+    return f'{name} {initial}.'.strip()
+
+
 class AccountListCreateView(APIView):
     """Cuentas del usuario autenticado."""
 
@@ -162,6 +183,48 @@ class AccountBalanceView(APIView):
                     'account_id': account_id,
                     'currency': account.currency,
                     'balance': balance,
+                }
+            ).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class AccountByAliasView(APIView):
+    """Búsqueda de un usuario por su alias público.
+
+    Devuelve **lo mínimo** para poder pagarle: el alias, un nombre reducido y
+    las billeteras por moneda. Ni el email ni los saldos.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [AliasLookupThrottle]
+    throttle_scope = 'alias_lookup'
+
+    @extend_schema(
+        responses={200: AliasLookupSerializer},
+        summary='Buscar un usuario por su alias',
+        operation_id='ledger_accounts_by_alias',
+    )
+    def get(self, request, alias):
+        """Devuelve los datos públicos del usuario con ese alias."""
+        public_user = get_public_user_by_alias(alias)
+        if public_user is None:
+            raise NotFound('No hay ningún usuario con ese alias.')
+        wallets = [
+            {'currency': account.currency, 'account_id': account.id}
+            for account in list_accounts_for_user(user_id=public_user['user_id'])
+        ]
+        if not wallets:
+            raise NotFound('Ese alias no tiene billeteras todavía.')
+        return Response(
+            AliasLookupSerializer(
+                {
+                    'alias': alias.strip().lower(),
+                    'name': reduced_name(
+                        first_name=public_user['first_name'],
+                        last_name=public_user['last_name'],
+                    ),
+                    'wallets': wallets,
                 }
             ).data,
             status=status.HTTP_200_OK,

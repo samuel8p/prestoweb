@@ -78,6 +78,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'login': '5/min',
         'register': '5/hour',
+        # Búsqueda por alias: estricta, para no poder enumerar cuentas.
+        'alias_lookup': '5/min',
     },
 }
 

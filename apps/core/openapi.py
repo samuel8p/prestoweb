@@ -190,6 +190,7 @@ ERRORS_BY_OPERATION: dict[tuple[str, str], tuple[int, ...]] = {
     ('/api/v1/identity/alias/', 'put'): (400, 401, 409),
     ('/api/v1/ledger/accounts/', 'get'): (401,),
     ('/api/v1/ledger/accounts/', 'post'): (400, 401),
+    ('/api/v1/ledger/accounts/by-alias/{alias}/', 'get'): (401, 404, 429),
     ('/api/v1/ledger/accounts/{account_id}/balance/', 'get'): (401, 404),
     ('/api/v1/ledger/transactions/', 'get'): (401,),
     ('/api/v1/ledger/transactions/', 'post'): (400, 401, 403, 409),

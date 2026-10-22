@@ -99,3 +99,28 @@ class BalanceSerializer(serializers.Serializer):
     account_id = serializers.UUIDField()
     currency = serializers.CharField()
     balance = serializers.DecimalField(max_digits=18, decimal_places=2)
+
+
+class AliasWalletSerializer(serializers.Serializer):
+    """Una billetera del usuario buscado: la moneda y el id de la cuenta.
+
+    **No** incluye el saldo: el que busca no tiene por qué verlo.
+    """
+
+    currency = serializers.CharField()
+    account_id = serializers.UUIDField()
+
+
+class AliasLookupSerializer(serializers.Serializer):
+    """Lo mínimo para poder pagarle a un usuario por su alias."""
+
+    alias = serializers.CharField(
+        help_text='El alias público del usuario.',
+    )
+    name = serializers.CharField(
+        help_text='Nombre reducido: el nombre y la inicial del apellido.',
+    )
+    wallets = AliasWalletSerializer(
+        many=True,
+        help_text='Las billeteras del usuario, por moneda (sin saldos).',
+    )

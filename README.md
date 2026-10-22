@@ -93,7 +93,7 @@ El compose de desarrollo ya lo trae activado. La guía completa está en
 | App | Endpoints |
 |---|---|
 | identity | `POST /api/v1/auth/register/`, `POST /api/v1/auth/login/`, `POST /api/v1/auth/token/refresh/`, `GET/PATCH /api/v1/auth/me/`, `GET/POST /api/v1/kyc/`, `GET /api/v1/kyc/{id}/`, `GET/PUT /api/v1/identity/alias/` |
-| ledger | `GET/POST /api/v1/ledger/accounts/`, `GET /api/v1/ledger/accounts/{id}/balance/`, `GET/POST /api/v1/ledger/transactions/`, `GET /api/v1/ledger/transactions/{id}/` |
+| ledger | `GET/POST /api/v1/ledger/accounts/`, `GET /api/v1/ledger/accounts/{id}/balance/`, `GET /api/v1/ledger/accounts/by-alias/{alias}/`, `GET/POST /api/v1/ledger/transactions/`, `GET /api/v1/ledger/transactions/{id}/` |
 | offers | `GET/POST /api/v1/offers/`, `GET/PATCH /api/v1/offers/{id}/` (el PATCH también expira la oferta) |
 | matching | `GET /api/v1/matching/offers/`, `POST /api/v1/matching/comparisons/` |
 | loans | `GET/POST /api/v1/loans/`, `GET /api/v1/loans/{id}/`, `POST /api/v1/loans/{id}/installments/{number}/pay/` |
