@@ -11,7 +11,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.openapi import paginated_response
+from apps.core.openapi import (
+    REPORT_PARAMETERS,
+    paginated_response,
+    report_responses,
+)
 from apps.core.pagination import StandardPagination
 from apps.reports import export
 from apps.reports.exceptions import InvalidReportParameters, ReportTooLarge
@@ -90,7 +94,8 @@ class SpendingReportView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        responses={200: SpendingReportSerializer},
+        parameters=REPORT_PARAMETERS,
+        responses=report_responses(SpendingReportSerializer),
         summary='Ver el gasto por categoría del período',
         operation_id='reports_spending',
     )
@@ -119,7 +124,8 @@ class LoansReportView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        responses={200: LoansReportSerializer},
+        parameters=REPORT_PARAMETERS,
+        responses=report_responses(LoansReportSerializer),
         summary='Ver el resumen de préstamos',
         operation_id='reports_loans',
     )
@@ -143,7 +149,8 @@ class InvestmentsReportView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        responses={200: InvestmentsReportSerializer},
+        parameters=REPORT_PARAMETERS,
+        responses=report_responses(InvestmentsReportSerializer),
         summary='Ver el resumen de inversiones',
         operation_id='reports_investments',
     )
@@ -168,7 +175,8 @@ class MovementsReportView(APIView):
     pagination_class = StandardPagination
 
     @extend_schema(
-        responses={200: paginated_response(MovementReportRowSerializer)},
+        parameters=REPORT_PARAMETERS,
+        responses=report_responses(paginated_response(MovementReportRowSerializer)),
         summary='Ver los movimientos del usuario en el período',
         operation_id='reports_movements',
     )

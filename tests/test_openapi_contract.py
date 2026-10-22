@@ -225,3 +225,63 @@ def test_the_refresh_declares_its_body(schema):
     name = reference.rsplit('/', 1)[-1]
 
     assert 'refresh' in schema['components']['schemas'][name]['properties']
+
+
+# --- Los reportes ---
+
+REPORTS = [
+    '/api/v1/reports/spending/',
+    '/api/v1/reports/investments/',
+    '/api/v1/reports/loans/',
+    '/api/v1/reports/movements/',
+]
+
+
+@pytest.mark.parametrize('path', REPORTS, ids=REPORTS)
+def test_the_reports_declare_their_parameters(schema, path):
+    """Los cuatro reportes declaran `currency`, `from`, `to` y `export`."""
+    parameters = {
+        parameter['name']: parameter
+        for parameter in schema['paths'][path]['get'].get('parameters', [])
+    }
+
+    assert 'currency' in parameters
+    assert parameters['currency']['required'] is True
+    assert 'from' in parameters
+    assert 'to' in parameters
+    assert 'export' in parameters
+
+
+@pytest.mark.parametrize('path', REPORTS, ids=REPORTS)
+def test_the_reports_declare_the_json_and_the_csv_responses(schema, path):
+    """Los reportes declaran la respuesta JSON y la respuesta CSV."""
+    responses = schema['paths'][path]['get']['responses']
+
+    assert '200' in responses
+    assert 'application/json' in responses['200']['content']
+    assert 'text/csv' in responses['200']['content']
+
+
+def test_the_api_really_asks_for_the_currency(api):
+    """Sin `currency` la API responde 400 (lo que el esquema declara)."""
+    response = api.get('/api/v1/reports/spending/')
+
+    assert response.status_code == 400
+    assert response.json()['error']['code'] == 'validation_error'
+
+
+def test_the_api_really_answers_a_csv(api):
+    """Con `export=csv` la API responde el CSV."""
+    response = api.get('/api/v1/reports/spending/?currency=ARS&export=csv')
+
+    assert response.status_code == 200
+    assert response['Content-Type'].startswith('text/csv')
+    assert 'attachment' in response['Content-Disposition']
+
+
+def test_the_api_rejects_an_unknown_export(api):
+    """Un `export` que no es `csv` responde 400."""
+    response = api.get('/api/v1/reports/spending/?currency=ARS&export=pdf')
+
+    assert response.status_code == 400
+    assert response.json()['error']['code'] == 'validation_error'

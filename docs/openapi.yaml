@@ -1002,6 +1002,39 @@ paths:
       operationId: reports_investments
       description: Devuelve el resumen de las posiciones de inversión del usuario.
       summary: Ver el resumen de inversiones
+      parameters:
+      - in: query
+        name: currency
+        schema:
+          type: string
+          enum:
+          - ARS
+          - USD
+        description: 'Moneda del reporte: `ARS` o `USD`. Sin ella la API responde
+          400.'
+        required: true
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: 'Con `csv` la API responde el CSV (con `Content-Disposition:
+          attachment`). Cualquier otro valor responde 400.'
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial del rango (ISO, `YYYY-MM-DD`). Por defecto, el
+          primer día del mes actual en UTC.
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fecha final del rango (ISO, `YYYY-MM-DD`). Por defecto, el último
+          día del mes actual en UTC.
       tags:
       - reports
       security:
@@ -1012,12 +1045,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InvestmentsReport'
-          description: ''
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: El reporte en JSON.
   /api/v1/reports/loans/:
     get:
       operationId: reports_loans
       description: Devuelve el resumen de los préstamos del usuario en la moneda pedida.
       summary: Ver el resumen de préstamos
+      parameters:
+      - in: query
+        name: currency
+        schema:
+          type: string
+          enum:
+          - ARS
+          - USD
+        description: 'Moneda del reporte: `ARS` o `USD`. Sin ella la API responde
+          400.'
+        required: true
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: 'Con `csv` la API responde el CSV (con `Content-Disposition:
+          attachment`). Cualquier otro valor responde 400.'
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial del rango (ISO, `YYYY-MM-DD`). Por defecto, el
+          primer día del mes actual en UTC.
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fecha final del rango (ISO, `YYYY-MM-DD`). Por defecto, el último
+          día del mes actual en UTC.
       tags:
       - reports
       security:
@@ -1028,12 +1098,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoansReport'
-          description: ''
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: El reporte en JSON.
   /api/v1/reports/movements/:
     get:
       operationId: reports_movements
       description: Devuelve los movimientos del usuario en el rango y la moneda pedidos.
       summary: Ver los movimientos del usuario en el período
+      parameters:
+      - in: query
+        name: currency
+        schema:
+          type: string
+          enum:
+          - ARS
+          - USD
+        description: 'Moneda del reporte: `ARS` o `USD`. Sin ella la API responde
+          400.'
+        required: true
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: 'Con `csv` la API responde el CSV (con `Content-Disposition:
+          attachment`). Cualquier otro valor responde 400.'
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial del rango (ISO, `YYYY-MM-DD`). Por defecto, el
+          primer día del mes actual en UTC.
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fecha final del rango (ISO, `YYYY-MM-DD`). Por defecto, el último
+          día del mes actual en UTC.
       tags:
       - reports
       security:
@@ -1044,6 +1151,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedMovementReportRow'
+            text/csv:
+              schema:
+                type: string
+                format: binary
           description: Listado paginado.
   /api/v1/reports/spending/:
     get:
@@ -1051,6 +1162,39 @@ paths:
       description: Devuelve el gasto acumulado por categoría en el rango y la moneda
         pedidos.
       summary: Ver el gasto por categoría del período
+      parameters:
+      - in: query
+        name: currency
+        schema:
+          type: string
+          enum:
+          - ARS
+          - USD
+        description: 'Moneda del reporte: `ARS` o `USD`. Sin ella la API responde
+          400.'
+        required: true
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: 'Con `csv` la API responde el CSV (con `Content-Disposition:
+          attachment`). Cualquier otro valor responde 400.'
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial del rango (ISO, `YYYY-MM-DD`). Por defecto, el
+          primer día del mes actual en UTC.
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fecha final del rango (ISO, `YYYY-MM-DD`). Por defecto, el último
+          día del mes actual en UTC.
       tags:
       - reports
       security:
@@ -1061,7 +1205,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SpendingReport'
-          description: ''
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: El reporte en JSON.
 components:
   schemas:
     AcceptOffer:

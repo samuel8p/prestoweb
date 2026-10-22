@@ -206,3 +206,19 @@ CSV_RESPONSE = OpenApiResponse(
     },
     description='El reporte en CSV (con `Content-Disposition: attachment`).',
 )
+
+
+def report_responses(serializer_class, description: str = 'El reporte en JSON.'):
+    """Las respuestas de un reporte: el JSON (y el CSV, con el hook).
+
+    Args:
+        serializer_class: el serializer del reporte, o la respuesta ya armada
+            (el reporte de movimientos pagina).
+        description: la descripción de la respuesta JSON.
+
+    Returns:
+        El diccionario para el `responses` de `extend_schema`.
+    """
+    if isinstance(serializer_class, OpenApiResponse):
+        return {200: serializer_class}
+    return {200: OpenApiResponse(response=serializer_class, description=description)}
