@@ -175,12 +175,12 @@ Es **obligatorio** y sin él la API responde `400` con
 header:
 
 ```yaml
-      parameters:
-        - in: header
-          name: Idempotency-Key
-          required: true
-          schema:
-            type: string
+parameters:
+  - in: header
+    name: Idempotency-Key
+    required: true
+    schema:
+      type: string
 ```
 
 Endpoints:
@@ -195,39 +195,39 @@ Los cuatro reportes aceptan `currency` y, dos de ellos, un rango de fechas.
 Ninguno está declarado en el esquema.
 
 ```yaml
-      parameters:
-        - in: query
-          name: currency
-          required: true
-          schema:
-            enum: [ARS, USD]
-            type: string
-        - in: query
-          name: from
-          required: false
-          schema:
-            type: string
-            format: date
-        - in: query
-          name: to
-          required: false
-          schema:
-            type: string
-            format: date
-        - in: query
-          name: export
-          required: false
-          schema:
-            enum: [csv]
-            type: string
+parameters:
+  - in: query
+    name: currency
+    required: true
+    schema:
+      enum: [ARS, USD]
+      type: string
+  - in: query
+    name: from
+    required: false
+    schema:
+      type: string
+      format: date
+  - in: query
+    name: to
+    required: false
+    schema:
+      type: string
+      format: date
+  - in: query
+    name: export
+    required: false
+    schema:
+      enum: [csv]
+      type: string
 ```
 
-| Endpoint | `currency` | `from` / `to` | `export` |
-|---|---|---|---|
-| `GET /api/v1/reports/spending/` | obligatorio | opcional | opcional |
-| `GET /api/v1/reports/movements/` | obligatorio | opcional | opcional |
-| `GET /api/v1/reports/loans/` | obligatorio | — | opcional |
-| `GET /api/v1/reports/investments/` | obligatorio | — | opcional |
+| Endpoint                           | `currency`  | `from` / `to` | `export` |
+| ---------------------------------- | ----------- | ------------- | -------- |
+| `GET /api/v1/reports/spending/`    | obligatorio | opcional      | opcional |
+| `GET /api/v1/reports/movements/`   | obligatorio | opcional      | opcional |
+| `GET /api/v1/reports/loans/`       | obligatorio | —             | opcional |
+| `GET /api/v1/reports/investments/` | obligatorio | —             | opcional |
 
 Los defaults: sin `from`/`to` el reporte va del primer al último día del mes
 calendario actual (UTC). El rango no puede pasar de **12 meses calendario** y
@@ -240,48 +240,48 @@ El esquema declara la respuesta de cada listado como el esquema del ítem
 componentes y usarlos en las respuestas.
 
 ```yaml
-    PaginatedAccount:
-      type: object
-      properties:
-        count: { type: integer }
-        next: { type: string, format: uri, nullable: true }
-        previous: { type: string, format: uri, nullable: true }
-        results:
-          type: array
-          items: { $ref: '#/components/schemas/Account' }
-      required: [count, next, previous, results]
+PaginatedAccount:
+  type: object
+  properties:
+    count: { type: integer }
+    next: { type: string, format: uri, nullable: true }
+    previous: { type: string, format: uri, nullable: true }
+    results:
+      type: array
+      items: { $ref: '#/components/schemas/Account' }
+  required: [count, next, previous, results]
 ```
 
 El de cursor (sin `count`):
 
 ```yaml
-    CursorPaginatedLedgerTransaction:
-      type: object
-      properties:
-        next: { type: string, format: uri, nullable: true }
-        previous: { type: string, format: uri, nullable: true }
-        results:
-          type: array
-          items: { $ref: '#/components/schemas/LedgerTransaction' }
-      required: [next, previous, results]
+CursorPaginatedLedgerTransaction:
+  type: object
+  properties:
+    next: { type: string, format: uri, nullable: true }
+    previous: { type: string, format: uri, nullable: true }
+    results:
+      type: array
+      items: { $ref: '#/components/schemas/LedgerTransaction' }
+  required: [next, previous, results]
 ```
 
 **Lista completa de los listados** (todos devuelven el sobre `Paginated*`):
 
-| Endpoint | Envoltorio a usar |
-|---|---|
-| `GET /api/v1/ledger/accounts/` | `PaginatedAccount` |
-| `GET /api/v1/ledger/transactions/` | `CursorPaginatedLedgerTransaction` |
-| `GET /api/v1/offers/` | `PaginatedOffer` |
-| `GET /api/v1/matching/offers/` | `PaginatedOfferMatch` |
-| `GET /api/v1/loans/` | `PaginatedLoan` |
-| `GET /api/v1/investments/products/` | `PaginatedInvestmentProduct` ⚠️ |
-| `GET /api/v1/investments/positions/` | `PaginatedPosition` |
-| `GET /api/v1/budgets/` | `PaginatedBudget` |
-| `GET /api/v1/budgets/categories/` | `PaginatedCategory` |
-| `GET /api/v1/budgets/expenses/` | `PaginatedExpense` |
-| `GET /api/v1/notifications/` | `PaginatedNotification` |
-| `GET /api/v1/reports/movements/` | `PaginatedMovementReportRow` |
+| Endpoint                             | Envoltorio a usar                  |
+| ------------------------------------ | ---------------------------------- |
+| `GET /api/v1/ledger/accounts/`       | `PaginatedAccount`                 |
+| `GET /api/v1/ledger/transactions/`   | `CursorPaginatedLedgerTransaction` |
+| `GET /api/v1/offers/`                | `PaginatedOffer`                   |
+| `GET /api/v1/matching/offers/`       | `PaginatedOfferMatch`              |
+| `GET /api/v1/loans/`                 | `PaginatedLoan`                    |
+| `GET /api/v1/investments/products/`  | `PaginatedInvestmentProduct` ⚠️    |
+| `GET /api/v1/investments/positions/` | `PaginatedPosition`                |
+| `GET /api/v1/budgets/`               | `PaginatedBudget`                  |
+| `GET /api/v1/budgets/categories/`    | `PaginatedCategory`                |
+| `GET /api/v1/budgets/expenses/`      | `PaginatedExpense`                 |
+| `GET /api/v1/notifications/`         | `PaginatedNotification`            |
+| `GET /api/v1/reports/movements/`     | `PaginatedMovementReportRow`       |
 
 ⚠️ **`GET /api/v1/investments/products/`** es el que más confunde: el esquema lo
 declara como un array plano de `InvestmentProduct`, pero la API lo pagina
@@ -300,10 +300,10 @@ Hoy el esquema declara `KYCVerification`, pero si el usuario nunca pidió la
 verificación la API responde `null`. Hay que marcarlo nullable:
 
 ```yaml
-    KYCVerificationNullable:
-      nullable: true
-      allOf:
-        - $ref: '#/components/schemas/KYCVerification'
+KYCVerificationNullable:
+  nullable: true
+  allOf:
+    - $ref: '#/components/schemas/KYCVerification'
 ```
 
 ### 9.5 `POST /api/v1/auth/token/refresh/` no declara el body
@@ -312,11 +312,11 @@ La petición es `{"refresh": "<token>"}` y la respuesta es
 `{ "access": "...", "refresh": "..." }` (sin `user`):
 
 ```yaml
-    TokenRefreshRequest:
-      type: object
-      properties:
-        refresh: { type: string }
-      required: [refresh]
+TokenRefreshRequest:
+  type: object
+  properties:
+    refresh: { type: string }
+  required: [refresh]
 ```
 
 ### 9.6 Respuestas de error: falta el sobre de error
@@ -326,17 +326,17 @@ uniforme de AGENTS §8, así que conviene un componente y referenciarlo en las
 respuestas `400`, `401`, `403`, `404`, `409` y `429`:
 
 ```yaml
-    ApiError:
+ApiError:
+  type: object
+  properties:
+    error:
       type: object
       properties:
-        error:
-          type: object
-          properties:
-            code: { type: string }
-            message: { type: string }
-            details: { type: object, additionalProperties: true }
-          required: [code, message, details]
-      required: [error]
+        code: { type: string }
+        message: { type: string }
+        details: { type: object, additionalProperties: true }
+      required: [code, message, details]
+  required: [error]
 ```
 
 Los `details` de un error de validación son `{ "<campo>": ["<mensaje>", ...] }`;
