@@ -11,10 +11,12 @@ describe('NotificationsPage', () => {
   it('lista los avisos con su estado', async () => {
     renderWithProviders(<AppRoutes />, { route: '/avisos', session: 'authenticated' })
 
+    // Se espera al estado del aviso: el mismo texto de evento aparece también
+    // en las preferencias, que se cargan antes.
     await waitFor(() => {
-      expect(screen.getAllByText('Cuota por vencer').length).toBeGreaterThan(0)
+      expect(screen.getByText('Enviado')).toBeInTheDocument()
     })
-    expect(screen.getByText('Enviado')).toBeInTheDocument()
+    expect(screen.getAllByText('Cuota por vencer').length).toBeGreaterThan(0)
   })
 
   it('muestra las preferencias por tipo de aviso', async () => {

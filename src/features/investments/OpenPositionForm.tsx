@@ -85,7 +85,7 @@ export function OpenPositionForm({ product, onDone }: OpenPositionFormProps) {
     <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       {formError ? <Alert tone="danger">{formError}</Alert> : null}
 
-      <dl className="grid grid-cols-2 gap-3 rounded-[--radius-control] bg-surface-muted p-4 text-[13px]">
+      <dl className="grid grid-cols-2 gap-3 rounded-[var(--radius-control)] bg-surface-muted p-4 text-[13px]">
         <div>
           <dt className="text-ink-muted">Plazo</dt>
           <dd className="font-medium text-ink">{product.term_days} días</dd>

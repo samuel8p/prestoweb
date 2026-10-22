@@ -288,7 +288,7 @@ export function MarketplacePage() {
       >
         {accepting ? (
           <div className="flex flex-col gap-4">
-            <div className="rounded-[--radius-control] bg-surface-muted p-4">
+            <div className="rounded-[var(--radius-control)] bg-surface-muted p-4">
               <p className="text-lg font-semibold text-ink tabular">
                 <MoneyAmount
                   value={accepting.amount}
