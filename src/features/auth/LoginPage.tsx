@@ -60,7 +60,7 @@ export function LoginPage() {
       footer={
         <>
           ¿No tenés cuenta?{' '}
-          <Link to="/registro" className="font-medium text-brand-700 hover:underline">
+          <Link to="/registro" className="font-medium text-teal hover:underline">
             Registrate
           </Link>
         </>
