@@ -9,8 +9,16 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { Input } from '../../components/ui/Input'
 import { MoneyAmount } from '../../components/ui/MoneyAmount'
 import { PageHeader } from '../../components/ui/PageHeader'
-import { Select } from '../../components/ui/Select'
-import { Spinner } from '../../components/ui/Spinner'
+import { Segmented } from '../../components/ui/Segmented'
+import { SkeletonRows } from '../../components/ui/Skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table'
 import { describeError } from '../../lib/api/errors'
 import { defaultReportRange } from '../../lib/dates'
 import { formatDate } from '../../lib/money/format'
@@ -22,7 +30,7 @@ import {
   useReportCsv,
   useSpendingReport,
 } from './api'
-import type { ReportKey } from './api'
+import { SpendingChart } from './SpendingChart'
 
 type ReportTab = 'movimientos' | 'gasto' | 'prestamos' | 'inversiones'
 
@@ -34,8 +42,8 @@ const TABS: Array<{ id: ReportTab; label: string }> = [
 ]
 
 const CURRENCY_OPTIONS = [
-  { value: 'ARS', label: 'Pesos (ARS)' },
-  { value: 'USD', label: 'Dólares (USD)' },
+  { value: 'ARS' as const, label: 'Pesos (ARS)' },
+  { value: 'USD' as const, label: 'Dólares (USD)' },
 ]
 
 /** Reportes de solo lectura, con selector de moneda, rango y descarga CSV. */
@@ -52,7 +60,7 @@ export function ReportsPage() {
   const movements = useMovementsReport(rangeParams)
   const downloadCsv = useReportCsv()
 
-  const reportKey: ReportKey =
+  const reportKey =
     tab === 'gasto'
       ? 'spending'
       : tab === 'prestamos'
@@ -74,10 +82,11 @@ export function ReportsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Reportes"
-        description="Resumenes de tu actividad, en una moneda y un rango de fechas."
+        description="Resúmenes de tu actividad, en una moneda y un rango de fechas."
         action={
           <Button
             variant="secondary"
+            icon="download"
             loading={downloadCsv.isPending}
             onClick={() => void handleDownload()}
           >
@@ -86,35 +95,58 @@ export function ReportsPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Select
-          label="Moneda"
-          value={currency}
-          options={CURRENCY_OPTIONS}
-          onChange={(event) => setCurrency(event.target.value as Currency)}
-        />
-        <Input
-          label="Desde"
-          type="date"
-          value={range.from}
-          onChange={(event) => setRange((current) => ({ ...current, from: event.target.value }))}
-        />
-        <Input
-          label="Hasta"
-          type="date"
-          value={range.to}
-          onChange={(event) => setRange((current) => ({ ...current, to: event.target.value }))}
-        />
-      </div>
+      {/* Filtros */}
+      <Card>
+        <div className="flex flex-wrap items-end gap-5 px-5 py-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-slate-700">Moneda</span>
+            <Segmented
+              label="Moneda"
+              value={currency}
+              options={CURRENCY_OPTIONS}
+              onChange={setCurrency}
+            />
+          </div>
 
-      <p className="-mt-2 text-xs text-slate-500">
-        El rango máximo es de 12 meses. Los reportes de préstamos e inversiones son del período
-        actual.
-      </p>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-slate-700">Desde</span>
+            <Input
+              label="Desde"
+              type="date"
+              hideLabel
+              value={range.from}
+              onChange={(event) =>
+                setRange((current) => ({ ...current, from: event.target.value }))
+              }
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-slate-700">Hasta</span>
+            <Input
+              label="Hasta"
+              type="date"
+              hideLabel
+              value={range.to}
+              onChange={(event) => setRange((current) => ({ ...current, to: event.target.value }))}
+            />
+          </div>
+
+          <p className="ml-auto text-xs text-slate-500">
+            El rango máximo es de 12 meses. Los reportes de préstamos e inversiones son del período
+            actual.
+          </p>
+        </div>
+      </Card>
 
       {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
 
-      <div role="tablist" aria-label="Reportes" className="flex flex-wrap gap-2">
+      {/* Pestañas */}
+      <div
+        role="tablist"
+        aria-label="Reportes"
+        className="flex flex-wrap gap-1 border-b border-line"
+      >
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -122,10 +154,10 @@ export function ReportsPage() {
             role="tab"
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`-mb-px border-b-2 px-3 py-2 text-[13px] font-medium transition-colors ${
               tab === item.id
-                ? 'bg-brand-600 text-white'
-                : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
+                ? 'border-brand-600 text-brand-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
             {item.label}
@@ -133,16 +165,13 @@ export function ReportsPage() {
         ))}
       </div>
 
+      {/* Movimientos */}
       {tab === 'movimientos' ? (
         <Card>
-          <CardHeader title="Movimientos del período" />
-          {movements.isLoading ? (
-            <div className="flex justify-center px-4 py-10">
-              <Spinner label="Cargando el reporte" />
-            </div>
-          ) : null}
+          <CardHeader title="Movimientos del período" icon="swap" />
+          {movements.isLoading ? <SkeletonRows rows={5} columns={4} /> : null}
           {movements.isError ? (
-            <div className="px-4 py-4">
+            <div className="px-5 py-4">
               <ErrorState
                 message={describeError(movements.error).message}
                 onRetry={() => void movements.refetch()}
@@ -152,47 +181,58 @@ export function ReportsPage() {
           {!movements.isLoading &&
           !movements.isError &&
           (movements.data?.results.length ?? 0) === 0 ? (
-            <EmptyState title="No hay movimientos en el período" />
+            <EmptyState title="No hay movimientos en el período" icon="swap" />
           ) : null}
-          <ul className="divide-y divide-slate-100">
-            {(movements.data?.results ?? []).map((movement) => (
-              <li
-                key={movement.id}
-                className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{movement.type}</p>
-                  <p className="text-xs text-slate-500">
-                    {movement.description || 'Sin descripción'} · {formatDate(movement.occurred_at)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <MoneyAmount
-                    value={movement.amount}
-                    currency={movement.currency === 'USD' ? 'USD' : 'ARS'}
-                    className="text-sm font-semibold text-slate-900"
-                  />
-                  {movement.is_reversed ? <Badge tone="danger">Revertido</Badge> : null}
-                </div>
-              </li>
-            ))}
-          </ul>
+
+          {(movements.data?.results.length ?? 0) > 0 ? (
+            <Table>
+              <TableHead>
+                <TableHeader>Tipo</TableHeader>
+                <TableHeader>Descripción</TableHeader>
+                <TableHeader>Fecha</TableHeader>
+                <TableHeader align="right">Importe</TableHeader>
+              </TableHead>
+              <TableBody>
+                {(movements.data?.results ?? []).map((movement) => (
+                  <TableRow key={movement.id}>
+                    <TableCell className="font-medium text-slate-900">{movement.type}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {movement.description || '—'}
+                    </TableCell>
+                    <TableCell className="tabular">{formatDate(movement.occurred_at)}</TableCell>
+                    <TableCell align="right">
+                      <div className="flex items-center justify-end gap-2">
+                        <MoneyAmount
+                          value={movement.amount}
+                          currency={movement.currency === 'USD' ? 'USD' : 'ARS'}
+                          className="font-semibold text-slate-900"
+                        />
+                        {movement.is_reversed ? (
+                          <Badge tone="danger" dot>
+                            Revertido
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : null}
         </Card>
       ) : null}
 
+      {/* Gasto por categoría */}
       {tab === 'gasto' ? (
         <Card>
           <CardHeader
             title="Gasto por categoría"
             description={`Del ${range.from} al ${range.to}.`}
+            icon="budget"
           />
-          {spending.isLoading ? (
-            <div className="flex justify-center px-4 py-10">
-              <Spinner label="Cargando el reporte" />
-            </div>
-          ) : null}
+          {spending.isLoading ? <SkeletonRows rows={3} columns={2} /> : null}
           {spending.isError ? (
-            <div className="px-4 py-4">
+            <div className="px-5 py-4">
               <ErrorState
                 message={describeError(spending.error).message}
                 onRetry={() => void spending.refetch()}
@@ -201,148 +241,121 @@ export function ReportsPage() {
           ) : null}
           {!spending.isLoading &&
           !spending.isError &&
-          (spending.data?.categories ?? []).length === 0 ? (
-            <EmptyState title="No hay gastos categorizados en el período" />
+          (spending.data?.categories.length ?? 0) === 0 ? (
+            <EmptyState title="No hay gastos categorizados en el período" icon="budget" />
           ) : null}
-          <ul className="divide-y divide-slate-100">
-            {(spending.data?.categories ?? []).map((category) => (
-              <li
-                key={category.category_id}
-                className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{category.category_name}</p>
-                  <p className="text-xs text-slate-500">{category.movements} movimientos</p>
-                </div>
-                <MoneyAmount
-                  value={category.amount}
-                  currency={currency}
-                  className="text-sm font-semibold text-slate-900"
-                />
-              </li>
-            ))}
-          </ul>
+
           {spending.data ? (
-            <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 sm:px-5">
-              <p className="text-sm font-medium text-slate-700">Total</p>
+            <div className="px-5 py-4">
+              <SpendingChart categories={spending.data.categories} currency={currency} />
+            </div>
+          ) : null}
+
+          {spending.data ? (
+            <div className="flex items-center justify-between border-t border-line px-5 py-3.5">
+              <p className="text-[13px] font-semibold text-slate-700">Total del período</p>
               <MoneyAmount
                 value={spending.data.total}
                 currency={currency}
-                className="text-sm font-bold text-slate-900"
+                className="text-base font-bold text-slate-900"
               />
             </div>
           ) : null}
         </Card>
       ) : null}
 
+      {/* Préstamos */}
       {tab === 'prestamos' ? (
         <Card>
-          <CardHeader title="Préstamos" />
-          {loansReport.isLoading ? (
-            <div className="flex justify-center px-4 py-10">
-              <Spinner label="Cargando el reporte" />
-            </div>
-          ) : null}
+          <CardHeader title="Préstamos" icon="loan" />
+          {loansReport.isLoading ? <SkeletonRows rows={2} columns={4} /> : null}
           {loansReport.isError ? (
-            <div className="px-4 py-4">
+            <div className="px-5 py-4">
               <ErrorState
                 message={describeError(loansReport.error).message}
                 onRetry={() => void loansReport.refetch()}
               />
             </div>
           ) : null}
+
           {loansReport.data ? (
-            <div className="grid gap-4 px-4 py-4 sm:grid-cols-2 sm:px-5">
+            <div className="grid gap-px bg-line sm:grid-cols-2">
               {(
                 [
                   ['Como prestatario', loansReport.data.as_borrower],
                   ['Como prestamista', loansReport.data.as_lender],
                 ] as const
               ).map(([title, summary]) => (
-                <div key={title} className="rounded-lg border border-slate-200 p-4">
-                  <p className="text-sm font-semibold text-slate-900">{title}</p>
-                  <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <dt className="text-xs text-slate-500">Préstamos activos</dt>
-                      <dd className="font-medium text-slate-900">{summary.active_loans}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-slate-500">Pendiente</dt>
-                      <dd>
-                        <MoneyAmount
-                          value={summary.outstanding_amount}
-                          currency={currency}
-                          className="font-medium text-slate-900"
-                        />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-slate-500">Interés</dt>
-                      <dd>
-                        <MoneyAmount
-                          value={summary.interest_amount}
-                          currency={currency}
-                          className="font-medium text-slate-900"
-                        />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-slate-500">Próximas cuotas</dt>
-                      <dd className="font-medium text-slate-900">
-                        {summary.next_installments.length}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
+                <dl key={title} className="grid grid-cols-2 gap-5 bg-surface p-5">
+                  <div className="col-span-2">
+                    <dt className="text-[13px] font-semibold text-slate-900">{title}</dt>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Préstamos activos</dt>
+                    <dd className="mt-0.5 text-lg font-semibold text-slate-900 tabular">
+                      {summary.active_loans}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Próximas cuotas</dt>
+                    <dd className="mt-0.5 text-lg font-semibold text-slate-900 tabular">
+                      {summary.next_installments.length}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Pendiente</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                      <MoneyAmount value={summary.outstanding_amount} currency={currency} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Interés</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-slate-900 tabular">
+                      <MoneyAmount value={summary.interest_amount} currency={currency} />
+                    </dd>
+                  </div>
+                </dl>
               ))}
             </div>
           ) : null}
         </Card>
       ) : null}
 
+      {/* Inversiones */}
       {tab === 'inversiones' ? (
         <Card>
-          <CardHeader title="Inversiones" />
-          {investments.isLoading ? (
-            <div className="flex justify-center px-4 py-10">
-              <Spinner label="Cargando el reporte" />
-            </div>
-          ) : null}
+          <CardHeader title="Inversiones" icon="trending" />
+          {investments.isLoading ? <SkeletonRows rows={1} columns={3} /> : null}
           {investments.isError ? (
-            <div className="px-4 py-4">
+            <div className="px-5 py-4">
               <ErrorState
                 message={describeError(investments.error).message}
                 onRetry={() => void investments.refetch()}
               />
             </div>
           ) : null}
+
           {investments.data ? (
-            <div className="grid gap-4 px-4 py-4 sm:grid-cols-3 sm:px-5">
-              <div>
-                <p className="text-xs text-slate-500">Capital invertido</p>
-                <MoneyAmount
-                  value={investments.data.total_invested}
-                  currency={currency}
-                  className="text-lg font-semibold text-slate-900"
-                />
+            <dl className="grid gap-px bg-line sm:grid-cols-3">
+              <div className="bg-surface p-5">
+                <dt className="text-xs text-slate-500">Capital invertido</dt>
+                <dd className="mt-1 text-xl font-semibold text-slate-900 tabular">
+                  <MoneyAmount value={investments.data.total_invested} currency={currency} />
+                </dd>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">Interés esperado</p>
-                <MoneyAmount
-                  value={investments.data.interest_expected}
-                  currency={currency}
-                  className="text-lg font-semibold text-slate-900"
-                />
+              <div className="bg-surface p-5">
+                <dt className="text-xs text-slate-500">Interés esperado</dt>
+                <dd className="mt-1 text-xl font-semibold text-slate-900 tabular">
+                  <MoneyAmount value={investments.data.interest_expected} currency={currency} />
+                </dd>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">Interés ganado</p>
-                <MoneyAmount
-                  value={investments.data.interest_earned}
-                  currency={currency}
-                  className="text-lg font-semibold text-slate-900"
-                />
+              <div className="bg-surface p-5">
+                <dt className="text-xs text-slate-500">Interés ganado</dt>
+                <dd className="mt-1 text-xl font-semibold text-slate-900 tabular">
+                  <MoneyAmount value={investments.data.interest_earned} currency={currency} />
+                </dd>
               </div>
-            </div>
+            </dl>
           ) : null}
         </Card>
       ) : null}
