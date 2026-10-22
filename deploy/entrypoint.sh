@@ -46,14 +46,20 @@ case "${role}" in
     ;;
   worker)
     beat_option=""
+    schedule_option=""
     if [ "${CELERY_EMBED_BEAT:-false}" = "true" ]; then
       beat_option="-B"
+      # El archivo del scheduler se escribe en el directorio que le
+      # pertenece al usuario del contenedor (en /app no se puede: es del
+      # usuario root).
+      schedule_option="--schedule /var/celerybeat/celerybeat-schedule"
       echo "entrypoint: beat embebido (una sola réplica del worker)"
     fi
     # shellcheck disable=SC2086
     exec celery -A config worker -l info \
       --concurrency "${CELERY_WORKER_CONCURRENCY:-2}" \
       ${beat_option} \
+      ${schedule_option} \
       "$@"
     ;;
   *)

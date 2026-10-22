@@ -21,6 +21,9 @@ __pycache__/
 htmlcov/
 coverage.xml
 
+# Celery (el archivo del scheduler)
+celerybeat-schedule*
+
 # Import linter / grimp
 .import_linter_cache/
 .grimp_cache/

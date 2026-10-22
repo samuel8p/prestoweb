@@ -204,6 +204,17 @@ def test_the_embedded_beat_keeps_the_schedule_of_the_project(tmp_path):
     assert 'config' in output
 
 
+def test_the_embedded_beat_writes_the_schedule_where_it_can(tmp_path):
+    """El archivo del scheduler se escribe en un directorio del usuario.
+
+    `/app` es del usuario root en la imagen: el beat embebido no puede crear
+    ahí el archivo del schedule.
+    """
+    output = run_entrypoint(tmp_path, 'worker', {'CELERY_EMBED_BEAT': 'true'})
+
+    assert '--schedule /var/celerybeat/celerybeat-schedule' in output
+
+
 def test_the_web_role_runs_gunicorn_in_the_port_of_the_environment(tmp_path):
     """El web escucha en el puerto de `PORT` (por defecto, el de siempre)."""
     output = run_entrypoint_with_fakes(tmp_path, 'web', {'PORT': '9000'}, ['gunicorn', 'python'])
