@@ -109,7 +109,8 @@ def _pagination_serializer(serializer_class, cursor: bool):
             help_text='Cantidad total de elementos del listado.',
         )
 
-    name = f"{'Cursor' if cursor else ''}Paginated{serializer_class.__name__}"
+    prefix = 'Cursor' if cursor else ''
+    name = f'{prefix}Paginated{serializer_class.__name__}'
     return type(name, (serializers.Serializer,), fields)
 
 
