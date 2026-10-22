@@ -332,9 +332,10 @@ abiertos ✗.
 **Estado a 2026-10-22 (contrato del frontend):** el frontend mandó sus
 desviaciones del esquema (`docs/backend-contract.md`). Todas las que eran del
 **esquema** se corrigieron (paginación real, el header `Idempotency-Key`, los
-parámetros y el CSV de los reportes, los errores y el KYC nullable ✓). Las que
-son de **comportamiento** quedaron sin implementar (D-10, D-11 y D-12 ✗) y son
-las que el frontend tiene que confirmar.
+parámetros y el CSV de los reportes, los errores y el KYC nullable ✓) y las
+tres de **comportamiento** (D-10, D-11 y D-12 ✓) se resolvieron con cambios
+aditivos: el importe y la moneda de los movimientos, la moneda de las
+posiciones y la declaración de la respuesta vacía del KYC ✓.
 
 | # | Tema | Qué hay que decidir | Recomendación | Estado |
 |---|---|---|---|---|
@@ -347,9 +348,9 @@ las que el frontend tiene que confirmar.
 | D-7 | **Negocio** | `payments` (O1: proveedor), custodia (O2), rendimiento de plazos fijos (O3), PLA/FT (O5) y CFT (O6) | Depende del cliente: sin O1 no se puede empezar el Bloque 7 | ⬜ Abierto |
 | D-8 | **CORS real** | Instalar `django-cors-headers` o resolver el CORS en el proxy inverso | Resolverlo en el proxy: menos dependencias y el front igual necesita el dominio configurado | ✅ **Resuelto** (2026-10-21): `django-cors-headers` es dependencia de producción, el middleware responde el preflight, `CORS_ALLOWED_ORIGINS` viene del entorno (sin `*`, vacío = ninguno) y no se permiten credenciales (la autenticación va en `Authorization`) |
 | D-9 | **Fijar imágenes a digest** | Fijar `postgres`, `redis` y `caddy` a un digest o a un parche exacto | Fijar a digest: el tag mayor deja entrar parches de seguridad sin control | ⬜ Abierto |
-| D-10 | **Los movimientos del ledger no traen importe ni moneda** | `GET /api/v1/ledger/transactions/` devuelve el tipo, la fecha, la descripción y la cuenta de destino, pero no el **importe** ni la **moneda** (el frontend los tiene que pedir en `GET /api/v1/reports/movements/`, que además pagina). ¿Se suman el importe y la moneda al listado de movimientos? | **Sí**: el historial de una billetera sin el importe es inservible y obliga al front a saltar a otro endpoint. El cambio es de **comportamiento** (agregar dos campos al serializer del listado) y no se hizo porque el frontend tiene que confirmar que no le rompe la paginación por cursor ni el formato de los importes (string decimal) |
-| D-11 | **Las posiciones de inversión no traen la moneda** | `GET /api/v1/investments/positions/` solo devuelve el `id` del producto: para saber la moneda hay que pedir el detalle (`product_detail`). ¿Se suma la moneda (y quizá el plazo y la tasa) al listado? | **Sí**, por el mismo motivo: el listado de posiciones es una pantalla del front y sin la moneda no se puede mostrar el importe. El detalle ya trae `product_detail` ✓, así que la opción menos invasiva es sumar `currency` (y no más) al listado |
-| D-12 | **`GET /api/v1/kyc/` responde el body vacío, no `null`** | Sin verificación el endpoint responde 200 con el body **vacío** (no la cadena `null`). El esquema ya lo declara nullable ✓ y el frontend lo lee como null ✓, así que no hay nada roto: alcanza con corregir la tabla del contrato | **Ninguna decisión**: es una aclaración del contrato (`docs/backend-contract.md` dice `null`; la API responde vacío). Lo que sí se puede decidir es si la API debería responder `null` explícito para que los dos clientes coincidan: **cambiarlo sería tocar el comportamiento** ✗, así que quedó como está |
+| D-10 | **Los movimientos del ledger no traen importe ni moneda** | `GET /api/v1/ledger/transactions/` devolvía el tipo, la fecha, la descripción y la cuenta de destino, pero no el **importe** ni la **moneda**. | ✅ **Resuelto** (2026-10-22): el listado suma `amount` y `currency` (solo lectura, aditivo ✓). El importe es el de la **pata que toca la cuenta del usuario, con su signo** (un crédito suma y un débito resta ✓) y la moneda es la de esa pata ✓; un movimiento nunca mezcla monedas ni toca dos billeteras del mismo usuario ✓, así que el criterio es inequívoco ✓ (ADR 0008 ✓). Sale de los asientos que el listado ya precarga ✓: sin N+1 ✓. El detalle del movimiento no cambia ✓ |
+| D-11 | **Las posiciones de inversión no traen la moneda** | `GET /api/v1/investments/positions/` solo devolvía el `id` del producto. | ✅ **Resuelto** (2026-10-22): el listado suma `currency` (solo lectura, aditivo ✓), la del producto ✓; viene del `select_related` que el listado ya hacía ✓ (sin N+1 ✓). El detalle no cambia ✓ |
+| D-12 | **`GET /api/v1/kyc/` responde el body vacío, no `null`** | Sin verificación el endpoint responde 200 con el body **vacío** (no la cadena `null`). | ✅ **Resuelto** (2026-10-22): **el comportamiento no se cambió** ✓ (era una decisión del cliente ✓); lo que se corrigió es el **esquema** ✓: la descripción del 200 dice que el body viene vacío ✓ y el test de contrato lo comprueba contra la API real ✓ |
 
 Además, el desarrollador autorizó el **`check --deploy` en la CI** (B-5): la CI
 corre `manage.py check --deploy --fail-level WARNING` con los settings de

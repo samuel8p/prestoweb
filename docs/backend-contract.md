@@ -9,6 +9,13 @@ El esquema y la API real coinciden en las formas de los datos, pero el esquema
 diferencias, verificada contra el backend corriendo (`http://127.0.0.1:8000`).
 El frontend está construido contra esta realidad, no contra una suposición.
 
+> **Actualización (2026-10-22):** el backend corrigió el esquema (paginación
+> real, el header `Idempotency-Key`, los parámetros y el CSV de los reportes,
+> los errores de cada operación, el KYC nullable y la cabecera `X-Presto-Mode`)
+> y agregó dos campos de solo lectura a dos listados (el importe y la moneda de
+> los movimientos, la moneda de las posiciones). Lo que queda en este documento
+> son los **puntos donde el front tiene que confirmar** lo que se cambió.
+
 ## 1. Autenticación
 
 |          |                                                                                                |
@@ -66,21 +73,29 @@ seguir la URL, no armar el query string a mano.
 pags igual que a los demás y devuelve `{ count, next, previous, results }`. El
 frontend lo trata como una lista paginada.
 
-### 3.b Lo que el esquema no dice de los datos
+### 3.b Los datos de los listados
 
 Verificado contra la API corriendo:
 
-- `GET /api/v1/ledger/transactions/` **no devuelve el importe ni la moneda**:
-  solo el tipo, la fecha, la descripción y la cuenta de destino. El importe y
-  la marca de revertido están en `GET /api/v1/reports/movements/` (que además
-  pagina y filtra por moneda y rango). Por eso el historial de movimientos de
-  la app usa ese endpoint.
-- `GET /api/v1/investments/positions/` **no devuelve la moneda** de la posición:
-  solo el `id` del producto. Para saber en qué moneda está hay que pedir
-  `GET /api/v1/investments/positions/{id}/`, que trae `product_detail` con la
-  moneda, el plazo y la tasa.
-- `GET /api/v1/kyc/` devuelve **`null`** cuando el usuario todavía no pidió la
-  verificación (el esquema no lo declara nullable).
+- `GET /api/v1/ledger/transactions/` devuelve, por movimiento, el **importe** y
+  la **moneda** (campos nuevos, de solo lectura; el detalle del movimiento no
+  cambia).
+  - El **importe es el de la billetera del usuario, con su signo**: un crédito
+    suma (entró dinero) y un débito resta (salió). Un depósito de 1000 ARS
+    aparece como `"1000.00"` y un retiro de 250,50 ARS como `"-250.50"`.
+  - Es **relativo al usuario que pregunta**: el emisor de una transferencia ve
+    `-700.00` y el receptor `700.00`.
+  - No es lo mismo que el importe del reporte de movimientos
+    (`GET /api/v1/reports/movements/`), que es el total del movimiento sin
+    signo y trae `is_reversed`.
+  - La moneda es la del movimiento (un movimiento nunca mezcla monedas).
+- `GET /api/v1/investments/positions/` devuelve, por posición, la **moneda**
+  del producto (campo nuevo, de solo lectura; el detalle no cambia). Con el
+  detalle (`GET /api/v1/investments/positions/{id}/`) sigue estando
+  `product_detail` con el plazo y la tasa.
+- `GET /api/v1/kyc/` responde el body **vacío** (no la cadena `null`) cuando el
+  usuario todavía no pidió la verificación. El esquema lo declara nullable y lo
+  dice en la descripción.
 
 ## 4. Errores
 
@@ -107,13 +122,17 @@ Formato único (AGENTS §8 del backend):
 | `permission_denied`    | 403   | sin permiso; **también** es el código del KYC no aprobado  |
 | `not_found`            | 404   | el recurso no existe o no es del usuario                   |
 | `method_not_allowed`   | 405   | método HTTP incorrecto                                     |
-| `conflict`             | 409   | conflicto genérico (por ejemplo, un presupuesto duplicado) |
+| `conflict`             | 409   | conflicto genérico (el que queda cuando el error no trae código propio) |
 | `idempotency_conflict` | 409   | misma clave de idempotencia con otro payload               |
 | `throttled`            | 429   | demasiados intentos                                        |
 | `api_error`            | otros | error no clasificado                                       |
 
 El KYC se distingue por el mensaje: `"Necesitás completar la verificación KYC
 para realizar esta operación."`.
+
+Los 409 con código propio son `duplicate_category` (una categoría o un
+presupuesto repetido) e `idempotency_conflict` (la misma clave de idempotencia
+con otro payload).
 
 ## 5. Modo demo
 

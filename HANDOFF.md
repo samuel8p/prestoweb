@@ -216,10 +216,14 @@ Apps existentes: `core`, `identity`, `ledger`, `offers`, `matching`, `loans`,
 
 Los commits anteriores de este mismo `HANDOFF.md` están listados; este commit no
 puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
-**157**).
+**161**).
 
 | Commit | Asunto |
 |---|---|
+| `eac2451` | fix(schema): declare the empty body of the kyc status |
+| `e5ce13e` | feat(investments): add the currency to the positions list |
+| `2a9cede` | feat(ledger): add the amount and the currency to the movements list |
+| `bc4cd23` | docs: close the openapi contract corrections |
 | `4eee318` | fix(schema): declare the demo mode header |
 | `8dfc81a` | fix(schema): declare the error responses and the nullable kyc |
 | `cb20141` | fix(schema): declare the parameters and the csv of the reports |
@@ -399,7 +403,7 @@ puede listarse a sí mismo (tras el push, `git log --oneline | wc -l` da
 | **Autorizaciones del 2026-10-21** | ✅ completa | Los cuatro puntos autorizados: el registro de la §17 de `AGENTS.md` aplicado (solo el changelog), `pip-audit` como dependencia de desarrollo con su puerta en la CI, `manage.py check --deploy` con los settings de producción en la CI y el `CheckConstraint` de moneda (`ARS`/`USD`) en `ledger.Account` y `ledger.LedgerEntry` con su migración. |
 | **Bloque 7 — despliegue en Northflank (plan gratuito)** | ✅ completa | La misma imagen sirve para el web y el worker (comando `web` / `worker` vía el entrypoint), conexión por URL a las bases administradas (parseo propio con la stdlib y `DB_SSLMODE`), beat embebido opcional (`CELERY_EMBED_BEAT`), migraciones al arrancar (`RUN_MIGRATIONS`), health check que responde antes de validar el `Host`, estáticos del admin con whitenoise y la guía `docs/deploy-northflank.md`. |
 | **Bloque 8 — el esquema OpenAPI describe la API real** | ✅ completa | El frontend mandó sus diferencias (`docs/backend-contract.md`) y el esquema quedó corregido: la paginación real de cada listado, el header `Idempotency-Key`, los parámetros y el CSV de los reportes, los errores de cada operación, el KYC nullable y la cabecera `X-Presto-Mode`. Un test de contrato llama a la API real y compara cada respuesta con lo declarado. Los huecos de **comportamiento** (el importe de los movimientos y la moneda de las posiciones) quedaron en `docs/audit-final.md` §5 |
-
+| **Bloque 9 — los dos listados con los datos que faltaban** | ✅ completa | El listado de movimientos del ledger suma el **importe** (la pata del usuario, con su signo ✓, ADR 0008 ✓) y la **moneda** ✓, y el listado de posiciones suma la **moneda** del producto ✓. Los dos cambios son **aditivos** (solo lectura ✓, no se saca ni se renombra nada ✓) y no hacen N+1 ✓ (hay tests que lo comprueban ✓). El esquema regenerado ✓ y el test de contrato cubre los campos nuevos ✓ |
 ### 6.3 Funcionalidades implementadas (por app)
 
 - **`core`**: `BaseModel` (UUID + timestamps), `money.py` (`round_two`, `money`,
@@ -565,6 +569,8 @@ cambio de rationale) ya están registradas allí y no se repiten.
 | D56 | Los **estáticos los sirve la aplicación** con whitenoise | El admin del Django salía sin estilos en producción (404): no hay servidor de estáticos delante. La imagen los recolecta y whitenoise los sirve |
 | D57 | El **esquema se corrige con hooks** de drf-spectacular, sin tocar el comportamiento | La paginación real, los errores de cada operación, la respuesta CSV de los reportes, el KYC nullable y la cabecera `X-Presto-Mode` se declaran en `apps/core/hooks.py` y `apps/core/openapi.py`: el esquema describe lo que la API ya hace y ningún endpoint cambia. **Ojo**: definir `POSTPROCESSING_HOOKS` **reemplaza** la lista de drf-spectacular, así que la de por defecto (la de los enums) queda incluida a mano |
 | D58 | El **esquema versionado** es `docs/openapi.yaml` | El front lo consume de ahí y un test comprueba que es el mismo que genera el código: si alguien cambia la API y no lo regenera, la build falla |
+| D59 | El **importe del movimiento** es el de la pata del usuario, con su signo | Un movimiento tiene varias patas: la que toca la billetera del usuario dice cuánto entró o salió. El listado muestra ese número (con signo ✓) porque es el saldo de la billetera ✓; el reporte de movimientos sigue mostrando el total del movimiento (sin signo ✓). Son dos números distintos y no se mezclan (ADR 0008 ✓) |
+| D60 | Los dos listados **suman campos de solo lectura** (importe, moneda) | Es aditivo y retrocompatible ✓: el front puede leerlos sin romper nada ✓ y el backend no renombra ni saca ningún campo ✓ |
 
 ## 8. Problemas y resoluciones
 
@@ -832,6 +838,19 @@ docker compose run --rm web python manage.py spectacular \
 docker compose run --rm web python -m pytest tests/test_openapi_contract.py -v
 ```
 
+### Los dos listados con los datos que faltaban
+
+```sh
+# El listado de movimientos: el importe (con signo) y la moneda
+curl -s http://127.0.0.1:8000/api/v1/ledger/transactions/ -H "Authorization: Bearer $TOKEN"
+
+# El listado de posiciones: la moneda del producto
+curl -s http://127.0.0.1:8000/api/v1/investments/positions/ -H "Authorization: Bearer $TOKEN"
+```
+
+El criterio del importe (la pata de la billetera del usuario, con su signo) está
+en [ADR 0008](docs/adr/0008-importe-del-movimiento-en-el-listado.md) ✓.
+
 ### Despliegue en plataformas administradas
 
 La imagen es única: el **entrypoint** (`deploy/entrypoint.sh`) arma el comando
@@ -1018,12 +1037,10 @@ Orden real de lo que falta, de mayor a menor prioridad.
     `check --deploy` en la CI y el `CheckConstraint` de moneda del ledger
     (2026-10-21), el **CORS real** con `django-cors-headers` y los **estáticos
     del admin** con `whitenoise` (2026-10-22).
-12. **El contrato del frontend**: todo lo que era del **esquema** quedó
-    corregido ✓. Quedan tres temas de **comportamiento** sin implementar (el
-    importe y la moneda de los movimientos del ledger ✓, la moneda de las
-    posiciones de inversión ✓ y la respuesta vacía del KYC ✓): están en
-    `docs/audit-final.md` §5 (D-10, D-11 y D-12) con la recomendación, a la
-    espera de que el frontend confirme.
+12. **El contrato del frontend**: quedó todo resuelto ✓ (el esquema ✓ y los
+    dos listados ✓). Queda **confirmar con el front** el criterio del importe
+    con signo del listado de movimientos ✓ (ADR 0008 ✓) y que la moneda de las
+    posiciones alcanza ✓.
 13. **Northflank**: la guía está escrita y el entorno se simuló localmente ✓,
     pero **no se pudo comprobar la consola de la plataforma** (el plan, los
     límites, los backups del add-on, el panel de logs): todo eso está marcado
@@ -1266,3 +1283,4 @@ de Celery, que corren solas una vez por día desde el beat.
 | 2026-10-22 | **CORS + despliegue en Oracle Cloud (4 commits)**: `feat(core)` habilitó el CORS real con `django-cors-headers` (dependencia de producción, middleware primero en la pila, `CORS_ALLOWED_ORIGINS` desde el entorno sin `*` y sin credenciales, 8 tests nuevos); `docs(deploy)` verificó y documentó la compatibilidad **arm64** (las cuatro imágenes de producción publican `linux/arm64` y la imagen del proyecto compila para arm64); `chore(infra)` hizo configurable la concurrencia de producción (`GUNICORN_WORKERS` y `CELERY_WORKER_CONCURRENCY`, defaults 3 y 2, recomendados 2/2 para 6 GB y 4/4 para 12 GB, sin límites de memoria); `docs(deploy)` escribió la guía **Oracle Cloud (Ubuntu 24.04 ARM) + DuckDNS + Vercel** (Docker, swap opcional, el firewall interno de la VM con iptables, DuckDNS y `DOMAIN`, `.env.prod`, perfiles `proxy` y `backup`, superusuario y datos de demo, verificación con `curl`, actualización y restauración de backups). **672 tests pasan**. Verificado en runtime con el stack de producción y `DEMO_MODE=true`: `/health/` 200, `/api/v1/meta/` 200 `mode=demo`, preflight CORS 200 con el origen permitido, depósito simulado con la suma por moneda en 0.00 y el worker con `concurrency: 2`. |
 | 2026-10-22 | **Despliegue en Northflank (7 commits)**: `feat(core)` dejó el parseo de las URLs de conexión en la stdlib (`DATABASE_URL` y `REDIS_URL` con `DB_SSLMODE`, parseo propio y sin `dj-database-url`); `feat(deploy)` agregó el **entrypoint de la imagen** (roles `web` y `worker`, puerto `$PORT`, `RUN_MIGRATIONS`) y el **beat embebido** (`CELERY_EMBED_BEAT`, con la restricción de una sola réplica); `feat(core)` hizo que el **health check** se conteste antes de validar el `Host` (las plataformas lo llaman con la IP interna); `feat(core)` habilitó **whitenoise** para que el **admin cargue sus estilos** (antes 404, verificado con una petición real); `fix(deploy)` movió el archivo del schedule del beat al directorio que el contenedor puede escribir (lo encontró la simulación local); `chore`/`docs` actualizaron los recursos recomendados (1 y 1 para los planes gratuitos) y escribieron `docs/deploy-northflank.md`. **700 tests pasan**. Verificado con una simulación local del entorno (imagen única como web y como worker, base y redis de prueba, beat embebido): migraciones aplicadas, `/health/` 200 con el Host interno, el beat con el schedule del proyecto, el depósito simulado con la suma por moneda en 0.00 y el preflight CORS 200. **No verificado**: la consola de Northflank (el plan, los límites, los backups del add-on, los logs), marcado como "verificar en la UI" en la guía. |
 | 2026-10-22 | **El esquema OpenAPI describe la API real (6 commits)**: el frontend mandó sus diferencias (`docs/backend-contract.md`, versionado en `49054e8`) y el esquema se corrigió por grupos: la **paginación real** de cada listado (`{count, next, previous, results}` y `{next, previous, results}` por cursor, con `investments/products/` que antes se declaraba como array), el header **`Idempotency-Key`** obligatorio de las tres operaciones que mueven dinero, el **body del refresh**, los **parámetros y la respuesta CSV de los cuatro reportes**, los **errores de cada operación** (401, 403 `permission_denied` del KYC, 404, 409 y 400, con el formato de AGENTS §8), el **KYC nullable** y la cabecera **`X-Presto-Mode`**. Todo con hooks de drf-spectacular y serializers de documentación: **ningún endpoint cambió de comportamiento** ✓. La suite de contrato (`tests/test_openapi_contract.py`) llama a la API real y compara cada respuesta con lo declarado ✓, y un test comprueba que el `docs/openapi.yaml` versionado es el que genera el código ✓. Los tres huecos de **comportamiento** (el importe de los movimientos, la moneda de las posiciones y la respuesta vacía del KYC) quedaron en `docs/audit-final.md` §5 con la recomendación ✓. **755 tests pasan** |
+| 2026-10-22 | **Los dos listados con los datos que faltaban (3 commits)**: `feat(ledger)` agregó al listado de movimientos el **importe** (la pata de la billetera del usuario, con su signo: un crédito suma y un débito resta ✓) y la **moneda** ✓, y `feat(investments)` agregó al listado de posiciones la **moneda** del producto ✓. Los dos son **aditivos** (solo lectura ✓, sin quitar ni renombrar nada ✓), no tocan el schema, los triggers, la inmutabilidad ni la idempotencia del ledger ✓, y **no hacen N+1** ✓ (los movimientos usan los asientos que el listado ya precargaba ✓ y las posiciones el `select_related` del producto ✓; hay tests que comparan la cantidad de consultas ✓). El criterio del importe quedó documentado en el **ADR 0008** ✓. `fix(schema)` declaró en el esquema la respuesta **vacía** de `GET /api/v1/kyc/` (sin cambiar su comportamiento ✓). `docs/backend-contract.md` quedó actualizado para el front ✓ y `docs/audit-final.md` §5 marca D-10, D-11 y D-12 como resueltos ✓. **772 tests pasan** |
