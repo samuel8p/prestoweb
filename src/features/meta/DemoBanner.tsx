@@ -17,12 +17,12 @@ export function DemoBanner() {
   return (
     <div
       role="status"
-      className="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-[12px] font-medium text-amber-900"
+      className="flex items-center justify-center gap-2 border-b border-warning/20 bg-warning-bg px-4 py-1.5 text-center text-[12px] font-semibold text-warning"
     >
-      <Icon name="info" size={14} className="text-amber-600" />
+      <Icon name="info" size={14} />
       <span>
         Demo: el dinero es simulado
-        <span className="hidden font-normal text-amber-800 sm:inline">
+        <span className="hidden font-normal sm:inline">
           {' '}
           · los saldos y los movimientos son de prueba
         </span>
